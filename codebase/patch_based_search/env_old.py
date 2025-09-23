@@ -2,14 +2,16 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 from typing import Tuple, Dict
+import matplotlib.pyplot as plt
 
 class PathTraversalEnv(gym.Env):
-    metadata = {"render_modes": ["human"]}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
     def __init__(self, path_mask: np.ndarray, patch_size: int = 5,
                  start_on_path: bool = True,
                  max_steps_per_patch: int = 200,
-                 target_coverage: float = 0.9):
+                 target_coverage: float = 0.9, 
+                 render_mode: str = "human"):
         super().__init__()
         assert path_mask.dtype == np.uint8 or path_mask.dtype == bool
         self.path_mask = (path_mask > 0).astype(np.uint8)
@@ -19,7 +21,8 @@ class PathTraversalEnv(gym.Env):
         self.target_coverage = target_coverage
 
         # Global exploration state (0/1) aligned with path pixels only
-        self.explored_global = np.zeros_like(self.path_mask, dtype=np.uint8)
+        self.explored_path = np.zeros_like(self.path_mask, dtype=np.uint8)
+        self.global_path = np.zeros_like(self.path_mask, dtype=np.uint8)
         self.total_path_pixels = int(self.path_mask.sum())
 
         # Action space: 8 directions
@@ -47,6 +50,10 @@ class PathTraversalEnv(gym.Env):
         self.last_dead_end_position = (-1 ,-1)
         self.steps_in_patch = 0
         self.global_steps = 0
+        
+        self.render_mode = render_mode
+        if self.render_mode == "human":
+            self._fig_ax = None 
 
         # Optional: choose a random on-path start
         if start_on_path and self.total_path_pixels > 0:
@@ -57,7 +64,7 @@ class PathTraversalEnv(gym.Env):
 
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
-        self.explored_global.fill(0)
+        self.explored_path.fill(0)
         self.global_steps = 0
 
         # Place agent on seed of the L-system
@@ -71,10 +78,13 @@ class PathTraversalEnv(gym.Env):
             self.agent_xy = self.last_dead_end_position
             self._recenter_patch_to_include(self.agent_xy)
             self.steps_in_patch = 0
+        
+        if options["reset_global_mask"]:
+            self.global_path.fill(0)
 
         # Mark first visit if on path
         if self.path_mask[self.agent_xy[1], self.agent_xy[0]] == 1:
-            self.explored_global[self.agent_xy[1], self.agent_xy[0]] = 1
+            self.explored_path[self.agent_xy[1], self.agent_xy[0]] = 1
 
         return self._obs(), {}
 
@@ -97,6 +107,7 @@ class PathTraversalEnv(gym.Env):
             nx, ny = x, y  # no movement if it would leave the patch
 
         self.agent_xy = (nx, ny)
+        self.global_path[self.agent_xy[1], self.agent_xy[0]] = 1
 
         # Reward logic
         on_path = self.path_mask[ny, nx] == 1
@@ -104,21 +115,21 @@ class PathTraversalEnv(gym.Env):
         reward = 0.0
 
         if on_path:
-            if self.explored_global[ny, nx] == 0:
-                self.explored_global[ny, nx] = 1
+            if self.explored_path[ny, nx] == 0:
+                self.explored_path[ny, nx] = 1
                 reward = 1.0
                 first_time = True
             else:
                 reward = -0.5
         else:
-            reward = -1.0
+            reward = -10.0
 
         # Patch done?
         patch_done = self._patch_fully_explored() or (self.steps_in_patch >= self.max_steps_per_patch)
 
         # Global done?
-        coverage = self.coverage()
-        global_done = (coverage >= self.target_coverage)
+        ep_coverage, total_coverage = self.coverage()
+        global_done = (total_coverage >= self.target_coverage)
 
         terminated = global_done
         truncated = False
@@ -133,7 +144,7 @@ class PathTraversalEnv(gym.Env):
                 self.last_dead_end_position = self.agent_xy
                 dead_end = True
 
-        info = {"coverage": coverage}
+        info = {"episode_coverage": ep_coverage, "total_coverage": total_coverage}
         return self._obs(), float(reward), dead_end, terminated, truncated, info
 
     def _obs(self):
@@ -156,7 +167,7 @@ class PathTraversalEnv(gym.Env):
         patch_path = self.path_mask[y0:y1, x0:x1]
         if patch_path.sum() == 0:
             return True
-        patch_explored = self.explored_global[y0:y1, x0:x1]
+        patch_explored = self.explored_path[y0:y1, x0:x1]
         return int((patch_path & patch_explored).sum()) == int(patch_path.sum())
 
     def _advance_to_frontier_patch(self) -> bool:
@@ -173,7 +184,7 @@ class PathTraversalEnv(gym.Env):
                     continue
                 x1, y1 = min(x0 + self.patch_size, self.W), min(y0 + self.patch_size, self.H)
                 patch_path = self.path_mask[y0:y1, x0:x1]
-                patch_explored = self.explored_global[y0:y1, x0:x1]
+                patch_explored = self.explored_path[y0:y1, x0:x1]
                 unexplored_count = int(patch_path.sum()) - int((patch_path & patch_explored).sum())
                 if unexplored_count > 0:
                     # Heuristic: border contact score
@@ -193,7 +204,7 @@ class PathTraversalEnv(gym.Env):
         # Move agent to a path pixel inside the new patch that is adjacent to explored pixels if possible
         x0, y0, x1, y1 = self.curr_patch_bounds
         patch_path = self.path_mask[y0:y1, x0:x1]
-        patch_explored = self.explored_global[y0:y1, x0:x1]
+        patch_explored = self.explored_path[y0:y1, x0:x1]
         ys, xs = np.where((patch_path == 1) & (patch_explored == 1))
         if len(xs) == 0:
             ys2, xs2 = np.where(patch_path == 1)
@@ -210,7 +221,7 @@ class PathTraversalEnv(gym.Env):
         x0, y0, x1, y1 = bounds
         # Count path pixels on patch border that have been explored globally
         contact = 0
-        patch_explored = self.explored_global[y0:y1, x0:x1]
+        patch_explored = self.explored_path[y0:y1, x0:x1]
         patch_path = self.path_mask[y0:y1, x0:x1]
         border = np.zeros_like(patch_path, dtype=bool)
         if (y1 - y0) > 0 and (x1 - x0) > 0:
@@ -221,10 +232,46 @@ class PathTraversalEnv(gym.Env):
         return int(((patch_path == 1) & (patch_explored == 1) & border).sum())
 
     def coverage(self) -> float:
-        explored = int((self.explored_global & self.path_mask).sum())
-        return explored / max(1, self.total_path_pixels)
+        episode_explored_path = int((self.explored_path & self.path_mask).sum()) / max(1, self.total_path_pixels)
+        total_explored_path = int((self.global_path & self.path_mask).sum()) / max(1, self.total_path_pixels)
+        return episode_explored_path, total_explored_path
+
+    def _get_frame(self) -> np.ndarray:
+        """
+        Image for visualization:
+          - background black
+          - path light gray
+          - visited green
+          - agent red
+        """
+        img = np.zeros((self.H, self.W, 3), dtype=np.uint8)
+        # path_mask = (path_mask == 1)
+        img[self.path_mask == 1] = (200, 200, 200)  # light gray
+        visited_mask = (self.explored_path == 1)
+        img[visited_mask] = (30, 180, 80)  # green
+        global_path = (self.global_path == 1)
+        img[global_path & ~visited_mask] = (65,105,225)  # royal blue
+        x, y = self.agent_xy
+        img[y, x] = (220, 40, 40)  # agent red
+        return img
 
     def render(self):
         # Simple ASCII or debug prints; replace with visualization as needed
-        cov = self.coverage()
-        print(f"Coverage: {cov:.3f}, Patch: {self.curr_patch_idx}, Agent: {self.agent_xy}")
+        ep_cov, global_cov = self.coverage()
+        frame = self._get_frame()
+        if self.render_mode == "rgb_array":
+            return frame
+        elif self.render_mode == "human":
+            # Lazy import to avoid hard dependency when not needed
+            if self._fig_ax is None:
+                fig, ax = plt.subplots(1, 1, figsize=(15, 15))
+                self._fig_ax = (fig, ax)
+            fig, ax = self._fig_ax
+            ax.clear()
+            ax.imshow(frame, origin="upper")
+            ax.set_xticks([]); ax.set_yticks([])
+            ax.set_title(f"Coverage: {ep_cov*100:.1f}%")
+            fig.canvas.draw_idle()
+            plt.pause(0.001)
+        else:
+            raise NotImplementedError(f"Render mode {self.render_mode} not implemented.")
