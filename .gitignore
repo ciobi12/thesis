@@ -2,3 +2,5 @@
 *.npy
 *.png
 *.jpg
+
+.thesis/*
