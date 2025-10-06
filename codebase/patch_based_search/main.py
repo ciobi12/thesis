@@ -14,7 +14,7 @@ def get_highest_avg_q_pixel(Q_table, patch_size):
     return (x, y)
 
 def train(env: PathTraversalEnv, lsys_iter = 2, episodes=100):
-    agent = PatchQLearner(patch_size=env.patch_size, eps_start = 0.8, eps_min = 0.1, eps_decay=0.999)
+    agent = PatchQLearner(patch_size=env.patch_size, eps_start = 0.2, eps_min = 0.01, eps_decay=0.999)
     rewards = []
     options = {"start_from_seed": True, "reset_global_mask": False}
     dead_end = False
@@ -79,6 +79,7 @@ if __name__ == "__main__":
     segments = lsys_obj.build_l_sys(iterations = iterations, step = step, angle_deg = angle)
     # lsys_obj.draw_lsystem()
     mask = lsys_obj.build_mask(canvas_size=(256, 256))
+    print(np.unique(mask))
     env = PathTraversalEnv(path_mask=mask, 
                            patch_size = 5, 
                            target_coverage=0.95, 
