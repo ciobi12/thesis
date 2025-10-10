@@ -13,12 +13,13 @@ def visualize_result(env, save_dir: str = None, ep: int = 0) -> None:
     axs[0].axis("off")
 
     axs[1].imshow(env.output, cmap="gray")
-    axs[1].set_title("Agent's Output")
+    axs[1].set_title(f"Coverage: {env.coverage()*100:.3f}%")
     axs[1].axis("off")
+    fig.suptitle('Episode {}'.format(ep))
 
-    
     if save_dir:
         plt.savefig(os.path.join(save_dir, f"{ep}.png"))
+        plt.close()
         
 
 def get_Q(Q, state):
@@ -36,31 +37,30 @@ lsys_obj = LSystemGenerator(axiom = "X",
                                          }
                                 )
     
-iterations = 2
+iterations = 3
 angle = 22.5
 step = 5
 segments = lsys_obj.build_l_sys(iterations = iterations, step = step, angle_deg = angle)
 # lsys_obj.draw_lsystem()
-mask = lsys_obj.build_mask(canvas_size=(100, 256))
-
-env = PixelPathEnv(mask)
-
-# # Random policy simulation
-
-# obs = env.reset()
-# done = False
-# while not done:
-#     action = env.action_space.sample() 
-#     obs, reward, done, _ = env.step(action)
+mask = lsys_obj.build_mask(canvas_size=(192, 256))
+print(np.unique(mask))
+env = PixelPathEnv(mask, render_mode="array")
 
 # Hyperparameters
-alpha = 0.1       # learning rate
-gamma = 0.95       # discount factor
-epsilon = 0.01     # exploration rate
+alpha = 0.2    # learning rate
+gamma = 0.9      
+eps_start = 0.2
+eps_min = 0.001     
+eps_decay = 0.95
 episodes = 200
 
 # Q-table as dictionary: Q[state][action]
 Q = {}
+
+rewards = []
+epsilons = []
+coverages = []
+eps = eps_start
 
 for ep in range(episodes):
     state = env.reset()
@@ -69,22 +69,46 @@ for ep in range(episodes):
 
     while not done:
         q_values = get_Q(Q, state)
-        if random.random() < epsilon:
-            action = random.choice([0,1])
+        if random.random() < eps:
+            action = random.choice([0, 1])
         else:
             action = np.argmax(q_values)
 
         next_state, reward, done, info = env.step(action)
-        total_reward += reward
+        total_reward += reward / 255
 
         if not done:
             next_q = get_Q(Q, next_state)
             q_values[action] += alpha * (reward + gamma * max(next_q) - q_values[action])
         else:
             q_values[action] += alpha * (reward - q_values[action])
+            eps = max(eps_min, eps * eps_decay)
 
         state = next_state
 
-    if ep % 10 == 0:
-        print(f"Episode {ep}, total reward = {total_reward}")
-        visualize_result(env, "row_based_search/episodes_results/lsys_2it", ep)
+    coverage = env.coverage()
+    rewards.append(total_reward)
+    epsilons.append(eps)
+    coverages.append(coverage*100)
+
+
+    if ep % 25 == 0:
+        print(f"Episode {ep}, total reward = {total_reward}, eps = {eps:.3f}")
+        visualize_result(env, f"row_based_search/episodes_results/lsys_{iterations}it", ep)
+
+
+plt.subplot(3,1,1)
+plt.plot(range(episodes), rewards)
+plt.title("Rewards")
+plt.grid(True)
+plt.subplot(3,1,2)
+plt.plot(range(episodes), epsilons, color='orange', linestyle='dashed')
+plt.title("Epsilon")
+plt.grid(True)
+plt.subplot(3,1,3)
+plt.plot(range(episodes), coverages, color='red')
+plt.title("Path Coverage")
+plt.ylabel("Coverage (%)")
+plt.grid(True)
+plt.savefig(f"{os.getcwd()}/row_based_search/episodes_results/lsys_{iterations}it/results.png")
+plt.show()

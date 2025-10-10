@@ -167,52 +167,6 @@ class PathTraversalEnv(gym.Env):
             return True
         patch_explored = self.explored_path[y0:y1, x0:x1]
         return int((patch_path & patch_explored).sum()) == int(patch_path.sum())
-
-    # def _advance_to_frontier_patch(self) -> bool:
-    #     # Find neighboring patches with unexplored path pixels
-    #     px, py = self.curr_patch_idx
-    #     candidates = []
-    #     for dy in [-1, 0, 1]:
-    #         for dx in [-1, 0, 1]:
-    #             if dx == 0 and dy == 0:
-    #                 continue
-    #             npx, npy = px + dx, py + dy
-    #             x0, y0 = npx * self.patch_size, npy * self.patch_size
-    #             if x0 >= self.W or y0 >= self.H or x0 < 0 or y0 < 0:
-    #                 continue
-    #             x1, y1 = min(x0 + self.patch_size, self.W), min(y0 + self.patch_size, self.H)
-    #             patch_path = self.path_mask[y0:y1, x0:x1]
-    #             patch_explored = self.explored_path[y0:y1, x0:x1]
-    #             unexplored_count = int(patch_path.sum()) - int((patch_path & patch_explored).sum())
-    #             if unexplored_count > 0:
-    #                 contact = self._border_contact_score((x0, y0, x1, y1))
-    #                 candidates.append(((npx, npy), (x0, y0, x1, y1), contact, unexplored_count))
-
-    #     if not candidates:
-    #         return False
-
-    #     # Pick best by contact, then by unexplored_count
-    #     candidates.sort(key=lambda c: (c[2], c[3]), reverse=True)
-    #     (_, _bounds, _, _) = candidates[0]
-    #     self.curr_patch_bounds = _bounds
-    #     self.curr_patch_idx = (self.curr_patch_bounds[0] // self.patch_size,
-    #                            self.curr_patch_bounds[1] // self.patch_size)
-
-    #     # Move agent to a path pixel inside the new patch that is adjacent to explored pixels if possible
-    #     x0, y0, x1, y1 = self.curr_patch_bounds
-    #     patch_path = self.path_mask[y0:y1, x0:x1]
-    #     patch_explored = self.explored_path[y0:y1, x0:x1]
-    #     ys, xs = np.where((patch_path == 1) & (patch_explored == 1))
-    #     if len(xs) == 0:
-    #         ys2, xs2 = np.where(patch_path == 1)
-    #         if len(xs2) == 0:
-    #             return False
-    #         idx = np.random.randint(len(xs2))
-    #         self.agent_xy = (x0 + int(xs2[idx]), y0 + int(ys2[idx]))
-    #     else:
-    #         idx = np.random.randint(len(xs))
-    #         self.agent_xy = (x0 + int(xs[idx]), y0 + int(ys[idx]))
-    #     return True
     
     def _advance_to_frontier_patch(self) -> bool:
         """
@@ -261,20 +215,6 @@ class PathTraversalEnv(gym.Env):
             self.agent_xy = (x0 + int(xs[idx]), y0 + int(ys[idx]))
 
         return True
-
-    def _border_contact_score(self, bounds) -> int:
-        x0, y0, x1, y1 = bounds
-        # Count path pixels on patch border that have been explored globally
-        contact = 0
-        patch_explored = self.explored_path[y0:y1, x0:x1]
-        patch_path = self.path_mask[y0:y1, x0:x1]
-        border = np.zeros_like(patch_path, dtype=bool)
-        if (y1 - y0) > 0 and (x1 - x0) > 0:
-            border[0, :] = True
-            border[-1, :] = True
-            border[:, 0] = True
-            border[:, -1] = True
-        return int(((patch_path == 1) & (patch_explored == 1) & border).sum())
 
     def coverage(self) -> float:
         episode_explored_path = int((self.explored_path & self.path_mask).sum()) / max(1, self.total_path_pixels)
