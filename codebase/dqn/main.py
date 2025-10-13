@@ -87,7 +87,7 @@ for ep in range(EPISODES):
             q = inter(s_pg.squeeze().float(), s_cc.squeeze().float()).gather(1, a_i.view(-1,1)).squeeze(1)
             with torch.no_grad():
                 q_next = inter(n_pg.squeeze().float(), n_cc.squeeze().float())
-                print(q_next.shape, n_mask.shape)
+                # print(q_next.shape, n_mask.shape)
                 a_star = masked_argmax(q_next, n_mask).view(-1,1)
                 q_tgt = inter_tgt(n_pg.squeeze().float(), n_cc.squeeze().float()).gather(1, a_star).squeeze(1)
                 y = r_i + (1 - d_i) * 0.99 * q_tgt

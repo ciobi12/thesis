@@ -16,7 +16,7 @@ class PathTraversalEnv(gym.Env):
         super().__init__()
         assert path_mask.dtype == np.uint8 or path_mask.dtype == bool
         self.path_mask = (path_mask > 0).astype(np.uint8)
-        print(self.path_mask.sum())
+        # print(self.path_mask.sum())
         self.H, self.W = self.path_mask.shape
         self.patch_size = patch_size
         self.max_steps_per_patch = max_steps_per_patch
@@ -74,7 +74,7 @@ class PathTraversalEnv(gym.Env):
         ax, ay = self.agent_xy
         if y0 <= ay < y1 and x0 <= ax < x1:
             agent[ay - y0, ax - x0] = 1.0
-        # shape [C, H, W]
+        # shape [3, H, W]
         return np.stack([patch_path, patch_explored, agent], axis=0)
     
     def frontier_candidates(self, K: int = 8):
