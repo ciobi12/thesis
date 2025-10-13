@@ -6,6 +6,8 @@ import random
 from row_based_search.env import PixelPathEnv
 from l_systems import LSystemGenerator
 
+from time import perf_counter
+
 def visualize_result(env, save_dir: str = None, ep: int = 0) -> None:
     fig, axs = plt.subplots(1, 2, figsize=(8,4))
     axs[0].imshow(env.image, cmap="gray")
@@ -62,6 +64,7 @@ epsilons = []
 coverages = []
 eps = eps_start
 
+start = perf_counter()
 for ep in range(episodes):
     state = env.reset()
     done = False
@@ -95,20 +98,27 @@ for ep in range(episodes):
     if ep % 25 == 0:
         print(f"Episode {ep}, total reward = {total_reward}, eps = {eps:.3f}")
         visualize_result(env, f"row_based_search/episodes_results/lsys_{iterations}it", ep)
+    if coverage >= 0.995:
+        print(f"Reached target coverage in episode {ep}!")
+        visualize_result(env, f"row_based_search/episodes_results/lsys_{iterations}it", ep)
+        break  
+end = perf_counter()
+print(f"Training completed in {end - start:.2f} seconds.")
 
 
-plt.subplot(3,1,1)
-plt.plot(range(episodes), rewards)
-plt.title("Rewards")
-plt.grid(True)
-plt.subplot(3,1,2)
-plt.plot(range(episodes), epsilons, color='orange', linestyle='dashed')
-plt.title("Epsilon")
-plt.grid(True)
-plt.subplot(3,1,3)
-plt.plot(range(episodes), coverages, color='red')
-plt.title("Path Coverage")
-plt.ylabel("Coverage (%)")
-plt.grid(True)
-plt.savefig(f"{os.getcwd()}/row_based_search/episodes_results/lsys_{iterations}it/results.png")
-plt.show()
+
+# plt.subplot(3,1,1)
+# plt.plot(range(episodes), rewards)
+# plt.title("Rewards")
+# plt.grid(True)
+# plt.subplot(3,1,2)
+# plt.plot(range(episodes), epsilons, color='orange', linestyle='dashed')
+# plt.title("Epsilon")
+# plt.grid(True)
+# plt.subplot(3,1,3)
+# plt.plot(range(episodes), coverages, color='red')
+# plt.title("Path Coverage")
+# plt.ylabel("Coverage (%)")
+# plt.grid(True)
+# plt.savefig(f"{os.getcwd()}/row_based_search/episodes_results/lsys_{iterations}it/results.png")
+# plt.show()

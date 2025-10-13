@@ -5,6 +5,7 @@ from l_systems import LSystemGenerator
 import numpy as np
 from PIL import Image
 from matplotlib import pyplot as plt
+from time import perf_counter
 import os
 
 def get_highest_avg_q_pixel(Q_table, patch_size):
@@ -66,7 +67,7 @@ def train(env: PathTraversalEnv, agent: PatchQLearner, lsys_iter = 2, episodes=1
             fig, ax = plt.subplots(1, 1, figsize=(6, 10))
             ax.imshow(frame, origin="upper")
             ax.set_xticks([]); ax.set_yticks([])
-            ax.set_title(f"Coverage: {ep_coverage:.2f}%")
+            ax.set_title(f"Episode: {ep + 1}, Coverage: {ep_coverage:.2f}%")
             plt.savefig(f"{os.getcwd()}/patch_based_search/episodes_results/lsys_{lsys_iter}it/ep_{ep+1}_total_coverage_{ep_coverage:.2f}.png")
             plt.close()
             if terminated:
@@ -81,7 +82,7 @@ if __name__ == "__main__":
                                          }
                                 )
     
-    iterations = 2
+    iterations = 3
     angle = 22.5
     step = 5
 
@@ -91,12 +92,16 @@ if __name__ == "__main__":
     # print(np.unique(mask))
     env = PathTraversalEnv(path_mask=mask, 
                            patch_size = 3, 
-                           target_coverage=0.99, 
+                           target_coverage=0.95, 
                            render_mode = "rgb_array")
     
     episodes = 200
     agent = PatchQLearner(patch_size=env.patch_size, alpha=0.2, gamma=0.9, eps_start = 0.2, eps_min = 0.001, eps_decay=0.95)
+    start = perf_counter()
     trained_agent, epsilons, rewards, path_coverage, terminal_ep = train(env, agent, lsys_iter = iterations, episodes = episodes)
+    end = perf_counter()
+    print(f"Training completed in {end - start:.2f} seconds over {terminal_ep+1} episodes.")
+
     plt.subplot(3,1,1)
     plt.plot(range(terminal_ep+1), rewards)
     plt.title("Rewards")
