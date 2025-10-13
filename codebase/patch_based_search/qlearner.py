@@ -4,7 +4,7 @@ from typing import Tuple, Dict
 import numpy as np
 
 class PatchQLearner:
-    def __init__(self, patch_size=5, n_actions=8, alpha=0.2, gamma=0.95, eps_start=0.2, eps_min=0.01, eps_decay=0.999):
+    def __init__(self, patch_size=5, n_actions=8, alpha=0.2, gamma=0.95, eps_start=0.3, eps_min=0.01, eps_decay=0.99):
         self.P = patch_size
         self.A = n_actions
         self.alpha = alpha
@@ -29,4 +29,5 @@ class PatchQLearner:
         best_next = 0.0 if done else float(np.max(q[s_next]))
         td = r + self.gamma * best_next - q[s, a]
         q[s, a] += self.alpha * td
-        self.eps = max(self.eps_min, self.eps * self.eps_decay)
+        if done:
+            self.eps = max(self.eps_min, self.eps * self.eps_decay)
