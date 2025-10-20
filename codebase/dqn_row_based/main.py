@@ -21,8 +21,8 @@ def train_dqn_on_images(
     gamma=0.95,
     lr=1e-3,
     target_update_every=500,  # steps
-    start_epsilon=1.0,
-    end_epsilon=0.05,
+    start_epsilon=0.5,
+    end_epsilon=0.01,
     epsilon_decay_steps=5000,
     continuity_coef=0.1,
     seed=42,
@@ -188,29 +188,31 @@ if __name__ == "__main__":
                                          }
                                 )
     
-    iterations = 2
+    iterations = 4
     angle = 22.5
     step = 5
     segments = lsys_obj.build_l_sys(iterations = iterations, step = step, angle_deg = angle)
     # lsys_obj.draw_lsystem()
-    mask = lsys_obj.build_mask(canvas_size=(64, 128))
+    mask = lsys_obj.build_mask(canvas_size=(128, 256))
     
     results = train_dqn_on_images(
         [mask],
         num_epochs=20,
         continuity_coef=0.1,
         seed=123,
-        start_epsilon=0.2
+        start_epsilon=0.5
     )
     pred = reconstruct_image(results["policy_net"], mask)
     visualize_result(mask, pred, save_dir=None)
-
-    iterations = 4
-    angle = 22.5
-    step = 5
-    segments = lsys_obj.build_l_sys(iterations = 4, step = step, angle_deg = angle)
+    
+    lsys_obj = LSystemGenerator(axiom = "X",
+                                rules = {"X": "F[-X][X]F[-X]+FX",
+                                         "F": "FF"
+                                         }
+                                )
+    segments = lsys_obj.build_l_sys(iterations = 3, step = step, angle_deg = angle)
     # lsys_obj.draw_lsystem()
-    mask_new = lsys_obj.build_mask(canvas_size=(64, 64))
+    mask_new = lsys_obj.build_mask(canvas_size=(128, 256))
 
     pred = reconstruct_image(results["policy_net"], mask_new)
 
