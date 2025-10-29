@@ -22,7 +22,7 @@ def train_dqn_on_images(
     lr=1e-3,
     target_update_every=500,
     start_epsilon=1.0,
-    end_epsilon=0.05,
+    end_epsilon=0.01,
     epsilon_decay_steps=5000,
     continuity_coef=0.1,
     seed=42,
@@ -145,19 +145,19 @@ def train_dqn_on_images(
         "losses": losses,
     }
 
-def reconstruct_image(policy_net, image, device=None):
+def reconstruct_image(policy_net, image, mask, device=None):
     device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-    env = PathReconstructionEnv(image, image, continuity_coef=0.1, start_from_bottom=True)
+    env = PathReconstructionEnv(image, mask, continuity_coef=0.1, start_from_bottom=True)
     obs, _ = env.reset()
 
-    pred = np.zeros_like(image, dtype=np.uint8)
+    pred = np.random.randn(image.shape[0], image.shape[1])
     row_ptr = 0  # env returns rows bottom-to-top
 
     done = False
     while not done:
         x = obs_to_tensor(obs, device)
         with torch.no_grad():
-            q = policy_net(x).squeeze(0)  # (W, 2)
+            q = policy_net(x)  # (W, 2)
             a = q.argmax(dim=-1).cpu().numpy()  # (W,)
         next_obs, reward, terminated, truncated, info = env.step(a)
         # Map current row index to image coordinate
@@ -167,6 +167,48 @@ def reconstruct_image(policy_net, image, device=None):
         obs = next_obs
         done = terminated or truncated
     return pred
+
+# def reconstruct_image(policy_net, image, device=None):
+#     """
+#     Reconstructs the path mask from a non-binary image using a trained CNN-based DQN.
+
+#     Args:
+#         policy_net: trained PerPixelCNN model.
+#         image: np.ndarray of shape (H, W) or (H, W, C), float or uint8.
+#         device: torch device ('cuda' or 'cpu').
+
+#     Returns:
+#         pred_mask: np.ndarray of shape (H, W), dtype=np.uint8, values in {0, 1}.
+#     """
+#     device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+#     image = image.astype(np.float32)
+#     if image.max() > 1.0:
+#         image /= 255.0  # normalize if needed
+
+#     H, W = image.shape[:2]
+#     C = 1 if image.ndim == 2 else image.shape[2]
+#     pred_mask = np.zeros((H, W), dtype=np.uint8)
+
+#     prev_pred = np.zeros((W,), dtype=np.float32)
+
+#     for row_idx in reversed(range(H)):  # bottom to top
+#         row_pixels = image[row_idx]  # shape (W,) or (W, C)
+#         if C == 1:
+#             row_pixels = row_pixels.reshape(W, 1)
+
+#         obs = {
+#             "row_pixels": torch.tensor(row_pixels, dtype=torch.float32, device=device),
+#             "prev_pred": torch.tensor(prev_pred, dtype=torch.float32, device=device),
+#             "row_index": torch.tensor([(row_idx + 1) / H], dtype=torch.float32, device=device),
+#         }
+
+#         with torch.no_grad():
+#             q = policy_net(obs)  # (W, 2)
+#             a = q.argmax(dim=-1).cpu().numpy()  # (W,)
+#             pred_mask[row_idx] = a.astype(np.uint8)
+#             prev_pred = a.astype(np.float32)
+
+#     return pred_mask
 
 def visualize_result(img, mask, pred, save_dir: str = None) -> None:
     fig, axs = plt.subplots(1, 3, figsize=(12, 6))
@@ -192,26 +234,32 @@ if __name__ == "__main__":
     val_data_dir = os.path.join("data", "val")
     train_imgs = []
     train_masks = []
-    for file in os.listdir(train_data_dir):
+    for file in sorted(os.listdir(train_data_dir)):
         obj = cv2.imread(os.path.join(train_data_dir, file), cv2.IMREAD_GRAYSCALE)
         if "mask" in file:
             train_masks.append(obj)
         else:
             train_imgs.append(obj)
-
     
     results = train_dqn_on_images(
         list(zip(train_imgs, train_masks)),
-        num_epochs=20,
-        continuity_coef=0.1,
-        seed=123,
-        start_epsilon=0.5
+        num_epochs = 10,
+        continuity_coef = 0.2,
+        seed = 123,
+        start_epsilon = 1,
+        end_epsilon=0.01,
+        epsilon_decay_steps=10e3
     )
+
     img_test = cv2.imread(os.path.join(val_data_dir, "tree_1.png"), cv2.IMREAD_GRAYSCALE)
     mask_test = cv2.imread(os.path.join(val_data_dir, "tree_1_mask.png"), cv2.IMREAD_GRAYSCALE)
 
-    pred = reconstruct_image(results["policy_net"], img_test)
+    pred = reconstruct_image(results["policy_net"], img_test, mask_test)
+    # pred = reconstruct_image(results["policy_net"], train_imgs[0], train_masks[0])
+
+    print(np.unique(pred))
     visualize_result(img_test, mask_test, pred, save_dir = "dqn_row_based")
+    # visualize_result(train_imgs[0], train_masks[0], pred, save_dir = "dqn_row_based")
 
     plt.subplot(3,1,1)
     plt.plot(results["returns"])
