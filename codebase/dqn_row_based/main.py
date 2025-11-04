@@ -145,9 +145,9 @@ def train_dqn_on_images(
         "losses": losses,
     }
 
-def reconstruct_image(policy_net, image, mask, device=None):
-    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-    env = PathReconstructionEnv(image, mask, continuity_coef=0.1, start_from_bottom=True)
+def reconstruct_image(policy_net, image, mask):
+    device = "cpu"
+    env = PathReconstructionEnv(image, mask, continuity_coef=0.1, neighbor_coef=0., start_from_bottom=True)
     obs, _ = env.reset()
 
     pred = np.random.randn(image.shape[0], image.shape[1])
@@ -248,7 +248,8 @@ if __name__ == "__main__":
         seed = 123,
         start_epsilon = 1,
         end_epsilon=0.01,
-        epsilon_decay_steps=10e3
+        epsilon_decay_steps=10e3, 
+        device = "cpu"
     )
 
     img_test = cv2.imread(os.path.join(val_data_dir, "tree_1.png"), cv2.IMREAD_GRAYSCALE)
