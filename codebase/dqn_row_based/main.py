@@ -13,6 +13,8 @@ from l_systems import LSystemGenerator
 from matplotlib import pyplot as plt
 import os
 
+USE_ARTIFACTS = False
+
 def train_dqn_on_images(
     image_mask_pairs,      # list of (image, mask) tuples
     num_epochs=20,
@@ -25,6 +27,7 @@ def train_dqn_on_images(
     end_epsilon=0.01,
     epsilon_decay_steps=5000,
     continuity_coef=0.1,
+    continuity_decay_factor=0.7,
     seed=42,
     device=None,
 ):
@@ -40,8 +43,8 @@ def train_dqn_on_images(
     C = 1 if sample_image.ndim == 2 else sample_image.shape[2]
 
     # Networks
-    policy_net = PerPixelCNN(W=W, C=C).to(device)
-    target_net = PerPixelCNN(W=W, C=C).to(device)
+    policy_net = PerPixelCNN(W=W, C=C, history_len=5).to(device)
+    target_net = PerPixelCNN(W=W, C=C, history_len=5).to(device)
     target_net.load_state_dict(policy_net.state_dict())
     target_net.eval()
 
@@ -65,7 +68,11 @@ def train_dqn_on_images(
         c = 0
 
         for image, mask in image_mask_pairs:
-            env = PathReconstructionEnv(image=image, mask=mask, continuity_coef=continuity_coef)
+            env = PathReconstructionEnv(image=image, 
+                                        mask=mask, 
+                                        continuity_coef=continuity_coef, 
+                                        continuity_decay_factor=continuity_decay_factor,
+                                        history_len=5)
             obs, _ = env.reset()
 
             done = False
@@ -135,6 +142,7 @@ def train_dqn_on_images(
             
         losses.append(epoch_loss / c)
         dt = time.time() - t0
+        torch.save(target_net.state_dict(), 'dqn_row_based/models/model_cont.pth')
         print(f"Epoch {epoch+1}/{num_epochs} | avg loss: {losses[-1]:.3f} | avg return: {np.mean(returns[-len(image_mask_pairs):]):.2f} | epsilon: {epsilon:.3f} | {dt:.1f}s")
 
     return {
@@ -147,7 +155,12 @@ def train_dqn_on_images(
 
 def reconstruct_image(policy_net, image, mask):
     device = "cpu"
-    env = PathReconstructionEnv(image, mask, continuity_coef=0.1, neighbor_coef=0., start_from_bottom=True)
+    env = PathReconstructionEnv(image, 
+                                mask, 
+                                continuity_coef=0.2, 
+                                continuity_decay_factor=0.7,
+                                history_len=5, 
+                                start_from_bottom=True)
     obs, _ = env.reset()
 
     pred = np.random.randn(image.shape[0], image.shape[1])
@@ -167,48 +180,6 @@ def reconstruct_image(policy_net, image, mask):
         obs = next_obs
         done = terminated or truncated
     return pred
-
-# def reconstruct_image(policy_net, image, device=None):
-#     """
-#     Reconstructs the path mask from a non-binary image using a trained CNN-based DQN.
-
-#     Args:
-#         policy_net: trained PerPixelCNN model.
-#         image: np.ndarray of shape (H, W) or (H, W, C), float or uint8.
-#         device: torch device ('cuda' or 'cpu').
-
-#     Returns:
-#         pred_mask: np.ndarray of shape (H, W), dtype=np.uint8, values in {0, 1}.
-#     """
-#     device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-#     image = image.astype(np.float32)
-#     if image.max() > 1.0:
-#         image /= 255.0  # normalize if needed
-
-#     H, W = image.shape[:2]
-#     C = 1 if image.ndim == 2 else image.shape[2]
-#     pred_mask = np.zeros((H, W), dtype=np.uint8)
-
-#     prev_pred = np.zeros((W,), dtype=np.float32)
-
-#     for row_idx in reversed(range(H)):  # bottom to top
-#         row_pixels = image[row_idx]  # shape (W,) or (W, C)
-#         if C == 1:
-#             row_pixels = row_pixels.reshape(W, 1)
-
-#         obs = {
-#             "row_pixels": torch.tensor(row_pixels, dtype=torch.float32, device=device),
-#             "prev_pred": torch.tensor(prev_pred, dtype=torch.float32, device=device),
-#             "row_index": torch.tensor([(row_idx + 1) / H], dtype=torch.float32, device=device),
-#         }
-
-#         with torch.no_grad():
-#             q = policy_net(obs)  # (W, 2)
-#             a = q.argmax(dim=-1).cpu().numpy()  # (W,)
-#             pred_mask[row_idx] = a.astype(np.uint8)
-#             prev_pred = a.astype(np.float32)
-
-#     return pred_mask
 
 def visualize_result(img, mask, pred, save_dir: str = None) -> None:
     fig, axs = plt.subplots(1, 3, figsize=(12, 6))
@@ -230,8 +201,13 @@ def visualize_result(img, mask, pred, save_dir: str = None) -> None:
 
 
 if __name__ == "__main__":
-    train_data_dir = os.path.join("data", "train")
-    val_data_dir = os.path.join("data", "val")
+    if USE_ARTIFACTS:
+        intermediate_dir = "with_artifacts"
+    else:
+        intermediate_dir = "noise_only"
+        
+    train_data_dir = os.path.join("data", intermediate_dir, "train")
+    val_data_dir = os.path.join("data", intermediate_dir, "val")
     train_imgs = []
     train_masks = []
     for file in sorted(os.listdir(train_data_dir)):
@@ -245,6 +221,7 @@ if __name__ == "__main__":
         list(zip(train_imgs, train_masks)),
         num_epochs = 10,
         continuity_coef = 0.2,
+        continuity_decay_factor = 0.7,
         seed = 123,
         start_epsilon = 1,
         end_epsilon=0.01,
