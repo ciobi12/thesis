@@ -63,28 +63,8 @@ class PathReconstructionEnv(gym.Env):
         # Temporal/row continuity term against previous row prediction
         continuity_rewards = -self.continuity_coef * np.abs(action - self.prev_pred)
 
-        # Neighbour similarity term within the same row.
-        # For each pixel j, compare action[j] with image(row, j±1, j±2) if in-bounds.
-        if self.C == 1 and row != 0:
-            row_vals = self.image[row - 1]  # shape (W,)
-        else:
-            # If multi-channel, use mean intensity
-            row_vals = self.image[row].mean(axis=1)
-
-        neighbour_sum = np.zeros((self.W,), dtype=np.float32)
-        for d in (1, 2):
-            left = np.roll(row_vals, +d)
-            right = np.roll(row_vals, -d)
-            valid_left = np.zeros(self.W, dtype=bool); valid_left[d:] = True
-            valid_right = np.zeros(self.W, dtype=bool); valid_right[:-d] = True
-            # Accumulate absolute differences only where neighbours are valid
-            neighbour_sum[valid_left] += np.abs(action[valid_left] - left[valid_left])
-            neighbour_sum[valid_right] += np.abs(action[valid_right] - right[valid_right])
-
-        neighbour_rewards = -self.neighbor_coef * neighbour_sum
-
         # Total per-pixel rewards
-        pixel_rewards = base_rewards + continuity_rewards + neighbour_rewards
+        pixel_rewards = base_rewards + continuity_rewards
         reward = float(pixel_rewards.sum())
 
         self.prev_pred = action.copy()
@@ -95,7 +75,6 @@ class PathReconstructionEnv(gym.Env):
             "pixel_rewards": pixel_rewards.astype(np.float32),
             "base_rewards": base_rewards.astype(np.float32),
             "continuity_rewards": continuity_rewards.astype(np.float32),
-            "neighbour_rewards": neighbour_rewards.astype(np.float32),
             "row_index": row,
         }
         return (self._get_obs() if not terminated else self._terminal_obs()), reward, terminated, False, info
