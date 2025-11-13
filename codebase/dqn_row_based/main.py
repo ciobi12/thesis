@@ -13,6 +13,8 @@ from l_systems import LSystemGenerator
 from matplotlib import pyplot as plt
 import os
 
+USE_ARTIFACTS = False
+
 def train_dqn_on_images(
     image_mask_pairs,      # list of (image, mask) tuples
     num_epochs=20,
@@ -22,9 +24,10 @@ def train_dqn_on_images(
     lr=1e-3,
     target_update_every=500,
     start_epsilon=1.0,
-    end_epsilon=0.05,
+    end_epsilon=0.01,
     epsilon_decay_steps=5000,
     continuity_coef=0.1,
+    continuity_decay_factor=0.7,
     seed=42,
     device=None,
 ):
@@ -40,8 +43,8 @@ def train_dqn_on_images(
     C = 1 if sample_image.ndim == 2 else sample_image.shape[2]
 
     # Networks
-    policy_net = PerPixelCNN(W=W, C=C).to(device)
-    target_net = PerPixelCNN(W=W, C=C).to(device)
+    policy_net = PerPixelCNN(W=W, C=C, history_len=5).to(device)
+    target_net = PerPixelCNN(W=W, C=C, history_len=5).to(device)
     target_net.load_state_dict(policy_net.state_dict())
     target_net.eval()
 
@@ -65,7 +68,11 @@ def train_dqn_on_images(
         c = 0
 
         for image, mask in image_mask_pairs:
-            env = PathReconstructionEnv(image=image, mask=mask, continuity_coef=continuity_coef)
+            env = PathReconstructionEnv(image=image, 
+                                        mask=mask, 
+                                        continuity_coef=continuity_coef, 
+                                        continuity_decay_factor=continuity_decay_factor,
+                                        history_len=5)
             obs, _ = env.reset()
 
             done = False
@@ -135,6 +142,7 @@ def train_dqn_on_images(
             
         losses.append(epoch_loss / c)
         dt = time.time() - t0
+        torch.save(target_net.state_dict(), 'dqn_row_based/models/model_cont.pth')
         print(f"Epoch {epoch+1}/{num_epochs} | avg loss: {losses[-1]:.3f} | avg return: {np.mean(returns[-len(image_mask_pairs):]):.2f} | epsilon: {epsilon:.3f} | {dt:.1f}s")
 
     return {
@@ -145,19 +153,24 @@ def train_dqn_on_images(
         "losses": losses,
     }
 
-def reconstruct_image(policy_net, image, device=None):
-    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-    env = PathReconstructionEnv(image, image, continuity_coef=0.1, start_from_bottom=True)
+def reconstruct_image(policy_net, image, mask):
+    device = "cpu"
+    env = PathReconstructionEnv(image, 
+                                mask, 
+                                continuity_coef=0.2, 
+                                continuity_decay_factor=0.7,
+                                history_len=5, 
+                                start_from_bottom=True)
     obs, _ = env.reset()
 
-    pred = np.zeros_like(image, dtype=np.uint8)
+    pred = np.random.randn(image.shape[0], image.shape[1])
     row_ptr = 0  # env returns rows bottom-to-top
 
     done = False
     while not done:
         x = obs_to_tensor(obs, device)
         with torch.no_grad():
-            q = policy_net(x).squeeze(0)  # (W, 2)
+            q = policy_net(x)  # (W, 2)
             a = q.argmax(dim=-1).cpu().numpy()  # (W,)
         next_obs, reward, terminated, truncated, info = env.step(a)
         # Map current row index to image coordinate
@@ -188,30 +201,43 @@ def visualize_result(img, mask, pred, save_dir: str = None) -> None:
 
 
 if __name__ == "__main__":
-    train_data_dir = os.path.join("data", "train")
-    val_data_dir = os.path.join("data", "val")
+    if USE_ARTIFACTS:
+        intermediate_dir = "with_artifacts"
+    else:
+        intermediate_dir = "noise_only"
+        
+    train_data_dir = os.path.join("data", intermediate_dir, "train")
+    val_data_dir = os.path.join("data", intermediate_dir, "val")
     train_imgs = []
     train_masks = []
-    for file in os.listdir(train_data_dir):
+    for file in sorted(os.listdir(train_data_dir)):
         obj = cv2.imread(os.path.join(train_data_dir, file), cv2.IMREAD_GRAYSCALE)
         if "mask" in file:
             train_masks.append(obj)
         else:
             train_imgs.append(obj)
-
     
     results = train_dqn_on_images(
         list(zip(train_imgs, train_masks)),
-        num_epochs=20,
-        continuity_coef=0.1,
-        seed=123,
-        start_epsilon=0.5
+        num_epochs = 10,
+        continuity_coef = 0.2,
+        continuity_decay_factor = 0.7,
+        seed = 123,
+        start_epsilon = 1,
+        end_epsilon=0.01,
+        epsilon_decay_steps=10e3, 
+        device = "cpu"
     )
+
     img_test = cv2.imread(os.path.join(val_data_dir, "tree_1.png"), cv2.IMREAD_GRAYSCALE)
     mask_test = cv2.imread(os.path.join(val_data_dir, "tree_1_mask.png"), cv2.IMREAD_GRAYSCALE)
 
-    pred = reconstruct_image(results["policy_net"], img_test)
+    pred = reconstruct_image(results["policy_net"], img_test, mask_test)
+    # pred = reconstruct_image(results["policy_net"], train_imgs[0], train_masks[0])
+
+    print(np.unique(pred))
     visualize_result(img_test, mask_test, pred, save_dir = "dqn_row_based")
+    # visualize_result(train_imgs[0], train_masks[0], pred, save_dir = "dqn_row_based")
 
     plt.subplot(3,1,1)
     plt.plot(results["returns"])

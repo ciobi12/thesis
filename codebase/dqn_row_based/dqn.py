@@ -14,29 +14,30 @@ def obs_to_tensor(obs, device, as_tensor = False):
 
     return {
         "row_pixels": torch.tensor(obs["row_pixels"], dtype=torch.float32, device=device),
-        "prev_pred": torch.tensor(obs["prev_pred"], dtype=torch.float32, device=device),
+        "prev_preds": torch.tensor(obs["prev_preds"], dtype=torch.float32, device=device),
         "row_index": torch.tensor(obs["row_index"], dtype=torch.float32, device=device),
     }
 
 class PerPixelCNN(nn.Module):
-    def __init__(self, W, C, hidden_channels=32):
+    def __init__(self, W, C, history_len=3, hidden_channels=32):
         super().__init__()
         self.W = W
         self.C = C
+        self.history_len = history_len
+        in_channels = C + history_len  # image + K previous rows
         self.conv = nn.Sequential(
-            nn.Conv1d(in_channels=C+1, out_channels=hidden_channels, kernel_size=3, padding=1),
+            nn.Conv1d(in_channels=in_channels, out_channels=hidden_channels, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.Conv1d(hidden_channels, hidden_channels, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.Conv1d(hidden_channels, 2, kernel_size=1)  # Q-values for a=0 and a=1
+            nn.Conv1d(hidden_channels, 2, kernel_size=1)
         )
 
     def forward(self, obs):
-        # obs: dict with 'row_pixels' (W, C), 'prev_pred' (W,)
-        # print(obs["row_pixels"].shape)
+        # obs["row_pixels"]: (W, C), obs["prev_preds"]: (history_len, W)
         x_img = obs["row_pixels"].permute(1, 0)  # (C, W)
-        x_prev = obs["prev_pred"].unsqueeze(0)   # (1, W)
-        x = torch.cat([x_img, x_prev], dim=0).unsqueeze(0)  # (1, C+1, W)
+        x_hist = obs["prev_preds"]  # (history_len, W)
+        x = torch.cat([x_img, x_hist], dim=0).unsqueeze(0)  # (1, C+history_len, W)
         q = self.conv(x).squeeze(0).permute(1, 0)  # (W, 2)
         return q
 

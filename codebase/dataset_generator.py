@@ -25,5 +25,6 @@ if __name__ == "__main__":
                                             start_angle = 85 + 10 * np.random.rand(), 
                                             angle_deg = 20 + 10 * np.random.rand())
             img, mask = lsys_obj.draw_lsystem(canvas_size = (128, 256),
-                                              lsys_save_path = os.path.join("data", f"{key}_{_}.png"),
-                                              mask_save_path = os.path.join("data", f"{key}_{_}_mask.png"))
+                                              lsys_save_path = os.path.join("data/noise_only", f"{key}_{_}.png"),
+                                              mask_save_path = os.path.join("data/noise_only", f"{key}_{_}_mask.png"),
+                                              add_artifacts=False)
