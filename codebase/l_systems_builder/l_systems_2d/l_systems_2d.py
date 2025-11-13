@@ -10,7 +10,7 @@ import random
 from PIL import Image, ImageDraw
 from typing import Dict, Tuple, List
 
-class LSystemGenerator:
+class LSystem2DGenerator:
     def __init__(self, axiom: str, rules: Dict[str, str]):
         self.axiom = axiom
         self.rules = rules
@@ -151,50 +151,9 @@ class LSystemGenerator:
         cv2.imwrite(lsys_save_path, img)
         return img, mask
 
-    # def build_mask(self, canvas_size=(256, 256), margin=8, line_width=2, save_path = "mask.png") -> np.ndarray:
-    #     """
-    #     Fit segments to the canvas with uniform scaling and padding, then rasterize.
-    #     Returns a binary mask (H, W) where 1=path, 0=background.
-    #     """
-
-    #     xs, ys = [], []
-    #     for x0, y0, x1, y1 in self.segments:
-    #         xs.extend([x0, x1])
-    #         ys.extend([y0, y1])
-    #     minx, maxx = min(xs), max(xs)
-    #     miny, maxy = min(ys), max(ys)
-
-    #     width = max(maxx - minx, 1e-6)
-    #     height = max(maxy - miny, 1e-6)
-
-    #     W, H = canvas_size
-    #     sx = (W - 2 * margin) / width
-    #     sy = (H - 2 * margin) / height
-    #     scale = min(sx, sy)
-
-    #     def to_px(x, y):
-    #         px = margin + (x - minx) * scale
-    #         # invert y for image coordinates (top-down)
-    #         py = H - (margin + (y - miny) * scale)
-    #         return px, py
-
-    #     img = Image.new("L", (W, H), 0)
-    #     draw = ImageDraw.Draw(img)
-    #     for x0, y0, x1, y1 in self.segments:
-    #         p0 = to_px(x0, y0)
-    #         p1 = to_px(x1, y1)
-    #         draw.line([p0, p1], fill=255, width=line_width)
-
-    #     mask = np.array(img, dtype=np.uint8)
-    #     mask = (mask > 0).astype(np.uint8)
-    #     with open("mask.npy", "wb") as f:
-    #         np.save(f, mask)
-    #     cv2.imwrite(save_path, (mask * 255).astype(np.uint8))
-    #     return mask
-    
 if __name__ == "__main__":
     ## Test ##
-    lsys_obj = LSystemGenerator(axiom = "X",
+    lsys_obj = LSystem2DGenerator(axiom = "X",
                                 rules = {"X": "F+[[X]-X]-F[-FX]+X",
                                          "F": "FF"
                                          }
