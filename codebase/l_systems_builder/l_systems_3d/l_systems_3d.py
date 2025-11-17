@@ -5,6 +5,8 @@ from typing import Dict, List, Tuple
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
+
+
 class LSystem3DGenerator:
     def __init__(self, axiom: str, rules: Dict[str, str]):
         self.axiom = axiom
@@ -95,8 +97,8 @@ class LSystem3DGenerator:
                 
         return self.segments
 
-    def render(self, elev=30, azim=45, show_axes = True, save_fig = False, filename = None):
-        """Render the 3D L-system with matplotlib."""
+    def render(self, elev=30, azim=45, show_axes=True, show_fig = False, save_fig=False, filename = None):
+        """Render the 3D L-system in an interactive matplotlib window."""
         if not self.segments:
             print("No segments to render. Run build_l_sys first.")
             return
@@ -128,26 +130,37 @@ class LSystem3DGenerator:
         ax.set_xlabel('X axis')
         ax.set_ylabel('Y axis')
         ax.set_zlabel('Z axis')
-        ax.set_title(f'3D L-System -- {filename}' if filename else '3D L-System Visualization')
+        ax.set_title('3D L-System (Interactive - Click and drag to rotate)')
         ax.view_init(elev=elev, azim=azim)
 
         if not show_axes:
             ax.set_axis_off()
+        
+        # Enable interactive mode
+        if show_fig:
+            plt.ion()
+            plt.show()
+
         if save_fig:
-            plt.savefig(os.path.join("examples", filename + '.png'), dpi=300)
-        # plt.show()
-    
+            plt.savefig(os.path.join("examples", "images", filename + '.png'), dpi=300)
+        
+        return fig, ax
+     
     def to_voxel_grid(self, grid_size: Tuple[int, int, int] = (64, 64, 64), 
-                          line_thickness: int = 1) -> np.ndarray:
+                      align_bottom: bool = True, save_voxel_grid = False, filepath = None) -> np.ndarray:
         """
         Convert segments to a 3D voxel grid for 3D CNN processing.
+        Lines are exactly 1 voxel thick.
         
         Args:
             grid_size: (width, height, depth) of the voxel grid
-            line_thickness: thickness of lines in voxels
+            align_bottom: If True, align the lowest point to the bottom slice (z=0)
+            save_voxel_grid: If True, save the voxel grid to a .npy file
+            filepath: Path to save the .npy file if save_voxel_grid is True
             
         Returns:
-            Binary 3D numpy array of shape (W, H, D) where 1=structure, 0=empty
+            Binary 3D numpy array of shape (D, W, H) where 1=structure, 0=empty
+            D is the depth dimension (slices), where D=0 is the bottom
         """
         if not self.segments:
             return np.zeros(grid_size, dtype=np.uint8)
@@ -167,15 +180,34 @@ class LSystem3DGenerator:
         voxel_grid = np.zeros(grid_size, dtype=np.uint8)
         W, H, D = grid_size
             
-        # Add padding
-        padding = 0.1
-        scale = np.array([W, H, D]) * (1 - 2 * padding) / ranges
+        # Add padding (but not on bottom if align_bottom=True)
+        if align_bottom:
+            # No padding at bottom, small padding at top for Z
+            padding_xy = 0.1
+            padding_z_bottom = 0.0  # No padding at bottom
+            padding_z_top = 0.05    # Small padding at top
+            
+            scale_xy = np.array([W, H]) * (1 - 2 * padding_xy) / ranges[:2]
+            scale_z = D * (1 - padding_z_bottom - padding_z_top) / ranges[2]
+            scale = np.array([scale_xy[0], scale_xy[1], scale_z])
+            
+            # Shift Z so minimum is at the bottom (z=0 after padding)
+            offset = np.array([
+                padding_xy * W,
+                padding_xy * H,
+                padding_z_bottom * D  # Start from bottom
+            ])
+        else:
+            # Centered padding
+            padding = 0.1
+            scale = np.array([W, H, D]) * (1 - 2 * padding) / ranges
+            offset = np.array([padding * W, padding * H, padding * D])
             
         def to_voxel(x, y, z):
             """Convert world coordinates to voxel indices"""
-            vx = int((x - min_coords[0]) * scale[0] + padding * W)
-            vy = int((y - min_coords[1]) * scale[1] + padding * H)
-            vz = int((z - min_coords[2]) * scale[2] + padding * D)
+            vx = int((x - min_coords[0]) * scale[0] + offset[0])
+            vy = int((y - min_coords[1]) * scale[1] + offset[1])
+            vz = int((z - min_coords[2]) * scale[2] + offset[2])
             return np.clip(vx, 0, W-1), np.clip(vy, 0, H-1), np.clip(vz, 0, D-1)
             
         # Rasterize line segments using Bresenham 3D
@@ -183,17 +215,19 @@ class LSystem3DGenerator:
             vx0, vy0, vz0 = to_voxel(x0, y0, z0)
             vx1, vy1, vz1 = to_voxel(x1, y1, z1)
                 
-            # Bresenham line drawing in 3D
+            # Bresenham line drawing in 3D (single voxel thickness)
             points = self._bresenham_3d(vx0, vy0, vz0, vx1, vy1, vz1)
             for px, py, pz in points:
-                # Add thickness by setting neighbors
-                for dx in range(-line_thickness, line_thickness + 1):
-                    for dy in range(-line_thickness, line_thickness + 1):
-                        for dz in range(-line_thickness, line_thickness + 1):
-                            nx, ny, nz = px + dx, py + dy, pz + dz
-                            if 0 <= nx < W and 0 <= ny < H and 0 <= nz < D:
-                                voxel_grid[nx, ny, nz] = 1
-            
+                voxel_grid[px, py, pz] = 1
+        
+        z, x, y = voxel_grid.nonzero()
+        voxel_grid = voxel_grid[list(np.unique(z)), :, :]
+        if save_voxel_grid:
+            np.save(filepath, voxel_grid)
+            print(f"Saved voxel grid with shape {voxel_grid.shape}")
+            print(f"Occupied voxels: {voxel_grid.sum()} / {voxel_grid.size}")
+            print(f"Bottom slice (z=0) occupied voxels: {voxel_grid[:, :, 0].sum()}")
+        
         return voxel_grid
         
     def _bresenham_3d(self, x0, y0, z0, x1, y1, z1):
@@ -258,8 +292,4 @@ class LSystem3DGenerator:
         points.append((x1, y1, z1))
         return points
     
-    def save_voxel_grid(self, filepath: str, grid_size: Tuple[int, int, int] = (64, 64, 64)):
-        """Save voxel grid as .npy file"""
-        voxel_grid = self.to_voxel_grid(grid_size)
-        np.save(filepath, voxel_grid)
-        return voxel_grid
+

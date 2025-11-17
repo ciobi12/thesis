@@ -1,3 +1,4 @@
+import os
 import math
 from l_systems_3d.l_systems_3d import LSystem3DGenerator
 
@@ -50,14 +51,19 @@ def example_usage(iterations, struct_name: str, **kwargs):
     l_system = LSystem3DGenerator(**kwargs)
 
     # Build the L-system with specified iterations and parameters
-    segments = l_system.build_l_sys(iterations, step = 5, angle_deg = 45)
+    segments = l_system.build_l_sys(iterations, step = 5, angle_deg = 30)
 
     # Render the generated 3D L-system
     l_system.render(elev = 30, azim = 35, save_fig = True, filename = struct_name)
+    l_system.to_voxel_grid(grid_size = (64,64, 64),
+                           align_bottom=True,
+                           save_voxel_grid = True,  
+                           filepath = os.path.join("examples", "volumes", struct_name + '.npy'))
 
 if __name__ == "__main__":
     for struct_name in EXAMPLES_DICT.keys():
+       print(struct_name, '/n')
        if struct_name == 'complex':
               example_usage(2, struct_name = struct_name, **EXAMPLES_DICT[struct_name])
        else:
-              example_usage(4, struct_name = struct_name, **EXAMPLES_DICT[struct_name])
+              example_usage(3, struct_name = struct_name, **EXAMPLES_DICT[struct_name])
