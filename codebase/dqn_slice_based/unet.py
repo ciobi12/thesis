@@ -18,25 +18,23 @@ class SimpleConvBlock(nn.Module):
         return self.conv(x)
 
 
-class SimpleEncoderDecoderDQN(nn.Module):
+class SimpleEncoderDecoderPolicy(nn.Module):
     """
-    Lightweight Encoder-Decoder DQN for 64x64 slice reconstruction.
+    Lightweight Encoder-Decoder Policy Network for 64x64 slice reconstruction.
     Takes multi-channel input: current slice + previous predictions.
-    Predicts Q-values for each pixel's action (0: empty, 1: fill).
+    Outputs probability map directly (not Q-values).
     
     Architecture:
-    Input (n_channels, 64, 64) -> Encoder -> Bottleneck (128, 8, 8) -> Decoder -> Output (2, 64, 64)
+    Input (n_channels, 64, 64) -> Encoder -> Bottleneck (128, 8, 8) -> Decoder -> Output (1, 64, 64)
     """
     
-    def __init__(self, n_channels=4, n_actions=2):
+    def __init__(self, n_channels=4):
         """
         Args:
             n_channels: Number of input channels (1 current + history_len previous)
-            n_actions: Number of actions (2: empty/fill)
         """
-        super(SimpleEncoderDecoderDQN, self).__init__()
+        super(SimpleEncoderDecoderPolicy, self).__init__()
         self.n_channels = n_channels
-        self.n_actions = n_actions
         
         # Encoder: 64x64 -> 32x32 -> 16x16 -> 8x8
         self.enc1 = SimpleConvBlock(n_channels, 32)      # 64x64
@@ -64,8 +62,11 @@ class SimpleEncoderDecoderDQN(nn.Module):
         self.up3 = nn.ConvTranspose2d(32, 16, kernel_size=2, stride=2)   # 32x32 -> 64x64
         self.dec3 = SimpleConvBlock(48, 16)   # 16 + 32 from skip connection
         
-        # Output layer: predict Q-values for each action
-        self.output = nn.Conv2d(16, n_actions, kernel_size=1)
+        # Output layer: predict probabilities for each pixel
+        self.output = nn.Sequential(
+            nn.Conv2d(16, 1, kernel_size=1),
+            nn.Sigmoid()  # Output probabilities in [0, 1]
+        )
 
     def forward(self, x):
         # x shape: (B, n_channels, 64, 64)
@@ -84,36 +85,35 @@ class SimpleEncoderDecoderDQN(nn.Module):
         
         # Decoder with skip connections
         u1 = self.up1(b)         # (B, 64, 16, 16)
-        d1 = torch.cat([u1, e3], dim=1)  # (B, 192, 16, 16)
+        d1 = torch.cat([u1, e3], dim=1)  # (B, 128, 16, 16)
         d1 = self.dec1(d1)       # (B, 64, 16, 16)
         
         u2 = self.up2(d1)        # (B, 32, 32, 32)
-        d2 = torch.cat([u2, e2], dim=1)  # (B, 96, 32, 32)
+        d2 = torch.cat([u2, e2], dim=1)  # (B, 64, 32, 32)
         d2 = self.dec2(d2)       # (B, 32, 32, 32)
         
         u3 = self.up3(d2)        # (B, 16, 64, 64)
         d3 = torch.cat([u3, e1], dim=1)  # (B, 48, 64, 64)
         d3 = self.dec3(d3)       # (B, 16, 64, 64)
         
-        # Q-values output
-        q_values = self.output(d3)  # (B, n_actions, 64, 64)
+        # Probability output
+        probs = self.output(d3)  # (B, 1, 64, 64)
         
-        return q_values
+        return probs.squeeze(1)  # (B, 64, 64)
 
 
-class TinyEncoderDecoderDQN(nn.Module):
+class TinyEncoderDecoderPolicy(nn.Module):
     """
     Even lighter version with fewer parameters.
     Good for faster training and lower memory.
     
     Architecture:
-    Input (n_channels, 64, 64) -> Encoder -> Bottleneck (64, 16, 16) -> Decoder -> Output (2, 64, 64)
+    Input (n_channels, 64, 64) -> Encoder -> Bottleneck (64, 16, 16) -> Decoder -> Output (1, 64, 64)
     """
     
-    def __init__(self, n_channels=4, n_actions=2):
-        super(TinyEncoderDecoderDQN, self).__init__()
+    def __init__(self, n_channels=4):
+        super(TinyEncoderDecoderPolicy, self).__init__()
         self.n_channels = n_channels
-        self.n_actions = n_actions
         
         # Encoder: 64x64 -> 32x32 -> 16x16
         self.enc1 = SimpleConvBlock(n_channels, 16)      # 64x64
@@ -133,7 +133,10 @@ class TinyEncoderDecoderDQN(nn.Module):
         self.dec2 = SimpleConvBlock(32, 16)   # 16 + 16 from skip
         
         # Output layer
-        self.output = nn.Conv2d(16, n_actions, kernel_size=1)
+        self.output = nn.Sequential(
+            nn.Conv2d(16, 1, kernel_size=1),
+            nn.Sigmoid()
+        )
 
     def forward(self, x):
         # Encoder
@@ -155,10 +158,10 @@ class TinyEncoderDecoderDQN(nn.Module):
         d2 = torch.cat([u2, e1], dim=1)  # (B, 32, 64, 64)
         d2 = self.dec2(d2)       # (B, 16, 64, 64)
         
-        # Q-values output
-        q_values = self.output(d2)  # (B, n_actions, 64, 64)
+        # Probability output
+        probs = self.output(d2)  # (B, 1, 64, 64)
         
-        return q_values
+        return probs.squeeze(1)  # (B, 64, 64)
 
 
 # Test the models
@@ -166,21 +169,23 @@ if __name__ == "__main__":
     # Test with multi-channel input (1 current + 3 history)
     n_channels = 4
     
-    # Test SimpleEncoderDecoderDQN
-    model1 = SimpleEncoderDecoderDQN(n_channels=n_channels, n_actions=2)
+    # Test SimpleEncoderDecoderPolicy
+    model1 = SimpleEncoderDecoderPolicy(n_channels=n_channels)
     x = torch.randn(4, n_channels, 64, 64)
     out1 = model1(x)
-    print("SimpleEncoderDecoderDQN:")
+    print("SimpleEncoderDecoderPolicy:")
     print(f"  Input shape: {x.shape}")
     print(f"  Output shape: {out1.shape}")
+    print(f"  Output range: [{out1.min():.3f}, {out1.max():.3f}]")
     print(f"  Parameters: {sum(p.numel() for p in model1.parameters()):,}")
     
     print()
     
-    # Test TinyEncoderDecoderDQN
-    model2 = TinyEncoderDecoderDQN(n_channels=n_channels, n_actions=2)
+    # Test TinyEncoderDecoderPolicy
+    model2 = TinyEncoderDecoderPolicy(n_channels=n_channels)
     out2 = model2(x)
-    print("TinyEncoderDecoderDQN:")
+    print("TinyEncoderDecoderPolicy:")
     print(f"  Input shape: {x.shape}")
     print(f"  Output shape: {out2.shape}")
+    print(f"  Output range: [{out2.min():.3f}, {out2.max():.3f}]")
     print(f"  Parameters: {sum(p.numel() for p in model2.parameters()):,}")

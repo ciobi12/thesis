@@ -6,7 +6,8 @@ from collections import deque
 import random
 from typing import Tuple
 
-from dqn_slice_based.unet import SimpleEncoderDecoderDQN
+from dqn_slice_based.unet import SimpleEncoderDecoderPolicy
+
 
 class ReplayBuffer:
     """Experience replay buffer for storing transitions"""
@@ -32,20 +33,19 @@ class ReplayBuffer:
         return len(self.buffer)
 
 
-class SliceDQNAgent:
-    """DQN Agent for slice reconstruction using multi-channel encoder-decoder"""
+class SlicePolicyAgent:
+    """Policy Network Agent for slice reconstruction (outputs probabilities directly)"""
     
     def __init__(
         self,
-        state_shape: Tuple[int, int, int],  # Now (C, H, W) instead of (H, W)
-        n_actions: int = 2,
+        state_shape: Tuple[int, int, int],  # (C, H, W)
         learning_rate: float = 1e-4,
-        gamma: float = 0.99,
-        epsilon_start: float = 1.0,
-        epsilon_end: float = 0.01,
-        epsilon_decay: float = 0.995,
-        buffer_size: int = 10000,
-        batch_size: int = 32,
+        gamma: float = 0.95,
+        epsilon_start: float = 0.3,
+        epsilon_end: float = 0.05,
+        epsilon_decay: float = 0.99,
+        buffer_size: int = 50000,
+        batch_size: int = 16,
         device: str = 'cuda' if torch.cuda.is_available() else 'cpu'
     ):
         """
@@ -57,7 +57,6 @@ class SliceDQNAgent:
         self.n_channels = state_shape[0]
         self.height = state_shape[1]
         self.width = state_shape[2]
-        self.n_actions = n_actions
         self.gamma = gamma
         self.epsilon = epsilon_start
         self.epsilon_end = epsilon_end
@@ -65,20 +64,19 @@ class SliceDQNAgent:
         self.batch_size = batch_size
         self.device = device
         
-        # Networks (now with multi-channel input)
-        self.policy_net = SimpleEncoderDecoderDQN(
-            n_channels=self.n_channels, 
-            n_actions=n_actions
-        ).to(device)
-        self.target_net = SimpleEncoderDecoderDQN(
-            n_channels=self.n_channels, 
-            n_actions=n_actions
-        ).to(device)
+        # Policy network (outputs probabilities)
+        self.policy_net = SimpleEncoderDecoderPolicy(n_channels=self.n_channels).to(device)
+        
+        # Target network for stability (optional, but helps)
+        self.target_net = SimpleEncoderDecoderPolicy(n_channels=self.n_channels).to(device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
         
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=learning_rate)
-        self.criterion = nn.MSELoss()
+        
+        # Loss functions
+        self.bce_loss = nn.BCELoss(reduction='none')  # Per-pixel BCE
+        self.mse_loss = nn.MSELoss()
         
         # Replay buffer
         self.replay_buffer = ReplayBuffer(buffer_size)
@@ -92,21 +90,18 @@ class SliceDQNAgent:
             deterministic: If True, always take best action (no exploration)
             
         Returns:
-            action_map: 2D binary array (H, W)
+            action_map: 2D continuous array (H, W) with values in [0, 1]
         """
-        # Epsilon-greedy for exploration
         if not deterministic and random.random() < self.epsilon:
             # Random action: random binary map
             return np.random.randint(0, 2, size=(self.height, self.width)).astype(np.float32)
         
-        # Greedy action from Q-network
         with torch.no_grad():
             state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)  # (1, C, H, W)
-            q_values = self.policy_net(state_tensor)  # (1, n_actions, H, W)
-            
-            # Select action with highest Q-value for each pixel
-            action_map = torch.argmax(q_values, dim=1).squeeze(0).cpu().numpy()
-            
+            probs = self.policy_net(state_tensor)  # (1, H, W)
+            action_map = probs.squeeze(0).cpu().numpy()  # (H, W)
+            action_map = np.clip(action_map, 0, 1)
+        
         return action_map.astype(np.float32)
     
     def store_transition(self, state, action, reward, next_state, done):
@@ -114,7 +109,7 @@ class SliceDQNAgent:
         self.replay_buffer.push(state, action, reward, next_state, done)
     
     def train_step(self) -> float:
-        """Perform one training step"""
+        """Perform one training step using policy gradient + reconstruction loss"""
         if len(self.replay_buffer) < self.batch_size:
             return 0.0
         
@@ -123,28 +118,38 @@ class SliceDQNAgent:
         
         # Convert to tensors
         states = torch.FloatTensor(states).to(self.device)  # (B, C, H, W)
-        actions = torch.LongTensor(actions).to(self.device)  # (B, H, W)
+        actions = torch.FloatTensor(actions).to(self.device)  # (B, H, W)
         rewards = torch.FloatTensor(rewards).to(self.device)  # (B,)
         next_states = torch.FloatTensor(next_states).to(self.device)  # (B, C, H, W)
         dones = torch.FloatTensor(dones).to(self.device)
         
-        # Current Q values
-        current_q_values = self.policy_net(states)  # (B, n_actions, H, W)
+        # Forward pass: get predicted probabilities
+        pred_probs = self.policy_net(states)  # (B, H, W)
         
-        # Gather Q values for taken actions
-        actions_expanded = actions.unsqueeze(1)  # (B, 1, H, W)
-        current_q = current_q_values.gather(1, actions_expanded).squeeze(1)  # (B, H, W)
+        # LOSS 1: Reconstruction loss (BCE between prediction and action taken)
+        # We want the network to predict the action that was taken
+        reconstruction_loss = self.bce_loss(pred_probs, actions).mean()
         
-        # Compute target Q values
+        # LOSS 2: Reward-weighted policy gradient loss
+        # Higher rewards should encourage the predicted probabilities
         with torch.no_grad():
-            next_q_values = self.target_net(next_states)  # (B, n_actions, H, W)
-            max_next_q = next_q_values.max(dim=1)[0]  # (B, H, W)
-            
-            # Target: reward + gamma * max_next_q (if not done)
-            target_q = rewards.view(-1, 1, 1) + (1 - dones.view(-1, 1, 1)) * self.gamma * max_next_q
+            # Get value estimate from target network
+            target_probs = self.target_net(next_states)  # (B, H, W)
+            # Compute advantage (simplified)
+            advantages = rewards.view(-1, 1, 1)  # (B, 1, 1)
         
-        # Compute loss
-        loss = self.criterion(current_q, target_q)
+        # Policy gradient: log prob * advantage
+        log_probs = torch.log(pred_probs + 1e-8) * actions + torch.log(1 - pred_probs + 1e-8) * (1 - actions)
+        policy_loss = -(log_probs * advantages).mean()
+        
+        # LOSS 3: Value loss (encourage accurate reward prediction)
+        # Predict expected reward from current probabilities
+        pred_reward = pred_probs.mean(dim=(1, 2))  # Simple reward estimate
+        target_reward = rewards + (1 - dones) * self.gamma * target_probs.mean(dim=(1, 2))
+        value_loss = self.mse_loss(pred_reward, target_reward)
+        
+        # Combined loss
+        loss = reconstruction_loss + 0.5 * policy_loss + 0.1 * value_loss
         
         # Optimize
         self.optimizer.zero_grad()

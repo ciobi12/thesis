@@ -6,7 +6,7 @@ import os
 from typing import List
 
 from dqn_slice_based.env import SliceReconstructionEnv
-from dqn_slice_based.dqn_agent import SliceDQNAgent
+from dqn_slice_based.dqn_agent import SlicePolicyAgent
 
 
 def train_slice_dqn(
@@ -44,10 +44,9 @@ def train_slice_dqn(
     n_channels = env.get_num_channels()
     print(f"Input channels: {n_channels} (1 current + {history_len} previous)")
     
-    agent = SliceDQNAgent(
+    agent = SlicePolicyAgent(
         state_shape=(n_channels, env.height, env.width),
-        n_actions=2,
-        learning_rate=1e-4,
+        learning_rate=1e-3,
         gamma=0.99,
         epsilon_start=0.1,
         epsilon_end=0.01,

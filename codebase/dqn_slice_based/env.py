@@ -20,7 +20,7 @@ class SliceReconstructionEnv:
     
     def __init__(self, 
                  target_volume: np.ndarray, 
-                 noise_level: float = 0.3,
+                 noise_level: float = 0.0,
                  continuity_coef: float = 0.1,
                  continuity_decay_factor: float = 0.7,
                  history_len: int = 3,
