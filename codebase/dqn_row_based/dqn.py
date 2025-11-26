@@ -18,6 +18,17 @@ def obs_to_tensor(obs, device, as_tensor = False):
         "row_index": torch.tensor(obs["row_index"], dtype=torch.float32, device=device),
     }
 
+def batch_obs_to_tensor(obs_list, device):
+    """Convert list of observations to batched tensors efficiently."""
+    row_pixels = torch.tensor(np.stack([o["row_pixels"] for o in obs_list]), dtype=torch.float32, device=device)
+    prev_preds = torch.tensor(np.stack([o["prev_preds"] for o in obs_list]), dtype=torch.float32, device=device)
+    row_index = torch.tensor(np.stack([o["row_index"] for o in obs_list]), dtype=torch.float32, device=device)
+    return {
+        "row_pixels": row_pixels,
+        "prev_preds": prev_preds,
+        "row_index": row_index,
+    }
+
 class PerPixelCNN(nn.Module):
     def __init__(self, W, C, history_len=3, hidden_channels=32):
         super().__init__()
@@ -34,11 +45,18 @@ class PerPixelCNN(nn.Module):
         )
 
     def forward(self, obs):
-        # obs["row_pixels"]: (W, C), obs["prev_preds"]: (history_len, W)
-        x_img = obs["row_pixels"].permute(1, 0)  # (C, W)
-        x_hist = obs["prev_preds"]  # (history_len, W)
-        x = torch.cat([x_img, x_hist], dim=0).unsqueeze(0)  # (1, C+history_len, W)
-        q = self.conv(x).squeeze(0).permute(1, 0)  # (W, 2)
+        # obs["row_pixels"]: (B, W, C) or (W, C), obs["prev_preds"]: (B, history_len, W) or (history_len, W)
+        if obs["row_pixels"].dim() == 2:  # Single observation
+            x_img = obs["row_pixels"].permute(1, 0)  # (C, W)
+            x_hist = obs["prev_preds"]  # (history_len, W)
+            x = torch.cat([x_img, x_hist], dim=0).unsqueeze(0)  # (1, C+history_len, W)
+            q = self.conv(x).squeeze(0).permute(1, 0)  # (W, 2)
+        else:  # Batched observations
+            B = obs["row_pixels"].size(0)
+            x_img = obs["row_pixels"].permute(0, 2, 1)  # (B, C, W)
+            x_hist = obs["prev_preds"]  # (B, history_len, W)
+            x = torch.cat([x_img, x_hist], dim=1)  # (B, C+history_len, W)
+            q = self.conv(x).permute(0, 2, 1)  # (B, W, 2)
         return q
 
 class ReplayBuffer:
@@ -59,9 +77,16 @@ class ReplayBuffer:
         return len(self.buffer)
 
 def epsilon_greedy_action(q_values, epsilon):
-    # q_values: (W, 2) tensor
-    W = q_values.size(0)
-    if random.random() < epsilon:
-        return torch.randint(low=0, high=2, size=(W,), dtype=torch.int64, device=q_values.device)
-    else:
-        return q_values.argmax(dim=-1)  # (W,)
+    # q_values: (W, 2) or (B, W, 2) tensor
+    if q_values.dim() == 2:  # Single observation
+        W = q_values.size(0)
+        if random.random() < epsilon:
+            return torch.randint(low=0, high=2, size=(W,), dtype=torch.int64, device=q_values.device)
+        else:
+            return q_values.argmax(dim=-1)  # (W,)
+    else:  # Batched
+        B, W, _ = q_values.shape
+        mask = torch.rand(B, device=q_values.device) < epsilon
+        random_actions = torch.randint(low=0, high=2, size=(B, W), dtype=torch.int64, device=q_values.device)
+        greedy_actions = q_values.argmax(dim=-1)  # (B, W)
+        return torch.where(mask.unsqueeze(1), random_actions, greedy_actions)
