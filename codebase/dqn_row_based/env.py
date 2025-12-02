@@ -68,22 +68,16 @@ class PathReconstructionEnv(gym.Env):
         # ========== MULTI-ROW CONTINUITY STRATEGIES ==========
         # Choose ONE strategy by uncommenting its block
         
-        # STRATEGY 1: Exponential Decay (CURRENTLY ACTIVE)
-        # Links to all previous rows with decaying weights (recent rows weighted more)
-        continuity_rewards = np.zeros((self.W,), dtype=np.float32)
-        decay_factor = self.continuity_decay_factor  # tune: 0.5-0.9 (higher = longer memory)
-        for i, prev_row in enumerate(reversed(list(self.prev_preds_buffer))):
-            weight = (decay_factor ** i)  # 1.0, 0.7, 0.49, ...
-            continuity_rewards += -weight * np.abs(action - prev_row)
-        continuity_rewards *= self.continuity_coef
+        # # STRATEGY 1: Exponential Decay (CURRENTLY ACTIVE)
+        # # Links to all previous rows with decaying weights (recent rows weighted more)
+        # continuity_rewards = np.zeros((self.W,), dtype=np.float32)
+        # decay_factor = self.continuity_decay_factor  # tune: 0.5-0.9 (higher = longer memory)
+        # for i, prev_row in enumerate(reversed(list(self.prev_preds_buffer))):
+        #     weight = (decay_factor ** i)  # 1.0, 0.7, 0.49, ...
+        #     continuity_rewards += -weight * np.abs(action - prev_row)
+        # continuity_rewards *= self.continuity_coef
         
-        ## STRATEGY 2: Path Centroid (UNCOMMENT TO USE)
-        # Rewards alignment with average position across all history
-        # prev_stack = np.array(list(self.prev_preds_buffer))  # (history_len, W)
-        # prev_centroid = prev_stack.mean(axis=0)  # (W,)
-        # continuity_rewards = -self.continuity_coef * np.abs(action - prev_centroid)
-        
-        ## STRATEGY 3: Vertical Alignment (UNCOMMENT TO USE)
+        ## STRATEGY 2: Vertical Alignment (UNCOMMENT TO USE)
         # Rewards when action aligns with any previous row within tolerance
         # continuity_rewards = np.zeros((self.W,), dtype=np.float32)
         # tolerance = 2
@@ -96,31 +90,23 @@ class PathReconstructionEnv(gym.Env):
         #         continuity_rewards[j] = 0.5 if aligned else -1.0
         # continuity_rewards *= self.continuity_coef
         
-        ## STRATEGY 4: Hybrid Decay + Alignment (UNCOMMENT TO USE)
+        # STRATEGY 3: Hybrid Decay + Alignment (UNCOMMENT TO USE)
         # Combines smoothness with connectivity checking
-        # smooth_rewards = np.zeros((self.W,), dtype=np.float32)
-        # decay_factor = 0.7
-        # for i, prev_row in enumerate(reversed(list(self.prev_preds_buffer))):
-        #     weight = (decay_factor ** i)
-        #     smooth_rewards += -weight * np.abs(action - prev_row)
-        # alignment_rewards = np.zeros((self.W,), dtype=np.float32)
-        # tolerance = 2
-        # for j in range(self.W):
-        #     if action[j] > 0.5:
-        #         aligned = any(
-        #             np.any(prev_row[max(0, j-tolerance):min(self.W, j+tolerance+1)] > 0.5)
-        #             for prev_row in self.prev_preds_buffer
-        #         )
-        #         alignment_rewards[j] = 0.5 if aligned else -1.0
-        # continuity_rewards = (smooth_rewards + 0.5 * alignment_rewards) * self.continuity_coef
-        
-        ## STRATEGY 5: Weighted Voting (UNCOMMENT TO USE)
-        # Each previous row votes on path location
-        # vote_map = np.zeros((self.W,), dtype=np.float32)
-        # for prev_row in self.prev_preds_buffer:
-        #     vote_map += (prev_row > 0.5).astype(np.float32)
-        # vote_map /= len(self.prev_preds_buffer)
-        # continuity_rewards = -self.continuity_coef * np.abs(action - vote_map)
+        smooth_rewards = np.zeros((self.W,), dtype=np.float32)
+        decay_factor = 0.7
+        for i, prev_row in enumerate(reversed(list(self.prev_preds_buffer))):
+            weight = (decay_factor ** i)
+            smooth_rewards += -weight * np.abs(action - prev_row)
+        alignment_rewards = np.zeros((self.W,), dtype=np.float32)
+        tolerance = 2
+        for j in range(self.W):
+            if action[j] > 0.5:
+                aligned = any(
+                    np.any(prev_row[max(0, j-tolerance):min(self.W, j+tolerance+1)] > 0.5)
+                    for prev_row in self.prev_preds_buffer
+                )
+                alignment_rewards[j] = 0.5 if aligned else -1.0
+        continuity_rewards = (smooth_rewards + 0.5 * alignment_rewards) * self.continuity_coef
        
         # Total per-pixel rewards
         pixel_rewards = base_rewards + continuity_rewards

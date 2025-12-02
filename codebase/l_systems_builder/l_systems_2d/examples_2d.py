@@ -382,7 +382,7 @@ if __name__ == "__main__":
                 add_ct_noise=True,
                 occlude_root=random.choice([True, False]),
                 occlusion_strength=random.uniform(0.2, 0.5),
-                skip_segments=True,
+                skip_segments=False,
                 skip_probability=random.uniform(0.1, 0.25),
                 ct_background_intensity=80,
                 root_intensity_range=(10, 40),

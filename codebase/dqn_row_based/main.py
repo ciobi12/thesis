@@ -147,6 +147,8 @@ def train_dqn_on_images(
     losses = []
     val_losses = []  # Track validation losses
     train_returns = []
+    base_returns = []
+    continuity_returns = []
     val_returns = []  # Track validation returns
     epsilons = []
     
@@ -181,6 +183,8 @@ def train_dqn_on_images(
 
             done = False
             img_return = 0.0
+            base_return = 0.0
+            continuity_return = 0.0
 
             while not done:
                 obs_tensor = obs_to_tensor(obs, device)
@@ -191,7 +195,11 @@ def train_dqn_on_images(
                 # Keep action on GPU, only convert to numpy when needed for env
                 next_obs, reward, terminated, truncated, info = env.step(a.cpu().numpy())
                 pixel_rewards = info["pixel_rewards"]
+                base_reward = info["base_rewards"].sum()
+                continuity_reward = info["continuity_rewards"].sum()
                 done = terminated or truncated
+                base_return += base_reward
+                continuity_return += continuity_reward
                 img_return += reward
 
                 replay.push(
@@ -240,6 +248,8 @@ def train_dqn_on_images(
                 if global_step % target_update_every == 0:
                     target_net.load_state_dict(policy_net.state_dict())
 
+            base_returns.append(base_return)
+            continuity_returns.append(continuity_return)
             train_returns.append(img_return)
             epsilons.append(epsilon)
             
@@ -328,7 +338,7 @@ def train_dqn_on_images(
         
         losses.append(epoch_loss / c if c > 0 else 0)
         dt = time.time() - t0
-        torch.save(target_net.state_dict(), 'dqn_row_based/models/model_cont.pth')
+        torch.save(target_net.state_dict(), 'dqn_row_based/models/ct_like/model_cont.pth')
         
         # Print epoch summary
         print(f"\nEpoch {epoch+1}/{num_epochs} | Time: {dt:.1f}s")
@@ -342,6 +352,8 @@ def train_dqn_on_images(
         "policy_net": policy_net,
         "target_net": target_net,
         "returns": train_returns,
+        "base_returns": base_returns,
+        "continuity_returns": continuity_returns,
         "val_returns": val_returns,
         "epsilons": epsilons,
         "losses": losses,
@@ -440,7 +452,7 @@ if __name__ == "__main__":
     results = train_dqn_on_images(
         list(zip(train_imgs, train_masks)),
         val_pairs=list(zip(val_imgs, val_masks)),
-        num_epochs=20,
+        num_epochs=5,
         continuity_coef=0.1,
         continuity_decay_factor=0.5,
         seed=123,
@@ -531,32 +543,54 @@ if __name__ == "__main__":
     axes[2, 0].set_xlabel("Epoch")
     axes[2, 0].legend()
     axes[2, 0].grid(True)
+
+    # Base reward
+    axes[2, 1].plot(np.convolve(results["base_returns"], 
+                                 np.ones(len(train_imgs))/len(train_imgs), 
+                                 mode='valid'), 
+                    label="Base Reward", color='green')
+    axes[2, 1].set_title("Base Reward (Moving Average)")
+    axes[2, 1].set_ylabel("Base Reward")
+    axes[2, 1].set_xlabel("Episode")
+    axes[2, 1].legend()
+    axes[2, 1].grid(True)
+
+    # Continuity reward
+    axes[2, 2].plot(np.convolve(results["continuity_returns"], 
+                                 np.ones(len(train_imgs))/len(train_imgs),
+                                 mode='valid'), 
+                    label="Continuity Reward", color='blue')
+    axes[2, 2].set_title("Continuity Reward (Moving Average)")
+    axes[2, 2].set_ylabel("Continuity Reward")
+    axes[2, 2].set_xlabel("Episode")
+    axes[2, 2].legend()
+    axes[2, 2].grid(True)
+
+    # # Precision
+    # if "precision" in results["train_metrics"]:
+    #     axes[2, 1].plot([m for m in results["train_metrics"].get("precision", [])], 
+    #                     label="Train", marker='o')
+    #     if "precision" in results["val_metrics"]:
+    #         axes[2, 1].plot([m for m in results["val_metrics"].get("precision", [])], 
+    #                        label="Val", marker='s')
+    #     axes[2, 1].set_title("Precision")
+    #     axes[2, 1].set_ylabel("Precision")
+    #     axes[2, 1].set_xlabel("Epoch")
+    #     axes[2, 1].legend()
+    #     axes[2, 1].grid(True)
     
-    # Precision
-    if "precision" in results["train_metrics"]:
-        axes[2, 1].plot([m for m in results["train_metrics"].get("precision", [])], 
-                        label="Train", marker='o')
-        if "precision" in results["val_metrics"]:
-            axes[2, 1].plot([m for m in results["val_metrics"].get("precision", [])], 
-                           label="Val", marker='s')
-        axes[2, 1].set_title("Precision")
-        axes[2, 1].set_ylabel("Precision")
-        axes[2, 1].set_xlabel("Epoch")
-        axes[2, 1].legend()
-        axes[2, 1].grid(True)
-    
-    # Recall
-    if "recall" in results["train_metrics"]:
-        axes[2, 2].plot([m for m in results["train_metrics"].get("recall", [])], 
-                        label="Train", marker='o')
-        if "recall" in results["val_metrics"]:
-            axes[2, 2].plot([m for m in results["val_metrics"].get("recall", [])], 
-                           label="Val", marker='s')
-        axes[2, 2].set_title("Recall")
-        axes[2, 2].set_ylabel("Recall")
-        axes[2, 2].set_xlabel("Epoch")
-        axes[2, 2].legend()
-        axes[2, 2].grid(True)
+    # # Recall
+    # if "recall" in results["train_metrics"]:
+    #     axes[2, 2].plot([m for m in results["train_metrics"].get("recall", [])], 
+    #                     label="Train", marker='o')
+    #     if "recall" in results["val_metrics"]:
+    #         axes[2, 2].plot([m for m in results["val_metrics"].get("recall", [])], 
+    #                        label="Val", marker='s')
+    #     axes[2, 2].set_title("Recall")
+    #     axes[2, 2].set_ylabel("Recall")
+    #     axes[2, 2].set_xlabel("Epoch")
+    #     axes[2, 2].legend()
+    #     axes[2, 2].grid(True)
     
     plt.tight_layout()
     plt.savefig(f"{os.getcwd()}/dqn_row_based/results.png", dpi=300)
