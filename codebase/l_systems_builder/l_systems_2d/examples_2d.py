@@ -33,7 +33,7 @@ class RootLSystemLibrary:
             "fibrous_sparse": {
                 "axiom": "F",
                 "rules": {"F": "F[+F][-F]"},
-                "iterations": 5,
+                "iterations": 4,
                 "angle": 30.0,
                 "step": 10,
                 "description": "Sparse fibrous roots with wider angles"
@@ -52,7 +52,7 @@ class RootLSystemLibrary:
             "taproot_simple": {
                 "axiom": "F",
                 "rules": {"F": "FF[+F][-F]"},
-                "iterations": 5,
+                "iterations": 4,
                 "angle": 20.0,
                 "step": 10,
                 "description": "Simple tap root with lateral branches"
@@ -83,7 +83,7 @@ class RootLSystemLibrary:
             "adventitious_spreading": {
                 "axiom": "F",
                 "rules": {"F": "F[++F][--F]"},
-                "iterations": 5,
+                "iterations": 4,
                 "angle": 35.0,
                 "step": 8,
                 "description": "Spreading adventitious roots"
@@ -145,7 +145,7 @@ class RootLSystemLibrary:
                     "F": "FF",
                     "X": "F[+X][-X]FX"
                 },
-                "iterations": 5,
+                "iterations": 4,
                 "angle": 20.0,
                 "step": 5,
                 "description": "Fine hair-like roots (root hairs)"
@@ -200,7 +200,7 @@ class RootLSystemLibrary:
             "random_branching_3": {
                 "axiom": "F",
                 "rules": {"F": "F[-F][+F][F]"},
-                "iterations": 5,
+                "iterations": 4,
                 "angle": 28.0,
                 "step": 7,
                 "description": "Random-style branching pattern 3"
@@ -292,7 +292,7 @@ class RootLSystemLibrary:
             var['step'] = max(4, base_config['step'] + random.randint(-2, 2))
             
             # Randomly vary iterations (±1)
-            var['iterations'] = max(2, min(6, base_config['iterations'] + random.randint(-1, 1)))
+            var['iterations'] = max(2, min(4, base_config['iterations'] + random.randint(-1, 1)))
             
             variations.append(var)
         
@@ -340,8 +340,8 @@ if __name__ == "__main__":
             mask_save_path=f"{output_dir}/{name}_mask.png",
             add_ct_noise=True,
             occlude_root=True,
-            occlusion_strength=0.4,
-            skip_segments=True,
+            occlusion_strength=0.2,
+            skip_segments=False,
             skip_probability=0.5,
             ct_background_intensity=80,
             root_intensity_range=(10, 40),
@@ -381,7 +381,7 @@ if __name__ == "__main__":
                 mask_save_path=f"{output_dir}/{pattern_name}_var{j+1}_mask.png",
                 add_ct_noise=True,
                 occlude_root=random.choice([True, False]),
-                occlusion_strength=random.uniform(0.2, 0.5),
+                occlusion_strength=random.uniform(0.2, 0.4),
                 skip_segments=False,
                 skip_probability=random.uniform(0.1, 0.25),
                 ct_background_intensity=80,

@@ -420,10 +420,11 @@ if __name__ == "__main__":
         intermediate_dir = "with_artifacts"
     else:
         # intermediate_dir = "noise_only"
-        intermediate_dir = "ct_like/2d"
+        # intermediate_dir = "data/ct_like/2d"
+        intermediate_dir = "l_systems_builder/l_systems_2d/dataset"
         
-    train_data_dir = os.path.join("data", intermediate_dir, "train")
-    val_data_dir = os.path.join("data", intermediate_dir, "val")
+    train_data_dir = os.path.join(intermediate_dir, "train")
+    val_data_dir = os.path.join(intermediate_dir, "val")
     
     # Load training data
     train_imgs = []

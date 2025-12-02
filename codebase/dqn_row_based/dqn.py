@@ -9,23 +9,23 @@ Transition = namedtuple("Transition", ("obs", "action", "pixel_rewards", "next_o
 
 def obs_to_tensor(obs, device, as_tensor = False):
     if as_tensor:
-        x = np.concatenate([obs["row_pixels"], obs["prev_pred"], obs["row_index"]], axis=0).astype(np.float32)
-        return torch.from_numpy(x).to(device)  # shape (2W + 1,)
+        x = np.concatenate([obs["row_pixels"], obs["prev_rows"].reshape(-1), obs["row_index"]], axis=0).astype(np.float32)
+        return torch.from_numpy(x).to(device)
 
     return {
         "row_pixels": torch.tensor(obs["row_pixels"], dtype=torch.float32, device=device),
-        "prev_preds": torch.tensor(obs["prev_preds"], dtype=torch.float32, device=device),
+        "prev_rows": torch.tensor(obs["prev_rows"], dtype=torch.float32, device=device),
         "row_index": torch.tensor(obs["row_index"], dtype=torch.float32, device=device),
     }
 
 def batch_obs_to_tensor(obs_list, device):
     """Convert list of observations to batched tensors efficiently."""
     row_pixels = torch.tensor(np.stack([o["row_pixels"] for o in obs_list]), dtype=torch.float32, device=device)
-    prev_preds = torch.tensor(np.stack([o["prev_preds"] for o in obs_list]), dtype=torch.float32, device=device)
+    prev_rows = torch.tensor(np.stack([o["prev_rows"] for o in obs_list]), dtype=torch.float32, device=device)
     row_index = torch.tensor(np.stack([o["row_index"] for o in obs_list]), dtype=torch.float32, device=device)
     return {
         "row_pixels": row_pixels,
-        "prev_preds": prev_preds,
+        "prev_rows": prev_rows,
         "row_index": row_index,
     }
 
@@ -35,7 +35,7 @@ class PerPixelCNN(nn.Module):
         self.W = W
         self.C = C
         self.history_len = history_len
-        in_channels = C + history_len  # image + K previous rows
+        in_channels = C + (history_len * C)  # current row + K previous image rows
         self.conv = nn.Sequential(
             nn.Conv1d(in_channels=in_channels, out_channels=hidden_channels, kernel_size=3, padding=1),
             nn.ReLU(),
@@ -45,17 +45,17 @@ class PerPixelCNN(nn.Module):
         )
 
     def forward(self, obs):
-        # obs["row_pixels"]: (B, W, C) or (W, C), obs["prev_preds"]: (B, history_len, W) or (history_len, W)
+        # obs["row_pixels"]: (B, W, C) or (W, C), obs["prev_rows"]: (B, history_len, W, C) or (history_len, W, C)
         if obs["row_pixels"].dim() == 2:  # Single observation
             x_img = obs["row_pixels"].permute(1, 0)  # (C, W)
-            x_hist = obs["prev_preds"]  # (history_len, W)
-            x = torch.cat([x_img, x_hist], dim=0).unsqueeze(0)  # (1, C+history_len, W)
+            x_hist = obs["prev_rows"].permute(2, 0, 1).reshape(self.history_len * self.C, self.W)  # (history_len*C, W)
+            x = torch.cat([x_img, x_hist], dim=0).unsqueeze(0)  # (1, C+history_len*C, W)
             q = self.conv(x).squeeze(0).permute(1, 0)  # (W, 2)
         else:  # Batched observations
             B = obs["row_pixels"].size(0)
             x_img = obs["row_pixels"].permute(0, 2, 1)  # (B, C, W)
-            x_hist = obs["prev_preds"]  # (B, history_len, W)
-            x = torch.cat([x_img, x_hist], dim=1)  # (B, C+history_len, W)
+            x_hist = obs["prev_rows"].permute(0, 3, 1, 2).reshape(B, self.history_len * self.C, self.W)  # (B, history_len*C, W)
+            x = torch.cat([x_img, x_hist], dim=1)  # (B, C+history_len*C, W)
             q = self.conv(x).permute(0, 2, 1)  # (B, W, 2)
         return q
 
