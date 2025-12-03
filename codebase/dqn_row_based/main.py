@@ -8,13 +8,41 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 
-from dqn_row_based.dqn import PerPixelCNN, ReplayBuffer, obs_to_tensor, batch_obs_to_tensor, epsilon_greedy_action
+from dqn_row_based.dqn import PerPixelCNNWithHistory, ReplayBuffer
 from dqn_row_based.env import PathReconstructionEnv
 
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
 USE_ARTIFACTS = False
+
+def obs_to_tensor(obs, device):
+    """Convert observation dict to tensors on device."""
+    row_pixels = torch.FloatTensor(obs["row_pixels"]).unsqueeze(0).to(device)  # (1, W, C)
+    prev_preds = torch.FloatTensor(obs["prev_preds"]).unsqueeze(0).to(device)  # (1, history_len, W)
+    return row_pixels, prev_preds
+
+def batch_obs_to_tensor(obs_list, device):
+    """Convert list of observation dicts to batched tensors."""
+    row_pixels = torch.stack([torch.FloatTensor(o["row_pixels"]) for o in obs_list]).to(device)  # (B, W, C)
+    prev_preds = torch.stack([torch.FloatTensor(o["prev_preds"]) for o in obs_list]).to(device)  # (B, history_len, W)
+    return row_pixels, prev_preds
+
+def epsilon_greedy_action(q_values, epsilon):
+    """Epsilon-greedy action selection.
+    
+    Args:
+        q_values: (W, 2) tensor of Q-values
+        epsilon: exploration probability
+    
+    Returns:
+        action: (W,) tensor of binary actions
+    """
+    if np.random.rand() < epsilon:
+        W = q_values.shape[0]
+        return torch.randint(0, 2, (W,), device=q_values.device)
+    else:
+        return q_values.argmax(dim=-1)
 
 def compute_metrics(pred, mask):
     """Compute segmentation metrics: IoU, F1, accuracy, coverage."""
@@ -81,9 +109,9 @@ def validate(policy_net, val_pairs, device, continuity_coef=0.1, continuity_deca
             episode_reward = 0.0
             
             while not done:
-                obs_tensor = obs_to_tensor(obs, device)
-                q = policy_net(obs_tensor)
-                a = q.argmax(dim=-1).cpu().numpy()
+                row_pixels, prev_preds = obs_to_tensor(obs, device)
+                q = policy_net(row_pixels, prev_preds)
+                a = q.argmax(dim=-1).cpu().numpy()[0]  # Remove batch dimension
                 next_obs, reward, terminated, truncated, info = env.step(a)
                 episode_reward += reward
                 obs = next_obs
@@ -131,8 +159,18 @@ def train_dqn_on_images(
     C = 1 if sample_image.ndim == 2 else sample_image.shape[2]
 
     # Networks
-    policy_net = PerPixelCNN(W=W, C=C, history_len=5).to(device)
-    target_net = PerPixelCNN(W=W, C=C, history_len=5).to(device)
+    policy_net = PerPixelCNNWithHistory(
+        input_channels=C,
+        history_len=5,
+        width=W
+    ).to(device)
+    
+    target_net = PerPixelCNNWithHistory(
+        input_channels=C,
+        history_len=5,
+        width=W
+    ).to(device)
+    
     target_net.load_state_dict(policy_net.state_dict())
     target_net.eval()
 
@@ -145,11 +183,11 @@ def train_dqn_on_images(
 
     global_step = 0
     losses = []
-    val_losses = []  # Track validation losses
+    val_losses = []
     train_returns = []
     base_returns = []
     continuity_returns = []
-    val_returns = []  # Track validation returns
+    val_returns = []
     epsilons = []
     
     # Metrics tracking
@@ -187,9 +225,10 @@ def train_dqn_on_images(
             continuity_return = 0.0
 
             while not done:
-                obs_tensor = obs_to_tensor(obs, device)
+                row_pixels, prev_preds = obs_to_tensor(obs, device)
                 with torch.no_grad():
-                    q = policy_net(obs_tensor)  # (W, 2)
+                    q = policy_net(row_pixels, prev_preds)  # (1, W, 2)
+                    q = q.squeeze(0)  # (W, 2)
                 a = epsilon_greedy_action(q, epsilon)  # (W,)
 
                 # Keep action on GPU, only convert to numpy when needed for env
@@ -218,18 +257,18 @@ def train_dqn_on_images(
                     batch = replay.sample(batch_size)
 
                     # Batch conversion - single GPU transfer
-                    obs_batch = batch_obs_to_tensor([t.obs for t in batch], device)
+                    row_pixels_batch, prev_preds_batch = batch_obs_to_tensor([t.obs for t in batch], device)
                     act_batch = torch.tensor(np.stack([t.action for t in batch]), dtype=torch.int64, device=device)
                     rew_batch = torch.tensor(np.stack([t.pixel_rewards for t in batch]), dtype=torch.float32, device=device)
-                    next_obs_batch = batch_obs_to_tensor([t.next_obs for t in batch], device)
+                    next_row_pixels_batch, next_prev_preds_batch = batch_obs_to_tensor([t.next_obs for t in batch], device)
                     done_batch = torch.tensor([t.done for t in batch], dtype=torch.float32, device=device)
 
-                    # Batched forward passes - much faster on GPU
-                    q_s = policy_net(obs_batch)  # (B, W, 2)
+                    # Batched forward passes
+                    q_s = policy_net(row_pixels_batch, prev_preds_batch)  # (B, W, 2)
                     q_s_a = q_s.gather(dim=-1, index=act_batch.unsqueeze(-1)).squeeze(-1)  # (B, W)
 
                     with torch.no_grad():
-                        q_next = target_net(next_obs_batch)  # (B, W, 2)
+                        q_next = target_net(next_row_pixels_batch, next_prev_preds_batch)  # (B, W, 2)
                         q_next_max = q_next.max(dim=-1).values  # (B, W)
 
                     not_done = (1.0 - done_batch).unsqueeze(-1)  # (B, 1)
@@ -241,7 +280,6 @@ def train_dqn_on_images(
                     torch.nn.utils.clip_grad_norm_(policy_net.parameters(), max_norm=5.0)
                     optimizer.step()
                     
-                    # Single CPU transfer for logging
                     epoch_loss += loss.item()
                     c += 1
 
@@ -250,6 +288,7 @@ def train_dqn_on_images(
 
             base_returns.append(base_return)
             continuity_returns.append(continuity_return)
+            # print(continuity_returns)
             train_returns.append(img_return)
             epsilons.append(epsilon)
             
@@ -271,7 +310,7 @@ def train_dqn_on_images(
             avg_train_metrics[key] = val
             if key in train_metrics_history:
                 train_metrics_history[key].append(val)
-        # print(train_metrics_history)
+        
         # Validation
         if val_pairs:
             avg_val_metrics = validate(
@@ -280,7 +319,7 @@ def train_dqn_on_images(
                 continuity_decay_factor=continuity_decay_factor
             )
             
-            # Compute validation loss using batched approach
+            # Compute validation loss
             policy_net.eval()
             val_epoch_loss = 0
             val_c = 0
@@ -296,29 +335,25 @@ def train_dqn_on_images(
                     done = False
                     
                     while not done:
-                        obs_tensor = obs_to_tensor(obs, device)
-                        q = policy_net(obs_tensor)
+                        row_pixels, prev_preds = obs_to_tensor(obs, device)
+                        q = policy_net(row_pixels, prev_preds)
                         a = q.argmax(dim=-1)
                         
-                        next_obs, reward, terminated, truncated, info = env.step(a.cpu().numpy())
+                        next_obs, reward, terminated, truncated, info = env.step(a.cpu().numpy()[0])
                         pixel_rewards = info["pixel_rewards"]
                         done = terminated or truncated
                         
-                        # Compute validation loss (TD error)
-                        # Batch the single observation properly
-                        obs_batch = batch_obs_to_tensor([obs], device)
-                        next_obs_batch = batch_obs_to_tensor([next_obs], device)
-                        a_batch = a.unsqueeze(0)  # (1, W)
-                        rew_tensor = torch.tensor(pixel_rewards, dtype=torch.float32, device=device).unsqueeze(0)  # (1, W)
-                        done_tensor = torch.tensor([done], dtype=torch.float32, device=device)  # (1,)
+                        # Compute validation loss
+                        next_row_pixels, next_prev_preds = obs_to_tensor(next_obs, device)
+                        rew_tensor = torch.tensor(pixel_rewards, dtype=torch.float32, device=device).unsqueeze(0)
+                        done_tensor = torch.tensor([done], dtype=torch.float32, device=device)
                         
-                        q_s = policy_net(obs_batch)  # (1, W, 2)
-                        q_s_a = q_s.gather(dim=-1, index=a_batch.unsqueeze(-1)).squeeze(-1)  # (1, W)
-                        q_next = target_net(next_obs_batch)  # (1, W, 2)
-                        q_next_max = q_next.max(dim=-1).values  # (1, W)
+                        q_s_a = q.gather(dim=-1, index=a.unsqueeze(-1)).squeeze(-1)
+                        q_next = target_net(next_row_pixels, next_prev_preds)
+                        q_next_max = q_next.max(dim=-1).values
                         
-                        not_done = (1.0 - done_tensor).unsqueeze(-1)  # (1, 1)
-                        target = rew_tensor + gamma * not_done * q_next_max  # (1, W)
+                        not_done = (1.0 - done_tensor).unsqueeze(-1)
+                        target = rew_tensor + gamma * not_done * q_next_max
                         
                         val_loss = torch.nn.functional.mse_loss(q_s_a, target)
                         val_epoch_loss += val_loss.item()
@@ -343,10 +378,10 @@ def train_dqn_on_images(
         # Print epoch summary
         print(f"\nEpoch {epoch+1}/{num_epochs} | Time: {dt:.1f}s")
         print(f"  Train - Loss: {losses[-1]:.4f} | Avg Return: {np.mean(train_returns[-len(image_mask_pairs):]):.2f} | ε: {epsilon:.3f}")
-        print(f"          IoU: {avg_train_metrics['iou']:.3f} | F1: {avg_train_metrics['f1']:.3f} | Acc: {avg_train_metrics['accuracy']:.3f} | Cov: {avg_train_metrics['coverage']:.3f} | Prec: {avg_train_metrics['precision']:.3f} | Rec: {avg_train_metrics['recall']:.3f}")
+        print(f"          IoU: {avg_train_metrics['iou']:.3f} | F1: {avg_train_metrics['f1']:.3f} | Acc: {avg_train_metrics['accuracy']:.3f} | Cov: {avg_train_metrics['coverage']:.3f}")
         if val_pairs:
             print(f"  Val   - Loss: {val_losses[-1]:.4f} | Avg Return: {val_returns[-1]:.2f}")
-            print(f"          IoU: {avg_val_metrics['iou']:.3f} | F1: {avg_val_metrics['f1']:.3f} | Acc: {avg_val_metrics['accuracy']:.3f} | Cov: {avg_val_metrics['coverage']:.3f} | Prec: {avg_val_metrics['precision']:.3f} | Rec: {avg_val_metrics['recall']:.3f}")
+            print(f"          IoU: {avg_val_metrics['iou']:.3f} | F1: {avg_val_metrics['f1']:.3f} | Acc: {avg_val_metrics['accuracy']:.3f} | Cov: {avg_val_metrics['coverage']:.3f}")
 
     return {
         "policy_net": policy_net,
@@ -383,9 +418,9 @@ def reconstruct_image(policy_net,
     policy_net.eval()
     with torch.no_grad():
         while not done:
-            x = obs_to_tensor(obs, device)
-            q = policy_net(x)  # (W, 2)
-            a = q.argmax(dim=-1).cpu().numpy()  # (W,)
+            row_pixels, prev_preds = obs_to_tensor(obs, device)
+            q = policy_net(row_pixels, prev_preds)  # (1, W, 2)
+            a = q.argmax(dim=-1).cpu().numpy()[0]  # Remove batch dim -> (W,)
             next_obs, reward, terminated, truncated, info = env.step(a)
             # Map current row index to image coordinate
             row = info.get("row_index", None)
@@ -419,8 +454,6 @@ if __name__ == "__main__":
     if USE_ARTIFACTS: 
         intermediate_dir = "with_artifacts"
     else:
-        # intermediate_dir = "noise_only"
-        # intermediate_dir = "data/ct_like/2d"
         intermediate_dir = "data/ct_like/2d/continuous"
         
     train_data_dir = os.path.join(intermediate_dir, "train")
@@ -453,7 +486,7 @@ if __name__ == "__main__":
     results = train_dqn_on_images(
         list(zip(train_imgs, train_masks)),
         val_pairs=list(zip(val_imgs, val_masks)),
-        num_epochs=5,
+        num_epochs=15,
         continuity_coef=0.1,
         continuity_decay_factor=0.5,
         seed=123,
@@ -471,7 +504,7 @@ if __name__ == "__main__":
     print(np.unique(pred))
     visualize_result(img_test, mask_test, pred, save_dir="dqn_row_based")
 
-    # Plot training curves with validation
+    # Plot training curves
     fig, axes = plt.subplots(3, 3, figsize=(18, 12))
     
     # Returns (Train vs Val)
