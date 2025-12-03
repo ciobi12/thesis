@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from collections import deque, namedtuple
 import random
@@ -38,6 +39,7 @@ class PerPixelCNN(nn.Module):
         self.W = W
         self.C = C
         self.history_len = history_len
+        self.hidden_channels = hidden_channels
         in_channels = C + (history_len * C)  # current row + K previous image rows
         self.conv = nn.Sequential(
             nn.Conv1d(in_channels=in_channels, out_channels=hidden_channels, kernel_size=3, padding=1),
@@ -61,6 +63,73 @@ class PerPixelCNN(nn.Module):
             x = torch.cat([x_img, x_hist], dim=1)  # (B, C+history_len*C, W)
             q = self.conv(x).permute(0, 2, 1)  # (B, W, 2)
         return q
+
+class PerPixelCNNWithHistory(nn.Module):
+    """Enhanced architecture that explicitly processes historical context"""
+    def __init__(self, input_channels, history_len, width):
+        super().__init__()
+        self.history_len = history_len
+        
+        # Current row encoder
+        self.row_encoder = nn.Sequential(
+            nn.Conv1d(input_channels, 64, kernel_size=7, padding=3),
+            nn.ReLU(),
+            nn.Conv1d(64, 64, kernel_size=5, padding=2),
+            nn.ReLU(),
+        )
+        
+        # History encoder (processes previous predictions)
+        self.history_encoder = nn.Sequential(
+            nn.Conv1d(history_len, 32, kernel_size=7, padding=3),
+            nn.ReLU(),
+            nn.Conv1d(32, 32, kernel_size=5, padding=2),
+            nn.ReLU(),
+        )
+        
+        # Cross-attention between current and history
+        self.attention = nn.Sequential(
+            nn.Conv1d(64 + 32, 64, kernel_size=1),
+            nn.ReLU(),
+            nn.Conv1d(64, 64, kernel_size=1),
+            nn.Sigmoid()
+        )
+        
+        # Final decision layers
+        self.decision = nn.Sequential(
+            nn.Conv1d(64 + 32, 128, kernel_size=5, padding=2),
+            nn.ReLU(),
+            nn.Conv1d(128, 64, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.Conv1d(64, 2, kernel_size=1)
+        )
+    
+    def forward(self, row_pixels, prev_preds):
+        """
+        row_pixels: (batch, width, channels) -> needs transpose
+        prev_preds: (batch, history_len, width)
+        """
+        # Transpose to (batch, channels, width) for Conv1d
+        x_row = row_pixels.permute(0, 2, 1)  # (B, C, W)
+        x_hist = prev_preds  # (B, history_len, W)
+        
+        # Encode current row
+        row_features = self.row_encoder(x_row)  # (B, 64, W)
+        
+        # Encode history
+        hist_features = self.history_encoder(x_hist)  # (B, 32, W)
+        
+        # Combine for attention
+        combined = torch.cat([row_features, hist_features], dim=1)  # (B, 96, W)
+        attention_weights = self.attention(combined)  # (B, 64, W)
+        
+        # Apply attention to row features
+        attended_row = row_features * attention_weights  # (B, 64, W)
+        
+        # Final decision with both attended row and history
+        final_features = torch.cat([attended_row, hist_features], dim=1)  # (B, 96, W)
+        q_values = self.decision(final_features)  # (B, 2, W)
+        
+        return q_values.permute(0, 2, 1)  # (B, W, 2)
 
 class ReplayBuffer:
     def __init__(self, capacity):
