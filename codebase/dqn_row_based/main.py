@@ -486,7 +486,7 @@ if __name__ == "__main__":
     results = train_dqn_on_images(
         list(zip(train_imgs, train_masks)),
         val_pairs=list(zip(val_imgs, val_masks)),
-        num_epochs=15,
+        num_epochs=20,
         continuity_coef=0.1,
         continuity_decay_factor=0.5,
         seed=123,
@@ -505,7 +505,7 @@ if __name__ == "__main__":
     visualize_result(img_test, mask_test, pred, save_dir="dqn_row_based")
 
     # Plot training curves
-    fig, axes = plt.subplots(3, 3, figsize=(18, 12))
+    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
     
     # Returns (Train vs Val)
     axes[0, 0].plot(results["returns"], alpha=0.3, color='blue', label='Train (per image)')
@@ -514,118 +514,92 @@ if __name__ == "__main__":
     train_returns_ma = [np.mean(results["returns"][max(0, i-window+1):i+1]) 
                         for i in range(len(results["returns"]))]
     axes[0, 0].plot(train_returns_ma, color='blue', linewidth=2, label='Train (epoch avg)')
-    if results["val_returns"]:
-        axes[0, 0].plot(np.arange(len(results["val_returns"])) * len(train_imgs), 
-                        results["val_returns"], color='red', marker='o', linewidth=2, label='Val')
+    # if results["val_returns"]:
+    #     axes[0, 0].plot(np.arange(len(results["val_returns"])) * len(train_imgs), 
+    #                     results["val_returns"], color='red', marker='o', linewidth=2, label='Val')
     axes[0, 0].set_title("Episode Returns")
     axes[0, 0].set_ylabel("Return")
     axes[0, 0].legend()
     axes[0, 0].grid(True)
-    
-    # Epsilon
-    axes[0, 1].plot(results["epsilons"], color='orange', linestyle='dashed')
-    axes[0, 1].set_title("Exploration (Epsilon)")
-    axes[0, 1].set_ylabel("ε")
+
+    # Base reward
+    axes[0, 1].plot(np.convolve(results["base_returns"], 
+                                 np.ones(len(train_imgs))/len(train_imgs), 
+                                 mode='valid'), 
+                    label="Base Reward", color='green')
+    axes[0, 1].set_title("Base Reward (Moving Average)")
+    axes[0, 1].set_ylabel("Base Reward")
+    axes[0, 1].set_xlabel("Episode")
+    axes[0, 1].legend()
     axes[0, 1].grid(True)
-    
-    # Loss (Train vs Val)
-    axes[0, 2].plot(results["losses"], color='red', marker='o', label='Train')
-    if results["val_losses"]:
-        axes[0, 2].plot(results["val_losses"], color='darkred', marker='s', label='Val')
-    axes[0, 2].set_title("Training Loss")
-    axes[0, 2].set_ylabel("MSE Loss")
-    axes[0, 2].set_xlabel("Epoch")
+
+    # Continuity reward
+    axes[0, 2].plot(np.convolve(results["continuity_returns"], 
+                                 np.ones(len(train_imgs))/len(train_imgs),
+                                 mode='valid'), 
+                    label="Continuity Reward", color='blue')
+    axes[0, 2].set_title("Continuity Reward (Moving Average)")
+    axes[0, 2].set_ylabel("Continuity Reward")
+    axes[0, 2].set_xlabel("Episode")
     axes[0, 2].legend()
     axes[0, 2].grid(True)
     
-    # IoU
-    axes[1, 0].plot(results["train_metrics"]["iou"], label="Train", marker='o')
-    if results["val_metrics"]["iou"]:
-        axes[1, 0].plot(results["val_metrics"]["iou"], label="Val", marker='s')
-    axes[1, 0].set_title("IoU")
-    axes[1, 0].set_ylabel("IoU")
-    axes[1, 0].set_xlabel("Epoch")
-    axes[1, 0].legend()
+    # Epsilon
+    axes[1, 0].plot(results["epsilons"], color='orange', linestyle='dashed')
+    axes[1, 0].set_title("Exploration (Epsilon)")
+    axes[1, 0].set_ylabel("ε")
     axes[1, 0].grid(True)
     
-    # F1 Score
-    axes[1, 1].plot(results["train_metrics"]["f1"], label="Train", marker='o')
-    if results["val_metrics"]["f1"]:
-        axes[1, 1].plot(results["val_metrics"]["f1"], label="Val", marker='s')
-    axes[1, 1].set_title("F1 Score")
-    axes[1, 1].set_ylabel("F1")
+    # Loss (Train vs Val)
+    axes[1, 1].plot(results["losses"], color='red', marker='o', label='Train')
+    if results["val_losses"]:
+        axes[1, 1].plot(results["val_losses"], color='darkred', marker='s', label='Val')
+    axes[1, 1].set_title("Training Loss")
+    axes[1, 1].set_ylabel("MSE Loss")
     axes[1, 1].set_xlabel("Epoch")
     axes[1, 1].legend()
     axes[1, 1].grid(True)
     
-    # Accuracy
-    axes[1, 2].plot(results["train_metrics"]["accuracy"], label="Train", marker='o')
-    if results["val_metrics"]["accuracy"]:
-        axes[1, 2].plot(results["val_metrics"]["accuracy"], label="Val", marker='s')
-    axes[1, 2].set_title("Pixel Accuracy")
-    axes[1, 2].set_ylabel("Accuracy")
+    # IoU
+    axes[1, 2].plot(results["train_metrics"]["iou"], label="Train", marker='o')
+    if results["val_metrics"]["iou"]:
+        axes[1, 2].plot(results["val_metrics"]["iou"], label="Val", marker='s')
+    axes[1, 2].set_title("IoU")
+    axes[1, 2].set_ylabel("IoU")
     axes[1, 2].set_xlabel("Epoch")
     axes[1, 2].legend()
     axes[1, 2].grid(True)
     
-    # Coverage
-    axes[2, 0].plot(results["train_metrics"]["coverage"], label="Train", marker='o')
-    if results["val_metrics"]["coverage"]:
-        axes[2, 0].plot(results["val_metrics"]["coverage"], label="Val", marker='s')
-    axes[2, 0].set_title("Coverage")
-    axes[2, 0].set_ylabel("Coverage")
-    axes[2, 0].set_xlabel("Epoch")
-    axes[2, 0].legend()
-    axes[2, 0].grid(True)
-
-    # Base reward
-    axes[2, 1].plot(np.convolve(results["base_returns"], 
-                                 np.ones(len(train_imgs))/len(train_imgs), 
-                                 mode='valid'), 
-                    label="Base Reward", color='green')
-    axes[2, 1].set_title("Base Reward (Moving Average)")
-    axes[2, 1].set_ylabel("Base Reward")
-    axes[2, 1].set_xlabel("Episode")
-    axes[2, 1].legend()
-    axes[2, 1].grid(True)
-
-    # Continuity reward
-    axes[2, 2].plot(np.convolve(results["continuity_returns"], 
-                                 np.ones(len(train_imgs))/len(train_imgs),
-                                 mode='valid'), 
-                    label="Continuity Reward", color='blue')
-    axes[2, 2].set_title("Continuity Reward (Moving Average)")
-    axes[2, 2].set_ylabel("Continuity Reward")
-    axes[2, 2].set_xlabel("Episode")
-    axes[2, 2].legend()
-    axes[2, 2].grid(True)
-
-    # # Precision
-    # if "precision" in results["train_metrics"]:
-    #     axes[2, 1].plot([m for m in results["train_metrics"].get("precision", [])], 
-    #                     label="Train", marker='o')
-    #     if "precision" in results["val_metrics"]:
-    #         axes[2, 1].plot([m for m in results["val_metrics"].get("precision", [])], 
-    #                        label="Val", marker='s')
-    #     axes[2, 1].set_title("Precision")
-    #     axes[2, 1].set_ylabel("Precision")
-    #     axes[2, 1].set_xlabel("Epoch")
-    #     axes[2, 1].legend()
-    #     axes[2, 1].grid(True)
+    # # F1 Score
+    # axes[1, 1].plot(results["train_metrics"]["f1"], label="Train", marker='o')
+    # if results["val_metrics"]["f1"]:
+    #     axes[1, 1].plot(results["val_metrics"]["f1"], label="Val", marker='s')
+    # axes[1, 1].set_title("F1 Score")
+    # axes[1, 1].set_ylabel("F1")
+    # axes[1, 1].set_xlabel("Epoch")
+    # axes[1, 1].legend()
+    # axes[1, 1].grid(True)
     
-    # # Recall
-    # if "recall" in results["train_metrics"]:
-    #     axes[2, 2].plot([m for m in results["train_metrics"].get("recall", [])], 
-    #                     label="Train", marker='o')
-    #     if "recall" in results["val_metrics"]:
-    #         axes[2, 2].plot([m for m in results["val_metrics"].get("recall", [])], 
-    #                        label="Val", marker='s')
-    #     axes[2, 2].set_title("Recall")
-    #     axes[2, 2].set_ylabel("Recall")
-    #     axes[2, 2].set_xlabel("Epoch")
-    #     axes[2, 2].legend()
-    #     axes[2, 2].grid(True)
+    # # Accuracy
+    # axes[1, 2].plot(results["train_metrics"]["accuracy"], label="Train", marker='o')
+    # if results["val_metrics"]["accuracy"]:
+    #     axes[1, 2].plot(results["val_metrics"]["accuracy"], label="Val", marker='s')
+    # axes[1, 2].set_title("Pixel Accuracy")
+    # axes[1, 2].set_ylabel("Accuracy")
+    # axes[1, 2].set_xlabel("Epoch")
+    # axes[1, 2].legend()
+    # axes[1, 2].grid(True)
     
+    # # Coverage
+    # axes[2, 0].plot(results["train_metrics"]["coverage"], label="Train", marker='o')
+    # if results["val_metrics"]["coverage"]:
+    #     axes[2, 0].plot(results["val_metrics"]["coverage"], label="Val", marker='s')
+    # axes[2, 0].set_title("Coverage")
+    # axes[2, 0].set_ylabel("Coverage")
+    # axes[2, 0].set_xlabel("Epoch")
+    # axes[2, 0].legend()
+    # axes[2, 0].grid(True)
+
     plt.tight_layout()
     plt.savefig(f"{os.getcwd()}/dqn_row_based/results.png", dpi=300)
     plt.show()
