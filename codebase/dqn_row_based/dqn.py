@@ -14,6 +14,7 @@ def obs_to_tensor(obs, device, as_tensor = False):
 
     return {
         "row_pixels": torch.tensor(obs["row_pixels"], dtype=torch.float32, device=device),
+        "prev_preds": torch.tensor(obs["prev_preds"], dtype=torch.float32, device=device),
         "prev_rows": torch.tensor(obs["prev_rows"], dtype=torch.float32, device=device),
         "row_index": torch.tensor(obs["row_index"], dtype=torch.float32, device=device),
     }
@@ -21,10 +22,12 @@ def obs_to_tensor(obs, device, as_tensor = False):
 def batch_obs_to_tensor(obs_list, device):
     """Convert list of observations to batched tensors efficiently."""
     row_pixels = torch.tensor(np.stack([o["row_pixels"] for o in obs_list]), dtype=torch.float32, device=device)
+    prev_preds = torch.tensor(np.stack([o["prev_preds"] for o in obs_list]), dtype=torch.float32, device=device)
     prev_rows = torch.tensor(np.stack([o["prev_rows"] for o in obs_list]), dtype=torch.float32, device=device)
     row_index = torch.tensor(np.stack([o["row_index"] for o in obs_list]), dtype=torch.float32, device=device)
     return {
         "row_pixels": row_pixels,
+        "prev_preds": prev_preds,
         "prev_rows": prev_rows,
         "row_index": row_index,
     }

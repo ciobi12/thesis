@@ -38,6 +38,7 @@ class PathReconstructionEnv(gym.Env):
         self.action_space = spaces.MultiBinary(self.W)
         self.observation_space = spaces.Dict({
             "row_pixels": spaces.Box(0.0, 1.0, shape=(self.W, self.C), dtype=np.float32),
+            "prev_preds": spaces.Box(0.0, 1.0, shape=(self.history_len, self.W), dtype=np.float32),
             "prev_rows": spaces.Box(0.0, 1.0, shape=(self.history_len, self.W, self.C), dtype=np.float32),
             "row_index": spaces.Box(0.0, 1.0, shape=(1,), dtype=np.float32),
         })
@@ -59,6 +60,7 @@ class PathReconstructionEnv(gym.Env):
         row = self._row_order[self.current_row_idx]
         return {
             "row_pixels": self.image[row],  # shape (W, C)
+            "prev_preds": np.array(self.prev_preds_buffer, dtype=np.float32),  # (history_len, W)
             "prev_rows": np.array(self.prev_rows_buffer, dtype=np.float32),  # (history_len, W, C)
             "row_index": np.array([(row + 1) / self.H], dtype=np.float32),
         }
@@ -137,6 +139,7 @@ class PathReconstructionEnv(gym.Env):
         # After last row, return a zeroed observation (won't be used)
         return {
             "row_pixels": np.zeros((self.W, self.C), dtype=np.float32),
+            "prev_preds": np.array(self.prev_preds_buffer, dtype=np.float32),
             "prev_rows": np.array(self.prev_rows_buffer, dtype=np.float32),
             "row_index": np.array([1.0], dtype=np.float32),
         }

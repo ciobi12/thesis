@@ -421,7 +421,7 @@ if __name__ == "__main__":
     else:
         # intermediate_dir = "noise_only"
         # intermediate_dir = "data/ct_like/2d"
-        intermediate_dir = "l_systems_builder/l_systems_2d/dataset"
+        intermediate_dir = "data/ct_like/2d/continuous"
         
     train_data_dir = os.path.join(intermediate_dir, "train")
     val_data_dir = os.path.join(intermediate_dir, "val")
@@ -463,8 +463,8 @@ if __name__ == "__main__":
         device="cuda" if torch.cuda.is_available() else "cpu"
     )
 
-    img_test = cv2.imread(os.path.join(val_data_dir, "bush_root_var1_ct.png"), cv2.IMREAD_GRAYSCALE)
-    mask_test = cv2.imread(os.path.join(val_data_dir, "bush_root_var1_mask.png"), cv2.IMREAD_GRAYSCALE)
+    img_test = cv2.imread(os.path.join(val_data_dir, "taproot_branched_var3_ct.png"), cv2.IMREAD_GRAYSCALE)
+    mask_test = cv2.imread(os.path.join(val_data_dir, "taproot_branched_var3_mask.png"), cv2.IMREAD_GRAYSCALE)
 
     pred = reconstruct_image(results["policy_net"], img_test, mask_test)
 
