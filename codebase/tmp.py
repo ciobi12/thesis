@@ -171,9 +171,9 @@ if __name__ == "__main__":
     
     # Visualize one example
     print("\nVisualizing sample with slices...")
-    volume = np.load("data/ct_like/3d/root_volume_003.npy").astype(np.float32) / 255.0
+    volume = np.load("data/ct_like/3d/val/root_volume_003.npy").astype(np.float32) / 255.0
     print(volume.shape)
-    mask = np.load("data/ct_like/3d/root_mask_003.npy")
+    mask = np.load("data/ct_like/3d/val/root_mask_003.npy")
     
     # Select slices to visualize (beginning, middle, end)
     D = volume.shape[0]
