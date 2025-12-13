@@ -13,8 +13,11 @@ from dqn_row_based.env import PathReconstructionEnv
 
 from matplotlib import pyplot as plt
 from tqdm import tqdm
+from PIL import Image
 
 USE_ARTIFACTS = False
+DRIVE_DATASET = True
+STARE_DATASET = True
 
 def obs_to_tensor(obs, device):
     """Convert observation dict to tensors on device."""
@@ -79,6 +82,47 @@ def compute_metrics(pred, mask):
         "precision": precision,
         "recall": recall
     }
+    
+def update_dataset(data_dir, size = (256, 256)):
+    for root, _, files in os.walk(data_dir):
+        for file in sorted(files):
+            file_path = os.path.join(root, file)
+            
+            # Skip the mask folder (used in other datasets)
+            if os.sep + "mask" + os.sep in file_path:
+                continue
+            
+            if "train" in root:
+                if "segm" in root:  # Check if in ground_truth folder
+                    print(f"Train mask: {file_path}")
+                    train_masks_paths.append(file_path)
+                    # img = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+                    img = np.array(Image.open(file_path).convert("L").resize(size))
+                    if img is not None:
+                        train_masks.append(img)
+                elif "images" in root:  # Check if in images folder
+                    train_imgs_paths.append(file_path)
+                    print(f"Train image: {file_path}")
+                    img = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+                    img = cv2.resize(img, size)
+                    if img is not None:
+                        train_imgs.append(img)
+                    
+            elif "val" in root:
+                if "segm" in root:  # Check if in ground_truth folder
+                    val_masks_paths.append(file_path)
+                    print(f"Val mask: {file_path}")
+                    # img = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+                    img = np.array(Image.open(file_path).convert("L").resize(size))
+                    if img is not None:
+                        val_masks.append(img)
+                elif "images" in root:  # Check if in images folder
+                    val_imgs_paths.append(file_path)
+                    print(f"Val image: {file_path}")
+                    img = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+                    img = cv2.resize(img, size)  
+                    if img is not None:
+                        val_imgs.append(img)
 
 def validate(policy_net, val_pairs, device, continuity_coef=0.1, continuity_decay_factor=0.7):
     """Run validation and return average metrics, loss, and reward."""
@@ -216,7 +260,8 @@ def train_dqn_on_images(
                                         mask=mask, 
                                         continuity_coef=continuity_coef, 
                                         continuity_decay_factor=continuity_decay_factor,
-                                        history_len=5)
+                                        history_len=5,
+                                        start_from_bottom=True)
             obs, _ = env.reset()
 
             done = False
@@ -451,38 +496,27 @@ def visualize_result(img, mask, pred, save_dir: str = None) -> None:
 
 
 if __name__ == "__main__":
-    if USE_ARTIFACTS: 
-        intermediate_dir = "with_artifacts"
-    else:
-        intermediate_dir = "data/ct_like/2d/continuous"
-        
-    train_data_dir = os.path.join(intermediate_dir, "train")
-    val_data_dir = os.path.join(intermediate_dir, "val")
-    
-    # Load training data
     train_imgs = []
     train_masks = []
-    for file in sorted(os.listdir(train_data_dir)):
-        if file.endswith(".npy"):
-            continue
-        obj = cv2.imread(os.path.join(train_data_dir, file), cv2.IMREAD_GRAYSCALE)
-        if "mask" in file and file.endswith(".png"):
-            train_masks.append(obj)
-        else:
-            train_imgs.append(obj)
     
-    # Load validation data
     val_imgs = []
     val_masks = []
-    for file in sorted(os.listdir(val_data_dir)):
-        if file.endswith(".npy"):
-            continue
-        obj = cv2.imread(os.path.join(val_data_dir, file), cv2.IMREAD_GRAYSCALE)
-        if "mask" in file and file.endswith(".png"):
-            val_masks.append(obj)
-        else:
-            val_imgs.append(obj)
     
+    train_imgs_paths = []
+    train_masks_paths = []
+    
+    val_imgs_paths = []
+    val_masks_paths = []
+    
+    if DRIVE_DATASET:
+        update_dataset("data/DRIVE", size=(512, 512))
+    if STARE_DATASET:
+        update_dataset("data/STARE", size=(512, 512))    
+                    
+    print(train_imgs_paths[:2])
+    print(len(train_imgs_paths))
+    print(train_masks_paths[:2])
+    print(len(train_masks_paths))
     results = train_dqn_on_images(
         list(zip(train_imgs, train_masks)),
         val_pairs=list(zip(val_imgs, val_masks)),
@@ -496,16 +530,17 @@ if __name__ == "__main__":
         device="cuda" if torch.cuda.is_available() else "cpu"
     )
 
-    img_test = cv2.imread(os.path.join(val_data_dir, "taproot_branched_var3_ct.png"), cv2.IMREAD_GRAYSCALE)
-    mask_test = cv2.imread(os.path.join(val_data_dir, "taproot_branched_var3_mask.png"), cv2.IMREAD_GRAYSCALE)
+    img_test = cv2.imread(val_imgs_paths[0], cv2.IMREAD_GRAYSCALE)
+    img_test = cv2.resize(img_test, (512, 512))
+    mask_test = np.array(Image.open(val_masks_paths[0]).convert("L").resize((256, 256)))
 
-    pred = reconstruct_image(results["policy_net"], img_test, mask_test)
+    pred = reconstruct_image(results["policy_net"], img_test, mask_test, continuity_coef=0.1, continuity_decay_factor=0.5)
 
     print(np.unique(pred))
     visualize_result(img_test, mask_test, pred, save_dir="dqn_row_based")
 
     # Plot training curves
-    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+    fig, axes = plt.subplots(2, 4, figsize=(20, 10))
     
     # Returns (Train vs Val)
     axes[0, 0].plot(results["returns"], alpha=0.3, color='blue', label='Train (per image)')
@@ -528,7 +563,7 @@ if __name__ == "__main__":
                                  mode='valid'), 
                     label="Base Reward", color='green')
     axes[0, 1].set_title("Base Reward (Moving Average)")
-    axes[0, 1].set_ylabel("Base Reward")
+    axes[0, 1].set_ylabel("Reward")
     axes[0, 1].set_xlabel("Episode")
     axes[0, 1].legend()
     axes[0, 1].grid(True)
@@ -539,56 +574,56 @@ if __name__ == "__main__":
                                  mode='valid'), 
                     label="Continuity Reward", color='blue')
     axes[0, 2].set_title("Continuity Reward (Moving Average)")
-    axes[0, 2].set_ylabel("Continuity Reward")
+    axes[0, 2].set_ylabel("Reward")
     axes[0, 2].set_xlabel("Episode")
     axes[0, 2].legend()
     axes[0, 2].grid(True)
     
     # Epsilon
-    axes[1, 0].plot(results["epsilons"], color='orange', linestyle='dashed')
-    axes[1, 0].set_title("Exploration (Epsilon)")
-    axes[1, 0].set_ylabel("ε")
-    axes[1, 0].grid(True)
+    axes[0, 3].plot(results["epsilons"], color='orange', linestyle='dashed')
+    axes[0, 3].set_title("Exploration (Epsilon)")
+    axes[0, 3].set_ylabel("ε")
+    axes[0, 3].grid(True)
     
     # Loss (Train vs Val)
-    axes[1, 1].plot(results["losses"], color='red', marker='o', label='Train')
+    axes[1, 0].plot(results["losses"], color='red', marker='o', label='Train')
     if results["val_losses"]:
-        axes[1, 1].plot(results["val_losses"], color='darkred', marker='s', label='Val')
-    axes[1, 1].set_title("Training Loss")
-    axes[1, 1].set_ylabel("MSE Loss")
+        axes[1, 0].plot(results["val_losses"], color='darkred', marker='s', label='Val')
+    axes[1, 0].set_title("Model loss per Epoch")
+    axes[1, 0].set_ylabel("MSE Loss")
+    axes[1, 0].set_xlabel("Epoch")
+    axes[1, 0].legend()
+    axes[1, 0].grid(True)
+    
+    # IoU
+    axes[1, 1].plot(results["train_metrics"]["iou"], label="Train", marker='o')
+    if results["val_metrics"]["iou"]:
+        axes[1, 1].plot(results["val_metrics"]["iou"], label="Val", marker='s')
+    axes[1, 1].set_title("IoU")
+    axes[1, 1].set_ylabel("IoU")
     axes[1, 1].set_xlabel("Epoch")
     axes[1, 1].legend()
     axes[1, 1].grid(True)
     
-    # IoU
-    axes[1, 2].plot(results["train_metrics"]["iou"], label="Train", marker='o')
-    if results["val_metrics"]["iou"]:
-        axes[1, 2].plot(results["val_metrics"]["iou"], label="Val", marker='s')
-    axes[1, 2].set_title("IoU")
-    axes[1, 2].set_ylabel("IoU")
+    # F1 Score
+    axes[1, 2].plot(results["train_metrics"]["f1"], label="Train", marker='o')
+    if results["val_metrics"]["f1"]:
+        axes[1, 2].plot(results["val_metrics"]["f1"], label="Val", marker='s')
+    axes[1, 2].set_title("F1 Score")
+    axes[1, 2].set_ylabel("F1")
     axes[1, 2].set_xlabel("Epoch")
     axes[1, 2].legend()
     axes[1, 2].grid(True)
     
-    # # F1 Score
-    # axes[1, 1].plot(results["train_metrics"]["f1"], label="Train", marker='o')
-    # if results["val_metrics"]["f1"]:
-    #     axes[1, 1].plot(results["val_metrics"]["f1"], label="Val", marker='s')
-    # axes[1, 1].set_title("F1 Score")
-    # axes[1, 1].set_ylabel("F1")
-    # axes[1, 1].set_xlabel("Epoch")
-    # axes[1, 1].legend()
-    # axes[1, 1].grid(True)
-    
-    # # Accuracy
-    # axes[1, 2].plot(results["train_metrics"]["accuracy"], label="Train", marker='o')
-    # if results["val_metrics"]["accuracy"]:
-    #     axes[1, 2].plot(results["val_metrics"]["accuracy"], label="Val", marker='s')
-    # axes[1, 2].set_title("Pixel Accuracy")
-    # axes[1, 2].set_ylabel("Accuracy")
-    # axes[1, 2].set_xlabel("Epoch")
-    # axes[1, 2].legend()
-    # axes[1, 2].grid(True)
+    # Accuracy
+    axes[1, 3].plot(results["train_metrics"]["accuracy"], label="Train", marker='o')
+    if results["val_metrics"]["accuracy"]:
+        axes[1, 3].plot(results["val_metrics"]["accuracy"], label="Val", marker='s')
+    axes[1, 3].set_title("Pixel Accuracy")
+    axes[1, 3].set_ylabel("Accuracy")
+    axes[1, 3].set_xlabel("Epoch")
+    axes[1, 3].legend()
+    axes[1, 3].grid(True)
     
     # # Coverage
     # axes[2, 0].plot(results["train_metrics"]["coverage"], label="Train", marker='o')
