@@ -71,81 +71,123 @@ class PathReconstructionEnv(gym.Env):
         row = self._row_order[self.current_row_idx]
         gt = self.mask[row]
 
-        # Base rewards
-        base_rewards = -np.abs(action - gt)
-
-        # Existing continuity (keep your current strategy)
+        # ========== ENHANCED REWARD FOR VESSEL SEGMENTATION ==========
+        
+        # 1. WEIGHTED ACCURACY: Combat class imbalance (reduced weight - saturating)
+        vessel_weight = 1.0  # Reduced from 3.0 since it saturates
+        background_weight = 0.3  # Further reduced background weight
+        
+        vessel_mask = (gt > 0.5)
+        weighted_accuracy = np.where(
+            vessel_mask,
+            -vessel_weight * np.abs(action - gt),      # Penalty for missing vessels
+            -background_weight * np.abs(action - gt)   # Penalty for background errors
+        )
+        
+        # 2. F1-BALANCED REWARD: Balance recall and precision
+        true_positives = np.sum((action > 0.5) & (gt > 0.5))
+        false_positives = np.sum((action > 0.5) & (gt < 0.5))
+        false_negatives = np.sum((action < 0.5) & (gt > 0.5))
+        
+        # Stronger FP penalty to narrow predictions
+        detection_reward = 2.0 * true_positives - 2.5 * false_positives - 1.5 * false_negatives
+        
+        # 3. THICKNESS CONTROL: Penalize over-thick predictions
+        thickness_penalty = 0.0
+        width_bonus = 0.0
+        
+        if np.sum(action > 0.5) > 0 and np.sum(gt > 0.5) > 0:
+            from scipy.ndimage import binary_dilation, binary_erosion
+            binary_pred = (action > 0.5).astype(np.uint8)
+            binary_gt = (gt > 0.5).astype(np.uint8)
+            
+            # Compare local widths: count active pixels in sliding windows
+            pred_width = np.sum(binary_pred)
+            gt_width = np.sum(binary_gt)
+            
+            # STRONG penalty for being wider than ground truth
+            if pred_width > gt_width:
+                thickness_penalty = -3.0 * (pred_width - gt_width) / gt_width
+            # Small bonus for matching width
+            elif pred_width <= gt_width:
+                width_bonus = 1.0 * (pred_width / gt_width)
+            
+            # Penalize isolated noisy pixels
+            neighbor_count = ndimage.convolve(binary_pred.astype(float), np.ones(3), mode='constant')
+            isolated_pixels = np.sum((binary_pred > 0) & (neighbor_count <= 1))
+            if isolated_pixels > 0:
+                thickness_penalty -= 2.0 * isolated_pixels
+        
+        # 4. CONTINUITY: Enhanced to allow branching
         continuity_rewards = np.zeros((self.W,), dtype=np.float32)
-        decay_factor = self.continuity_decay_factor
-        for i, prev_row in enumerate(reversed(list(self.prev_preds_buffer))):
-            weight = (decay_factor ** i)
-            continuity_rewards += -weight * np.abs(action - prev_row)
+        
+        if len(self.prev_preds_buffer) >= 1:
+            prev_row = list(self.prev_preds_buffer)[-1]
+            
+            # For each active pixel, check if it connects to previous row
+            curr_active_indices = np.where(action > 0.5)[0]
+            for idx in curr_active_indices:
+                # Check 3-pixel neighborhood (allow diagonal connections for branching)
+                left = max(0, idx - 1)
+                right = min(self.W, idx + 2)
+                
+                # If connected to previous row, give positive reward
+                if np.any(prev_row[left:right] > 0.5):
+                    continuity_rewards[idx] = 0.8  # Reduced from 1.0
+                else:
+                    # STRONG penalty for isolated pixels (not connected to structure)
+                    continuity_rewards[idx] = -3.0  # Increased from -2.0 to combat noise
+            
+            # Also consider inactive pixels that should maintain gaps
+            # (don't penalize correctly predicting background between vessels)
+            inactive_with_inactive_above = ((action < 0.5) & 
+                                           (np.convolve(prev_row, [1,1,1], mode='same') < 0.5))
+            continuity_rewards[inactive_with_inactive_above] = 0.1  # Reduced from 0.2
+        
         continuity_rewards *= self.continuity_coef
-
-        # ========== NEW: CONNECTIVITY-AWARE REWARDS ==========
+        
+        # 5. CONFIDENCE PENALTY: Penalize uncertain predictions (middle values)
+        # Encourage confident decisions (close to 0 or 1)
+        confidence_penalty = 0.0
+        uncertain_pixels = ((action > 0.2) & (action < 0.8))
+        if np.any(uncertain_pixels):
+            # Penalize predictions near 0.5 (uncertain)
+            uncertainty = np.abs(action[uncertain_pixels] - 0.5)
+            confidence_penalty = -0.8 * np.sum(1.0 - 2.0 * uncertainty)  # Higher penalty closer to 0.5
+        
+        # 6. TOPOLOGY: Prevent creating disconnected fragments
         connectivity_reward = 0.0
         conn_info = {}
         
-        if len(self.prev_preds_buffer) >= 2:  # Need history for component analysis
-            # Build mini-window (last 3 rows + current)
+        if len(self.prev_preds_buffer) >= 2:
+            # Build local 4-row window
             window_rows = list(self.prev_preds_buffer)[-3:]
             window_rows.append(action)
             window = np.vstack(window_rows)
             binary_window = (window > 0.5).astype(np.uint8)
             
-            # Count connected components in 2D window
+            # Count components - penalize fragmentation
             labeled, num_components = ndimage.label(binary_window, structure=np.ones((3, 3)))
             
-            # STRONG penalty for fragmentation (scales with component count)
-            if num_components > 1:
-                fragmentation_penalty = -2.0 * (num_components - 1)  # -2 per extra component
-                connectivity_reward += fragmentation_penalty
-                conn_info["fragmentation_penalty"] = fragmentation_penalty
+            if num_components > 2:  # Allow some branching (2-3 main branches)
+                # Strong penalty for excessive fragmentation
+                connectivity_reward = -2.0 * (num_components - 3)  # Increased from -1.5
                 conn_info["num_components"] = num_components
-            
-            # Bridge bonus: reward pixels that connect previous disconnected regions
-            prev_row_binary = (list(self.prev_preds_buffer)[-1] > 0.5).astype(np.uint8)
-            labeled_prev, num_prev_components = ndimage.label(prev_row_binary)
-            
-            if num_prev_components > 1:
-                curr_active = np.where(action > 0.5)[0]
-                bridges_formed = 0
-                
-                for pixel_idx in curr_active:
-                    # Check 3-pixel neighborhood in previous row
-                    neighborhood_start = max(0, pixel_idx - 1)
-                    neighborhood_end = min(self.W, pixel_idx + 2)
-                    neighborhood_labels = labeled_prev[neighborhood_start:neighborhood_end]
-                    
-                    # Count unique components this pixel connects to
-                    connected_to = set(neighborhood_labels[neighborhood_labels > 0])
-                    if len(connected_to) >= 2:
-                        bridges_formed += 1
-                
-                if bridges_formed > 0:
-                    bridge_bonus = 1.5 * bridges_formed  # Strong positive signal
-                    connectivity_reward += bridge_bonus
-                    conn_info["bridge_bonus"] = bridge_bonus
-                    conn_info["bridges_formed"] = bridges_formed
-            
-            # Compactness reward: penalize sparse active regions
-            active_pixels = np.where(action > 0.5)[0]
-            if len(active_pixels) > 1:
-                span = active_pixels[-1] - active_pixels[0] + 1
-                density = len(active_pixels) / span
-                
-                # Reward high density (compact paths), penalize low density (fragmented)
-                if density < 0.4:
-                    compactness_penalty = -1.0 * (0.4 - density) * 5  # Scale penalty
-                    connectivity_reward += compactness_penalty
-                    conn_info["compactness_penalty"] = compactness_penalty
-                    conn_info["path_density"] = density
-
-        # Total pixel rewards (keep per-pixel for compatibility)
-        pixel_rewards = base_rewards + continuity_rewards
+                conn_info["fragmentation_penalty"] = connectivity_reward
         
-        # Add connectivity as episode-level reward (not per-pixel)
-        reward = float(pixel_rewards.sum()) + connectivity_reward
+        # Combine all rewards
+        pixel_rewards = weighted_accuracy + continuity_rewards
+        reward = float(pixel_rewards.sum()) + detection_reward + thickness_penalty + width_bonus + confidence_penalty + connectivity_reward
+        
+        conn_info.update({
+            "detection_reward": detection_reward,
+            "thickness_penalty": thickness_penalty,
+            "width_bonus": width_bonus,
+            "confidence_penalty": confidence_penalty,
+            "true_positives": float(true_positives),
+            "false_positives": float(false_positives),
+            "false_negatives": float(false_negatives),
+        })
 
         # Update history
         self.prev_preds_buffer.append(action.copy())
@@ -155,12 +197,12 @@ class PathReconstructionEnv(gym.Env):
 
         info = {
             "pixel_rewards": pixel_rewards.astype(np.float32),
-            "base_rewards": base_rewards.astype(np.float32),
+            "weighted_accuracy": weighted_accuracy.astype(np.float32),
             "continuity_rewards": continuity_rewards.astype(np.float32),
-            "connectivity_reward": connectivity_reward,  # NEW
+            "connectivity_reward": connectivity_reward,
             "row_index": row,
         }
-        info.update(conn_info)  # Add detailed connectivity info
+        info.update(conn_info)
         
         return (self._get_obs() if not terminated else self._terminal_obs()), reward, terminated, False, info
 

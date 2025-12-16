@@ -15,9 +15,9 @@ from matplotlib import pyplot as plt
 from tqdm import tqdm
 from PIL import Image
 
-USE_ARTIFACTS = False
-DRIVE_DATASET = True
-STARE_DATASET = True
+CT_LIKE = True
+DRIVE_DATASET = False
+STARE_DATASET = False
 
 def obs_to_tensor(obs, device):
     """Convert observation dict to tensors on device."""
@@ -226,12 +226,14 @@ def train_dqn_on_images(
     epsilon_decay_rate = -np.log(end_epsilon / start_epsilon) / epsilon_decay_epochs
 
     global_step = 0
-    losses = []
+    train_losses = []
     val_losses = []
+
     train_returns = []
+    val_returns = []
     base_returns = []
     continuity_returns = []
-    val_returns = []
+    
     epsilons = []
     
     # Metrics tracking
@@ -240,6 +242,18 @@ def train_dqn_on_images(
     }
     val_metrics_history = {
         "iou": [], "f1": [], "accuracy": [], "coverage": [], "precision": [], "recall": []
+    }
+    
+    # Conn_info tracking
+    conn_info_history = {
+        "detection_reward": [],
+        "thickness_penalty": [],
+        "width_bonus": [],
+        "confidence_penalty": [],
+        "connectivity_reward": [],
+        "true_positives": [],
+        "false_positives": [],
+        "false_negatives": []
     }
 
     for epoch in range(num_epochs):
@@ -268,6 +282,18 @@ def train_dqn_on_images(
             img_return = 0.0
             base_return = 0.0
             continuity_return = 0.0
+            
+            # Track conn_info for this episode
+            episode_conn_info = {
+                "detection_reward": [],
+                "thickness_penalty": [],
+                "width_bonus": [],
+                "confidence_penalty": [],
+                "connectivity_reward": [],
+                "true_positives": [],
+                "false_positives": [],
+                "false_negatives": []
+            }
 
             while not done:
                 row_pixels, prev_preds = obs_to_tensor(obs, device)
@@ -279,8 +305,14 @@ def train_dqn_on_images(
                 # Keep action on GPU, only convert to numpy when needed for env
                 next_obs, reward, terminated, truncated, info = env.step(a.cpu().numpy())
                 pixel_rewards = info["pixel_rewards"]
-                base_reward = info["base_rewards"].sum()
+                base_reward = info["weighted_accuracy"].sum()
                 continuity_reward = info["continuity_rewards"].sum()
+                
+                # Track conn_info metrics
+                for key in episode_conn_info.keys():
+                    if key in info:
+                        episode_conn_info[key].append(info[key])
+                
                 done = terminated or truncated
                 base_return += base_reward
                 continuity_return += continuity_reward
@@ -336,6 +368,13 @@ def train_dqn_on_images(
             # print(continuity_returns)
             train_returns.append(img_return)
             epsilons.append(epsilon)
+            
+            # Aggregate conn_info for this episode (average across rows)
+            for key in episode_conn_info.keys():
+                if len(episode_conn_info[key]) > 0:
+                    conn_info_history[key].append(np.mean(episode_conn_info[key]))
+                else:
+                    conn_info_history[key].append(0.0)
             
             # Compute metrics for this training image
             pred_train = reconstruct_image(policy_net, 
@@ -416,13 +455,13 @@ def train_dqn_on_images(
             val_losses.append(val_epoch_loss / val_c if val_c > 0 else 0)
             val_returns.append(avg_val_metrics["reward"])
         
-        losses.append(epoch_loss / c if c > 0 else 0)
+        train_losses.append(epoch_loss / c if c > 0 else 0)
         dt = time.time() - t0
         torch.save(target_net.state_dict(), 'dqn_row_based/models/ct_like/model_cont.pth')
         
         # Print epoch summary
         print(f"\nEpoch {epoch+1}/{num_epochs} | Time: {dt:.1f}s")
-        print(f"  Train - Loss: {losses[-1]:.4f} | Avg Return: {np.mean(train_returns[-len(image_mask_pairs):]):.2f} | ε: {epsilon:.3f}")
+        print(f"  Train - Loss: {train_losses[-1]:.4f} | Avg Return: {np.mean(train_returns[-len(image_mask_pairs):]):.2f} | ε: {epsilon:.3f}")
         print(f"          IoU: {avg_train_metrics['iou']:.3f} | F1: {avg_train_metrics['f1']:.3f} | Acc: {avg_train_metrics['accuracy']:.3f} | Cov: {avg_train_metrics['coverage']:.3f}")
         if val_pairs:
             print(f"  Val   - Loss: {val_losses[-1]:.4f} | Avg Return: {val_returns[-1]:.2f}")
@@ -436,10 +475,11 @@ def train_dqn_on_images(
         "continuity_returns": continuity_returns,
         "val_returns": val_returns,
         "epsilons": epsilons,
-        "losses": losses,
+        "train_losses": train_losses,
         "val_losses": val_losses,
         "train_metrics": train_metrics_history,
         "val_metrics": val_metrics_history,
+        "conn_info": conn_info_history,
     }
 
 def reconstruct_image(policy_net, 
@@ -492,7 +532,7 @@ def visualize_result(img, mask, pred, save_dir: str = None) -> None:
 
     if save_dir:
         plt.savefig(os.path.join(save_dir, "reconstruction.png"))
-    plt.show()
+    # plt.show()
 
 
 if __name__ == "__main__":
@@ -507,11 +547,17 @@ if __name__ == "__main__":
     
     val_imgs_paths = []
     val_masks_paths = []
-    
+
+    size = (128, 256)
+    cont_coef = 0.1
+
+    if CT_LIKE:
+        update_dataset("data/ct_like/2d/continuous", size=size)  
     if DRIVE_DATASET:
-        update_dataset("data/DRIVE", size=(512, 512))
+        update_dataset("data/DRIVE", size=size)
     if STARE_DATASET:
-        update_dataset("data/STARE", size=(512, 512))    
+        update_dataset("data/STARE", size=size)  
+
                     
     print(train_imgs_paths[:2])
     print(len(train_imgs_paths))
@@ -520,9 +566,9 @@ if __name__ == "__main__":
     results = train_dqn_on_images(
         list(zip(train_imgs, train_masks)),
         val_pairs=list(zip(val_imgs, val_masks)),
-        num_epochs=20,
-        continuity_coef=0.1,
-        continuity_decay_factor=0.5,
+        num_epochs=30,
+        continuity_coef=cont_coef,
+        continuity_decay_factor=0.7,
         seed=123,
         start_epsilon=1.0,
         end_epsilon=0.01,
@@ -531,10 +577,14 @@ if __name__ == "__main__":
     )
 
     img_test = cv2.imread(val_imgs_paths[0], cv2.IMREAD_GRAYSCALE)
-    img_test = cv2.resize(img_test, (512, 512))
-    mask_test = np.array(Image.open(val_masks_paths[0]).convert("L").resize((256, 256)))
+    img_test = cv2.resize(img_test, size)
+    mask_test = np.array(Image.open(val_masks_paths[0]).convert("L").resize(size))
 
-    pred = reconstruct_image(results["policy_net"], img_test, mask_test, continuity_coef=0.1, continuity_decay_factor=0.5)
+    pred = reconstruct_image(results["policy_net"], 
+                             img_test, 
+                             mask_test, 
+                             continuity_coef=cont_coef, 
+                             continuity_decay_factor=0.7)
 
     print(np.unique(pred))
     visualize_result(img_test, mask_test, pred, save_dir="dqn_row_based")
@@ -565,7 +615,6 @@ if __name__ == "__main__":
     axes[0, 1].set_title("Base Reward (Moving Average)")
     axes[0, 1].set_ylabel("Reward")
     axes[0, 1].set_xlabel("Episode")
-    axes[0, 1].legend()
     axes[0, 1].grid(True)
 
     # Continuity reward
@@ -576,7 +625,6 @@ if __name__ == "__main__":
     axes[0, 2].set_title("Continuity Reward (Moving Average)")
     axes[0, 2].set_ylabel("Reward")
     axes[0, 2].set_xlabel("Episode")
-    axes[0, 2].legend()
     axes[0, 2].grid(True)
     
     # Epsilon
@@ -586,7 +634,7 @@ if __name__ == "__main__":
     axes[0, 3].grid(True)
     
     # Loss (Train vs Val)
-    axes[1, 0].plot(results["losses"], color='red', marker='o', label='Train')
+    axes[1, 0].plot(results["train_losses"], color='red', marker='o', label='Train')
     if results["val_losses"]:
         axes[1, 0].plot(results["val_losses"], color='darkred', marker='s', label='Val')
     axes[1, 0].set_title("Model loss per Epoch")
@@ -637,4 +685,101 @@ if __name__ == "__main__":
 
     plt.tight_layout()
     plt.savefig(f"{os.getcwd()}/dqn_row_based/results.png", dpi=300)
-    plt.show()
+    # plt.show()
+    
+    # Plot conn_info metrics
+    fig2, axes2 = plt.subplots(2, 4, figsize=(20, 10))
+    
+    # Moving average window
+    window = len(train_imgs)
+    
+    # Detection reward
+    axes2[0, 0].plot(np.convolve(results["conn_info"]["detection_reward"], 
+                                  np.ones(window)/window, mode='valid'), 
+                     color='green', label='Detection Reward')
+    axes2[0, 0].set_title("Detection Reward (TP - FP - FN)")
+    axes2[0, 0].set_ylabel("Reward")
+    axes2[0, 0].set_xlabel("Episode")
+    axes2[0, 0].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+    axes2[0, 0].grid(True)
+    
+    # Thickness penalty
+    axes2[0, 1].plot(np.convolve(results["conn_info"]["thickness_penalty"], 
+                                  np.ones(window)/window, mode='valid'), 
+                     color='red', label='Thickness Penalty')
+    axes2[0, 1].set_title("Thickness Penalty (Width Control)")
+    axes2[0, 1].set_ylabel("Penalty")
+    axes2[0, 1].set_xlabel("Episode")
+    axes2[0, 1].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+    axes2[0, 1].grid(True)
+    
+    # Width bonus
+    axes2[0, 2].plot(np.convolve(results["conn_info"]["width_bonus"], 
+                                  np.ones(window)/window, mode='valid'), 
+                     color='blue', label='Width Bonus')
+    axes2[0, 2].set_title("Width Bonus (Matching GT Width)")
+    axes2[0, 2].set_ylabel("Bonus")
+    axes2[0, 2].set_xlabel("Episode")
+    axes2[0, 2].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+    axes2[0, 2].grid(True)
+    
+    # Confidence penalty
+    axes2[0, 3].plot(np.convolve(results["conn_info"]["confidence_penalty"], 
+                                  np.ones(window)/window, mode='valid'), 
+                     color='orange', label='Confidence Penalty')
+    axes2[0, 3].set_title("Confidence Penalty (Uncertain Predictions)")
+    axes2[0, 3].set_ylabel("Penalty")
+    axes2[0, 3].set_xlabel("Episode")
+    axes2[0, 3].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+    axes2[0, 3].grid(True)
+    
+    # Connectivity reward
+    axes2[1, 0].plot(np.convolve(results["conn_info"]["connectivity_reward"], 
+                                  np.ones(window)/window, mode='valid'), 
+                     color='purple', label='Connectivity Reward')
+    axes2[1, 0].set_title("Connectivity Reward (Fragmentation)")
+    axes2[1, 0].set_ylabel("Reward")
+    axes2[1, 0].set_xlabel("Episode")
+    axes2[1, 0].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+    axes2[1, 0].grid(True)
+    
+    # True positives
+    axes2[1, 1].plot(np.convolve(results["conn_info"]["true_positives"], 
+                                  np.ones(window)/window, mode='valid'), 
+                     color='green', label='True Positives')
+    axes2[1, 1].set_title("True Positives (Correct Vessel Pixels)")
+    axes2[1, 1].set_ylabel("Count")
+    axes2[1, 1].set_xlabel("Episode")
+    axes2[1, 1].grid(True)
+    
+    # False positives vs False negatives
+    axes2[1, 2].plot(np.convolve(results["conn_info"]["false_positives"], 
+                                  np.ones(window)/window, mode='valid'), 
+                     color='red', label='False Positives')
+    axes2[1, 2].plot(np.convolve(results["conn_info"]["false_negatives"], 
+                                  np.ones(window)/window, mode='valid'), 
+                     color='darkorange', label='False Negatives')
+    axes2[1, 2].set_title("False Positives vs False Negatives")
+    axes2[1, 2].set_ylabel("Count")
+    axes2[1, 2].set_xlabel("Episode")
+    axes2[1, 2].legend()
+    axes2[1, 2].grid(True)
+    
+    # FP/FN ratio (diagnostic)
+    fp_arr = np.array(results["conn_info"]["false_positives"])
+    fn_arr = np.array(results["conn_info"]["false_negatives"])
+    ratio = np.divide(fp_arr, fn_arr + 1e-8)  # Avoid division by zero
+    axes2[1, 3].plot(np.convolve(ratio, np.ones(window)/window, mode='valid'), 
+                     color='brown', label='FP/FN Ratio')
+    axes2[1, 3].set_title("FP/FN Ratio (Over-prediction Indicator)")
+    axes2[1, 3].set_ylabel("Ratio")
+    axes2[1, 3].set_xlabel("Episode")
+    axes2[1, 3].axhline(y=1.0, color='gray', linestyle='--', alpha=0.5, label='Balanced')
+    axes2[1, 3].legend()
+    axes2[1, 3].grid(True)
+    
+    plt.tight_layout()
+    plt.savefig(f"{os.getcwd()}/dqn_row_based/conn_info_analysis.png", dpi=300)
+    # plt.show()
+
+    
