@@ -457,7 +457,13 @@ def train_dqn_on_images(
         
         train_losses.append(epoch_loss / c if c > 0 else 0)
         dt = time.time() - t0
-        torch.save(target_net.state_dict(), 'dqn_row_based/models/ct_like/model_cont.pth')
+        if CT_LIKE:
+            save_dir = "ct_like"
+        elif DRIVE_DATASET:
+            save_dir = "drive"
+        elif DRIVE_DATASET and STARE_DATASET:
+            save_dir = "drive+stare"
+        torch.save(target_net.state_dict(), 'dqn_row_based/models/{}/model_cont.pth'.format(save_dir))
         
         # Print epoch summary
         print(f"\nEpoch {epoch+1}/{num_epochs} | Time: {dt:.1f}s")

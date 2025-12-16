@@ -122,7 +122,7 @@ def add_ct_artifacts(volume, noise_sigma=0.05, streak_prob=0.02):
     
     return np.clip(noisy, 0, 1)
 
-def generate_dataset(num_samples=5, output_dir="generated_roots"):
+def generate_dataset(num_samples=5, size = (64, 16, 16), output_dir="generated_roots"):
     """Generate multiple root volumes with variations."""
     os.makedirs(output_dir, exist_ok=True)
     
@@ -147,7 +147,7 @@ def generate_dataset(num_samples=5, output_dir="generated_roots"):
         )
         
         # Convert to volume (this is the clean mask)
-        mask = points_to_volume(points, res_d=64, res_h=16, res_w=16, thickness=thickness)
+        mask = points_to_volume(points, res_d=size[0], res_h=size[1], res_w=size[2], thickness=thickness)
         
         # Create noisy volume (simulating CT scan)
         volume_clean = mask.copy()
@@ -165,9 +165,9 @@ def generate_dataset(num_samples=5, output_dir="generated_roots"):
 
 # Generate dataset
 if __name__ == "__main__":
-    # print("Generating root structure dataset...")
-    # generate_dataset(num_samples=10, output_dir="data/ct_like/3d")
-    # print("\nDone! Volumes saved to 'generated_roots/' directory")
+    print("Generating root structure dataset...")
+    generate_dataset(num_samples=10, size=(128, 128, 128), output_dir="data/ct_like/3d")
+    print("\nDone! Volumes saved to 'data/ct_like/3d/' directory")
     
     # Visualize one example
     print("\nVisualizing sample with slices...")
