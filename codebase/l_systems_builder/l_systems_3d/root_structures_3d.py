@@ -130,7 +130,7 @@ def generate_dataset(num_samples=5, size = (64, 16, 16), output_dir="generated_r
         print(f"Generating sample {i+1}/{num_samples}...")
         
         # Vary parameters for each sample
-        iterations = np.random.randint(2, 5)
+        iterations = np.random.randint(4, 6)
         angle_base = np.random.uniform(np.pi/8, np.pi/4)
         step = np.random.uniform(0.08, 0.12)
         rules_idx = i % len(RULE_SETS)
