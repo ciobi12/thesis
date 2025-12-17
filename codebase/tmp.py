@@ -4,8 +4,8 @@ import numpy as np
 
 points, _ = generate_root_structure(iterations=5, angle_base=np.pi/6, step=0.1, 
                                     angle_variation=0.2, rules_idx=3, seed=42)
-volume = points_to_volume(points, res_d=128, res_h=128, res_w=128, thickness=3)
 
+volume = points_to_volume(points, res_d=128, res_h=128, res_w=128, thickness=2)
 plotter = pv.Plotter()
 plotter.subplot(0, 0)
 grid1 = pv.ImageData()

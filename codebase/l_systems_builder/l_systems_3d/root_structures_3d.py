@@ -134,7 +134,7 @@ def generate_dataset(num_samples=5, size = (64, 16, 16), output_dir="generated_r
         angle_base = np.random.uniform(np.pi/8, np.pi/4)
         step = np.random.uniform(0.08, 0.12)
         rules_idx = i % len(RULE_SETS)
-        thickness = np.random.randint(1, 3)
+        thickness = np.random.randint(2, 3)
         
         # Generate root structure
         points, lines = generate_root_structure(
@@ -151,7 +151,7 @@ def generate_dataset(num_samples=5, size = (64, 16, 16), output_dir="generated_r
         
         # Create noisy volume (simulating CT scan)
         volume_clean = mask.copy()
-        volume_noisy = add_ct_artifacts(volume_clean, noise_sigma=0.08, streak_prob=0.03)
+        volume_noisy = add_ct_artifacts(volume_clean, noise_sigma=0.3, streak_prob=0.3)
         
         # Convert to uint8 for storage
         volume_noisy_uint8 = (volume_noisy * 255).astype(np.uint8)
@@ -171,9 +171,9 @@ if __name__ == "__main__":
     
     # Visualize one example
     print("\nVisualizing sample with slices...")
-    volume = np.load("data/ct_like/3d/val/root_volume_003.npy").astype(np.float32) / 255.0
+    volume = np.load("data/ct_like/3d/root_volume_003.npy").astype(np.float32) / 255.0
     print(volume.shape)
-    mask = np.load("data/ct_like/3d/val/root_mask_003.npy")
+    mask = np.load("data/ct_like/3d/root_mask_003.npy")
     
     # Select slices to visualize (beginning, middle, end)
     D = volume.shape[0]
