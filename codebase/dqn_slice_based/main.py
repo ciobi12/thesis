@@ -235,7 +235,7 @@ def train_dqn_on_volumes(
                 # Keep action on GPU, only convert to numpy when needed for env
                 next_obs, reward, terminated, truncated, info = env.step(a.cpu().numpy().flatten())
                 pixel_rewards = info["pixel_rewards"]
-                base_reward = info["base_rewards"].sum()
+                base_reward = info["base_rewards"].sum()     
                 continuity_reward = info["continuity_rewards"].sum()
                 done = terminated or truncated
                 base_return += base_reward
@@ -373,7 +373,7 @@ def train_dqn_on_volumes(
             val_returns.append(avg_val_metrics["reward"])
         
         losses.append(epoch_loss / c if c > 0 else 0)
-        dt = time.time() - t0
+        dt = time.time() - t0  
         torch.save(target_net.state_dict(), 'dqn_slice_based/models/model.pth')
         
         # Print epoch summary
@@ -456,7 +456,7 @@ if __name__ == "__main__":
     if USE_ARTIFACTS: 
         intermediate_dir = "with_artifacts"
     else:
-        intermediate_dir = "data/ct_like/3d"
+        intermediate_dir = "data/ct_like/3d_new"  # Updated directory name
         
     train_data_dir = os.path.join(intermediate_dir, "train")
     val_data_dir = os.path.join(intermediate_dir, "val")
