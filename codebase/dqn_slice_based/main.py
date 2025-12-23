@@ -1,5 +1,5 @@
 import cv2
-
+import nibabel as nib
 import numpy as np
 import os
 import random
@@ -471,6 +471,12 @@ if __name__ == "__main__":
                 train_masks.append(data)
             else:
                 train_vols.append(data)
+        elif file.endswith(".nii") or file.endswith(".nii.gz"):
+            volume = nib.load(os.path.join(train_data_dir, file)).get_fdata()
+            if "mask" in file:
+                train_masks.append(volume)
+            else:
+                train_vols.append(volume)
     
     # Load validation data
     val_vols = []
