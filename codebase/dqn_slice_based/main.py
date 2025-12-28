@@ -14,7 +14,6 @@ from dqn_slice_based.env import PathReconstructionEnv
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
-USE_ARTIFACTS = False
 
 def obs_to_tensor(obs, device):
     """Convert observation dict to tensors on device."""
@@ -452,53 +451,63 @@ def visualize_result(vol, mask, pred, save_dir: str = None, slice_idx: int = 32)
     plt.show()
 
 
-if __name__ == "__main__":
-    if USE_ARTIFACTS: 
-        intermediate_dir = "with_artifacts"
-    else:
-        intermediate_dir = "data/ct_like/3d_new"  # Updated directory name
+def load_subvolume_pairs(data_dir):
+    """
+    Load paired volume and mask subvolumes from a directory.
+    Files are named: {prefix}_d{d}_h{h}_w{w}_vol.npy and {prefix}_d{d}_h{h}_w{w}_mask.npy
+    """
+    vols = []
+    masks = []
+    
+    # Find all volume files and match with their masks
+    vol_files = sorted([f for f in os.listdir(data_dir) if f.endswith("_vol.npy")])
+    
+    for vol_file in vol_files:
+        mask_file = vol_file.replace("_vol.npy", "_mask.npy")
         
-    train_data_dir = os.path.join(intermediate_dir, "train")
-    val_data_dir = os.path.join(intermediate_dir, "val")
+        vol_path = os.path.join(data_dir, vol_file)
+        mask_path = os.path.join(data_dir, mask_file)
+        
+        if os.path.exists(mask_path):
+            vol = np.load(vol_path)
+            mask = np.load(mask_path)
+            vols.append(vol)
+            masks.append(mask)
+            print(f"Loaded: {vol_file} ({vol.shape}, fg={mask.mean()*100:.4f}%)")
+        else:
+            print(f"Warning: No mask found for {vol_file}")
     
-    # Load training data - assuming .npy files contain 3D volumes
-    train_vols = []
-    train_masks = []
-    for file in sorted(os.listdir(train_data_dir)):
-        if file.endswith(".npy"):
-            data = np.load(os.path.join(train_data_dir, file))
-            if "mask" in file:
-                train_masks.append(data)
-            else:
-                train_vols.append(data)
-        elif file.endswith(".nii") or file.endswith(".nii.gz"):
-            volume = nib.load(os.path.join(train_data_dir, file)).get_fdata()
-            if "mask" in file:
-                train_masks.append(volume)
-            else:
-                train_vols.append(volume)
+    return vols, masks
+
+
+if __name__ == "__main__":
+    # Use new subvolume dataset (100x64x64 subvolumes)
+    data_dir = "../data/rapids-p/subvolumes_100x64x64"
+        
+    train_data_dir = os.path.join(data_dir, "train")
+    val_data_dir = os.path.join(data_dir, "val")
     
-    # Load validation data
-    val_vols = []
-    val_masks = []
-    for file in sorted(os.listdir(val_data_dir)):
-        if file.endswith(".npy"):
-            data = np.load(os.path.join(val_data_dir, file))
-            if "mask" in file:
-                val_masks.append(data)
-            else:
-                val_vols.append(data)
+    print("Loading training subvolumes...")
+    train_vols, train_masks = load_subvolume_pairs(train_data_dir)
+    print(f"Loaded {len(train_vols)} training subvolumes")
     
+    print("\nLoading validation subvolumes...")
+    val_vols, val_masks = load_subvolume_pairs(val_data_dir)
+    print(f"Loaded {len(val_vols)} validation subvolumes")
+    
+    # Training with subvolumes (100x64x64 each)
     results = train_dqn_on_volumes(
         list(zip(train_vols, train_masks)),
         val_pairs=list(zip(val_vols, val_masks)),
-        num_epochs=5,
+        num_epochs=30,              # More epochs for smaller data
         continuity_coef=0.1,
         continuity_decay_factor=0.5,
         seed=123,
         start_epsilon=1.0,
         end_epsilon=0.01,
-        epsilon_decay_epochs=15,
+        epsilon_decay_epochs=20,
+        buffer_capacity=20000,      # Smaller buffer for smaller data
+        batch_size=32,              # Smaller batch
         device="cuda" if torch.cuda.is_available() else "cpu"
     )
 

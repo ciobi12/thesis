@@ -1,8 +1,9 @@
 *.pyc
 
-.thesis/*
+./.thesis/*
 
-codebase/data/ct_like/rapids-p/*
+data/rapids-p/*
 
 *.err
 *.out
+*.pth
