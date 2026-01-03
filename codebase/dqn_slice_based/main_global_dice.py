@@ -20,19 +20,19 @@ from collections import deque
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from env_dice import PathReconstructionEnvDice as PathReconstructionEnv
+from env_global_coherence import PathReconstructionEnvGlobalCoherence as PathReconstructionEnv
 from dqn import PerPixelCNNWithHistory
 
 # ============================================================================
 # Configuration
 # ============================================================================
 
-# Data Augmentation Settings
-AUGMENT_PROB = 0.1  # Probability of applying any augmentation (LOW FOR NOW)
+# Data Augmentation Settings (increased for regularization)
+AUGMENT_PROB = 0.5  # Probability of applying any augmentation
 FLIP_PROB = 0.5     # Probability of each flip axis
 ROTATE_PROB = 0.5   # Probability of rotation
-INTENSITY_PROB = 0.3  # Probability of intensity augmentation
-NOISE_PROB = 0.2    # Probability of adding noise
+INTENSITY_PROB = 0.4  # Probability of intensity augmentation
+NOISE_PROB = 0.3    # Probability of adding noise
 
 SUBVOL_SHAPE = (100, 64, 64)  # Must match preprocessing
 # Full volume: (800, 466, 471) -> Grid: 8x7x7 subvolumes
@@ -406,6 +406,8 @@ def train_with_global_dice(
     dice_coef: float = 1.0,
     device: str = None,
     save_dir: str = "models",
+    # Early stopping
+    early_stopping_patience: int = 10,
 ):
     """
     Train DQN with global DICE evaluation every N epochs.
@@ -460,6 +462,9 @@ def train_with_global_dice(
     best_val_pred = None
     best_epoch = 0
     
+    # Early stopping tracking
+    epochs_without_improvement = 0
+    
     # Per-epoch metrics
     train_metrics_history = {
         "iou": [], "f1": [], "accuracy": [], "coverage": [], "dice": []
@@ -473,8 +478,9 @@ def train_with_global_dice(
     print(f"  - Full volume shape: {FULL_VOLUME_SHAPE}")
     print(f"  - DICE coefficient: {dice_coef}")
     print(f"  - Data augmentation: {'ENABLED' if AUGMENT_PROB > 0 else 'DISABLED'} (prob={AUGMENT_PROB})")
-    print(f"  - Epsilon decay: exponential (smoother)")
-    print(f"{'='*60}\n")
+    print(f"  - Epsilon decay: exponential (slower)")
+    print(f"  - Early stopping patience: {early_stopping_patience} evaluations")
+    print(f"{'='*60}\\n")
     
     for epoch in range(num_epochs):
         t0 = time.time()
@@ -546,8 +552,11 @@ def train_with_global_dice(
                 global_step += 1
                 
                 # Update epsilon (exponential decay for smoother exploration)
-                # epsilon = epsilon_end + (epsilon_start - epsilon_end) * exp(-global_step / epsilon_decay_steps)
-                decay_rate = 3.0 / epsilon_decay_steps  # reaches ~5% of initial after epsilon_decay_steps
+                # Target: reach epsilon_end (~0.01) around epoch 35-40
+                # With ~55 subvolumes * 100 slices = 5500 steps/epoch
+                # Epoch 37.5 ~ 206,250 steps -> decay_rate = 4.6 / 206250 ≈ 2.2e-5
+                # Using decay_rate = 0.5 / epsilon_decay_steps gives slower decay
+                decay_rate = 0.5 / epsilon_decay_steps  # much slower decay
                 epsilon = epsilon_end + (epsilon_start - epsilon_end) * np.exp(-decay_rate * global_step)
                 epsilon = max(epsilon, epsilon_end)  # ensure it doesn't go below epsilon_end
                 
@@ -670,10 +679,21 @@ def train_with_global_dice(
                     best_val_dice = val_metrics["dice"]
                     best_val_pred = val_pred.copy()
                     best_epoch = epoch + 1
+                    epochs_without_improvement = 0  # Reset counter
                     # Save best model
                     best_model_path = os.path.join(save_dir, "best_model.pth")
                     torch.save(policy_net.state_dict(), best_model_path)
                     print(f"  [NEW BEST] Saved best model (val DICE={best_val_dice:.4f})")
+                else:
+                    epochs_without_improvement += 1
+                    print(f"  [NO IMPROVEMENT] ({epochs_without_improvement}/{early_stopping_patience})")
+                    
+                    if epochs_without_improvement >= early_stopping_patience:
+                        print(f"\n{'='*60}")
+                        print(f"EARLY STOPPING: No improvement for {early_stopping_patience} evaluations")
+                        print(f"Best validation DICE: {best_val_dice:.4f} at epoch {best_epoch}")
+                        print(f"{'='*60}")
+                        break  # Exit training loop
         
         # Print epoch summary
         dt = time.time() - t0
@@ -695,6 +715,7 @@ def train_with_global_dice(
     final_pred = reconstruct_full_volume_from_subvolumes(
         policy_net, train_volumes, train_positions, device=device, dice_coef=dice_coef
     )
+    print(final_pred.shape)
     final_metrics = compute_global_metrics(final_pred, full_train_mask)
     
     print(f"Final DICE: {final_metrics['dice']:.4f}")
@@ -915,8 +936,8 @@ def plot_training_results(results: dict, save_dir: str = "results"):
         
         plt.suptitle("Train vs Validation Metrics", fontsize=14, fontweight='bold')
         plt.tight_layout()
-        plt.savefig(os.path.join(save_dir, "train_val_metrics.png"), dpi=300)
-        plt.show()
+        # plt.savefig(os.path.join(save_dir, "train_val_metrics.png"), dpi=300)
+        # plt.show()
         plt.savefig(os.path.join(save_dir, "global_metrics.png"), dpi=300)
         plt.show()
 
@@ -1042,10 +1063,9 @@ if __name__ == "__main__":
         mask_test = train_masks[0]
         
         # Reconstruct single subvolume for visualization
-        from env_dice import PathReconstructionEnvDice
         device = "cuda" if torch.cuda.is_available() else "cpu"
         
-        env = PathReconstructionEnvDice(
+        env = PathReconstructionEnv(
             vol_test, mask_test,
             continuity_coef=0.1,
             continuity_decay_factor=0.5,

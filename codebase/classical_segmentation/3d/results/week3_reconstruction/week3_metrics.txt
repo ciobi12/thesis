@@ -1,0 +1,13 @@
+Full Volume Metrics for week3
+========================================
+Volume shape: (800, 466, 471)
+Dice:      0.2109
+IoU:       0.1179
+Precision: 0.1301
+Recall:    0.5569
+Accuracy:  0.9978
+
+Voxel counts:
+  GT foreground:   92,514
+  Pred foreground: 396,108
+  TP: 51,518, FP: 344,590, FN: 40,996
