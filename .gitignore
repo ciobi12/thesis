@@ -7,3 +7,5 @@ data/rapids-p/*
 *.err
 *.out
 *.pth
+
+*.log

@@ -1,289 +1,0 @@
-Loading training subvolumes with grid positions...
-Loaded: week2_d00_h00_w04.npy at position (0, 0, 4) (fg=0.0301%)
-Loaded: week2_d01_h00_w04.npy at position (1, 0, 4) (fg=0.0732%)
-Loaded: week2_d02_h00_w04.npy at position (2, 0, 4) (fg=0.1148%)
-Loaded: week2_d03_h00_w04.npy at position (3, 0, 4) (fg=0.0286%)
-Loaded: week2_d03_h01_w04.npy at position (3, 1, 4) (fg=0.2010%)
-Loaded: week2_d03_h04_w00.npy at position (3, 4, 0) (fg=0.1259%)
-Loaded: week2_d04_h01_w04.npy at position (4, 1, 4) (fg=0.2724%)
-Loaded: week2_d04_h02_w04.npy at position (4, 2, 4) (fg=0.1324%)
-Loaded: week2_d04_h03_w01.npy at position (4, 3, 1) (fg=0.0923%)
-Loaded: week2_d04_h03_w03.npy at position (4, 3, 3) (fg=0.1564%)
-Loaded: week2_d04_h03_w04.npy at position (4, 3, 4) (fg=0.0103%)
-Loaded: week2_d04_h03_w06.npy at position (4, 3, 6) (fg=0.0130%)
-Loaded: week2_d04_h04_w00.npy at position (4, 4, 0) (fg=0.0992%)
-Loaded: week2_d04_h04_w01.npy at position (4, 4, 1) (fg=0.0320%)
-Loaded: week2_d04_h04_w03.npy at position (4, 4, 3) (fg=0.0290%)
-Loaded: week2_d04_h04_w06.npy at position (4, 4, 6) (fg=0.0881%)
-Loaded: week2_d05_h02_w02.npy at position (5, 2, 2) (fg=0.0172%)
-Loaded: week2_d05_h02_w04.npy at position (5, 2, 4) (fg=0.2197%)
-Loaded: week2_d05_h03_w01.npy at position (5, 3, 1) (fg=0.0187%)
-Loaded: week2_d05_h03_w02.npy at position (5, 3, 2) (fg=0.2911%)
-Loaded: week2_d05_h03_w03.npy at position (5, 3, 3) (fg=0.8129%)
-Loaded: week2_d05_h03_w04.npy at position (5, 3, 4) (fg=0.4791%)
-Loaded: week2_d05_h04_w02.npy at position (5, 4, 2) (fg=0.0221%)
-Loaded: week2_d05_h04_w03.npy at position (5, 4, 3) (fg=0.0366%)
-Loaded: week2_d05_h04_w04.npy at position (5, 4, 4) (fg=0.1411%)
-Loaded: week2_d05_h04_w05.npy at position (5, 4, 5) (fg=0.1205%)
-Loaded: week2_d05_h04_w06.npy at position (5, 4, 6) (fg=0.3414%)
-Loaded: week2_d05_h05_w05.npy at position (5, 5, 5) (fg=0.0507%)
-Loaded: week2_d05_h05_w06.npy at position (5, 5, 6) (fg=0.0618%)
-Loaded: week2_d06_h02_w02.npy at position (6, 2, 2) (fg=0.0156%)
-Loaded: week2_d06_h03_w03.npy at position (6, 3, 3) (fg=0.6081%)
-Loaded: week2_d06_h03_w04.npy at position (6, 3, 4) (fg=0.1934%)
-Loaded: week2_d06_h04_w03.npy at position (6, 4, 3) (fg=0.1293%)
-Loaded: week2_d06_h05_w01.npy at position (6, 5, 1) (fg=0.0637%)
-Loaded: week2_d06_h05_w02.npy at position (6, 5, 2) (fg=0.1564%)
-Loaded: week2_d06_h05_w03.npy at position (6, 5, 3) (fg=0.2201%)
-Loaded: week2_d06_h05_w04.npy at position (6, 5, 4) (fg=0.2235%)
-Loaded: week2_d06_h05_w05.npy at position (6, 5, 5) (fg=0.1598%)
-Loaded: week2_d06_h06_w05.npy at position (6, 6, 5) (fg=0.1942%)
-Loaded: week2_d07_h03_w03.npy at position (7, 3, 3) (fg=0.5253%)
-Loaded: week2_d07_h03_w04.npy at position (7, 3, 4) (fg=0.1484%)
-Loaded: week2_d07_h04_w03.npy at position (7, 4, 3) (fg=0.2014%)
-Loaded: week2_d07_h05_w01.npy at position (7, 5, 1) (fg=0.0923%)
-Loaded: week2_d07_h06_w05.npy at position (7, 6, 5) (fg=0.1633%)
-Loaded: week2_d08_h02_w03.npy at position (8, 2, 3) (fg=0.0931%)
-Loaded: week2_d08_h03_w03.npy at position (8, 3, 3) (fg=0.4879%)
-Loaded: week2_d08_h03_w04.npy at position (8, 3, 4) (fg=0.1328%)
-Loaded: week2_d08_h04_w00.npy at position (8, 4, 0) (fg=0.0614%)
-Loaded: week2_d08_h05_w00.npy at position (8, 5, 0) (fg=0.0648%)
-Loaded: week2_d08_h05_w05.npy at position (8, 5, 5) (fg=0.1072%)
-Loaded: week2_d08_h05_w06.npy at position (8, 5, 6) (fg=0.0824%)
-Loaded: week2_d08_h06_w05.npy at position (8, 6, 5) (fg=0.0198%)
-Loaded: week2_d09_h02_w03.npy at position (9, 2, 3) (fg=0.1152%)
-Loaded: week2_d09_h03_w02.npy at position (9, 3, 2) (fg=0.0462%)
-Loaded: week2_d09_h03_w03.npy at position (9, 3, 3) (fg=0.4410%)
-Loaded: week2_d09_h03_w04.npy at position (9, 3, 4) (fg=0.1648%)
-Loaded: week2_d09_h04_w00.npy at position (9, 4, 0) (fg=0.0462%)
-Loaded: week2_d09_h04_w01.npy at position (9, 4, 1) (fg=0.1919%)
-Loaded: week2_d09_h04_w02.npy at position (9, 4, 2) (fg=0.0416%)
-Loaded: week2_d09_h04_w05.npy at position (9, 4, 5) (fg=0.0660%)
-Loaded: week2_d09_h04_w06.npy at position (9, 4, 6) (fg=0.0374%)
-Loaded: week2_d09_h05_w06.npy at position (9, 5, 6) (fg=0.2377%)
-Loaded: week2_d10_h02_w03.npy at position (10, 2, 3) (fg=0.0721%)
-Loaded: week2_d10_h03_w02.npy at position (10, 3, 2) (fg=0.2102%)
-Loaded: week2_d10_h03_w03.npy at position (10, 3, 3) (fg=0.2308%)
-Loaded: week2_d10_h03_w04.npy at position (10, 3, 4) (fg=0.5322%)
-Loaded: week2_d10_h04_w04.npy at position (10, 4, 4) (fg=0.1019%)
-Loaded: week2_d10_h04_w05.npy at position (10, 4, 5) (fg=0.1911%)
-Loaded: week2_d11_h01_w04.npy at position (11, 1, 4) (fg=0.1301%)
-Loaded: week2_d11_h02_w04.npy at position (11, 2, 4) (fg=0.2609%)
-Loaded: week2_d11_h03_w03.npy at position (11, 3, 3) (fg=1.8661%)
-Loaded: week2_d11_h03_w04.npy at position (11, 3, 4) (fg=0.3113%)
-Loaded: week2_d11_h04_w03.npy at position (11, 4, 3) (fg=0.5417%)
-
-Summary: Loaded 73 subvolumes
-Loaded 73 training subvolumes
-
-Loading validation subvolumes...
-Loaded: week3_d00_h00_w04.npy at position (0, 0, 4) (fg=0.0858%)
-Loaded: week3_d00_h01_w05.npy at position (0, 1, 5) (fg=0.0206%)
-Loaded: week3_d00_h01_w06.npy at position (0, 1, 6) (fg=0.0538%)
-Loaded: week3_d00_h02_w05.npy at position (0, 2, 5) (fg=0.3025%)
-Loaded: week3_d00_h06_w02.npy at position (0, 6, 2) (fg=0.1583%)
-Loaded: week3_d00_h06_w03.npy at position (0, 6, 3) (fg=0.2274%)
-Loaded: week3_d00_h06_w04.npy at position (0, 6, 4) (fg=0.0111%)
-Loaded: week3_d01_h00_w04.npy at position (1, 0, 4) (fg=0.1492%)
-Loaded: week3_d01_h01_w06.npy at position (1, 1, 6) (fg=0.1301%)
-Loaded: week3_d01_h02_w05.npy at position (1, 2, 5) (fg=0.1606%)
-Loaded: week3_d01_h02_w06.npy at position (1, 2, 6) (fg=0.4505%)
-Loaded: week3_d01_h05_w01.npy at position (1, 5, 1) (fg=0.0473%)
-Loaded: week3_d01_h05_w04.npy at position (1, 5, 4) (fg=0.0961%)
-Loaded: week3_d01_h06_w01.npy at position (1, 6, 1) (fg=0.0935%)
-Loaded: week3_d01_h06_w02.npy at position (1, 6, 2) (fg=0.1816%)
-Loaded: week3_d01_h06_w03.npy at position (1, 6, 3) (fg=0.1625%)
-Loaded: week3_d02_h00_w04.npy at position (2, 0, 4) (fg=0.1293%)
-Loaded: week3_d02_h02_w06.npy at position (2, 2, 6) (fg=0.7015%)
-Loaded: week3_d02_h04_w00.npy at position (2, 4, 0) (fg=0.0404%)
-Loaded: week3_d02_h05_w00.npy at position (2, 5, 0) (fg=0.0862%)
-Loaded: week3_d02_h05_w01.npy at position (2, 5, 1) (fg=0.0706%)
-Loaded: week3_d02_h05_w04.npy at position (2, 5, 4) (fg=0.3723%)
-Loaded: week3_d02_h06_w03.npy at position (2, 6, 3) (fg=0.1816%)
-Loaded: week3_d03_h00_w04.npy at position (3, 0, 4) (fg=0.0416%)
-Loaded: week3_d03_h01_w04.npy at position (3, 1, 4) (fg=0.1705%)
-Loaded: week3_d03_h02_w06.npy at position (3, 2, 6) (fg=0.5413%)
-Loaded: week3_d03_h03_w04.npy at position (3, 3, 4) (fg=0.2060%)
-Loaded: week3_d03_h03_w06.npy at position (3, 3, 6) (fg=0.1507%)
-Loaded: week3_d03_h04_w00.npy at position (3, 4, 0) (fg=0.1343%)
-Loaded: week3_d03_h05_w04.npy at position (3, 5, 4) (fg=0.2163%)
-Loaded: week3_d03_h05_w05.npy at position (3, 5, 5) (fg=0.1175%)
-Loaded: week3_d03_h06_w03.npy at position (3, 6, 3) (fg=0.1343%)
-Loaded: week3_d04_h00_w03.npy at position (4, 0, 3) (fg=0.0450%)
-Loaded: week3_d04_h00_w04.npy at position (4, 0, 4) (fg=0.1480%)
-Loaded: week3_d04_h00_w05.npy at position (4, 0, 5) (fg=0.1263%)
-Loaded: week3_d04_h01_w00.npy at position (4, 1, 0) (fg=0.0591%)
-Loaded: week3_d04_h01_w04.npy at position (4, 1, 4) (fg=0.2594%)
-Loaded: week3_d04_h01_w05.npy at position (4, 1, 5) (fg=0.0576%)
-Loaded: week3_d04_h01_w06.npy at position (4, 1, 6) (fg=0.1305%)
-Loaded: week3_d04_h02_w00.npy at position (4, 2, 0) (fg=0.0290%)
-Loaded: week3_d04_h02_w04.npy at position (4, 2, 4) (fg=0.0999%)
-Loaded: week3_d04_h02_w06.npy at position (4, 2, 6) (fg=0.3723%)
-Loaded: week3_d04_h03_w01.npy at position (4, 3, 1) (fg=0.0954%)
-Loaded: week3_d04_h03_w03.npy at position (4, 3, 3) (fg=0.2563%)
-Loaded: week3_d04_h03_w04.npy at position (4, 3, 4) (fg=0.1549%)
-Loaded: week3_d04_h03_w05.npy at position (4, 3, 5) (fg=0.2430%)
-Loaded: week3_d04_h03_w06.npy at position (4, 3, 6) (fg=0.0515%)
-Loaded: week3_d04_h04_w00.npy at position (4, 4, 0) (fg=0.1011%)
-Loaded: week3_d04_h04_w01.npy at position (4, 4, 1) (fg=0.0179%)
-Loaded: week3_d04_h04_w03.npy at position (4, 4, 3) (fg=0.0183%)
-Loaded: week3_d04_h04_w05.npy at position (4, 4, 5) (fg=0.0725%)
-Loaded: week3_d04_h04_w06.npy at position (4, 4, 6) (fg=0.0992%)
-Loaded: week3_d04_h05_w05.npy at position (4, 5, 5) (fg=0.2750%)
-Loaded: week3_d04_h06_w03.npy at position (4, 6, 3) (fg=0.0465%)
-Loaded: week3_d04_h06_w04.npy at position (4, 6, 4) (fg=0.1450%)
-Loaded: week3_d04_h06_w05.npy at position (4, 6, 5) (fg=0.0122%)
-Loaded: week3_d05_h00_w01.npy at position (5, 0, 1) (fg=0.1251%)
-Loaded: week3_d05_h00_w02.npy at position (5, 0, 2) (fg=0.2510%)
-Loaded: week3_d05_h00_w03.npy at position (5, 0, 3) (fg=0.1926%)
-Loaded: week3_d05_h00_w04.npy at position (5, 0, 4) (fg=0.0347%)
-Loaded: week3_d05_h01_w00.npy at position (5, 1, 0) (fg=0.0668%)
-Loaded: week3_d05_h01_w01.npy at position (5, 1, 1) (fg=0.1842%)
-Loaded: week3_d05_h01_w06.npy at position (5, 1, 6) (fg=0.4398%)
-Loaded: week3_d05_h02_w00.npy at position (5, 2, 0) (fg=0.0935%)
-Loaded: week3_d05_h02_w03.npy at position (5, 2, 3) (fg=0.0580%)
-Loaded: week3_d05_h02_w04.npy at position (5, 2, 4) (fg=0.2689%)
-Loaded: week3_d05_h02_w06.npy at position (5, 2, 6) (fg=0.3124%)
-Loaded: week3_d05_h03_w00.npy at position (5, 3, 0) (fg=0.0889%)
-Loaded: week3_d05_h03_w01.npy at position (5, 3, 1) (fg=0.0217%)
-Loaded: week3_d05_h03_w02.npy at position (5, 3, 2) (fg=0.1896%)
-Loaded: week3_d05_h03_w03.npy at position (5, 3, 3) (fg=0.8507%)
-Loaded: week3_d05_h03_w04.npy at position (5, 3, 4) (fg=0.3578%)
-Loaded: week3_d05_h03_w05.npy at position (5, 3, 5) (fg=0.0549%)
-Loaded: week3_d05_h03_w06.npy at position (5, 3, 6) (fg=0.2594%)
-Loaded: week3_d05_h04_w00.npy at position (5, 4, 0) (fg=0.0736%)
-Loaded: week3_d05_h04_w03.npy at position (5, 4, 3) (fg=0.0759%)
-Loaded: week3_d05_h04_w04.npy at position (5, 4, 4) (fg=0.2651%)
-Loaded: week3_d05_h04_w05.npy at position (5, 4, 5) (fg=0.1236%)
-Loaded: week3_d05_h04_w06.npy at position (5, 4, 6) (fg=0.4284%)
-Loaded: week3_d05_h05_w04.npy at position (5, 5, 4) (fg=0.0240%)
-Loaded: week3_d05_h05_w05.npy at position (5, 5, 5) (fg=0.1724%)
-Loaded: week3_d05_h05_w06.npy at position (5, 5, 6) (fg=0.0481%)
-Loaded: week3_d05_h06_w04.npy at position (5, 6, 4) (fg=0.1793%)
-Loaded: week3_d05_h06_w05.npy at position (5, 6, 5) (fg=0.2930%)
-Loaded: week3_d06_h01_w06.npy at position (6, 1, 6) (fg=0.2972%)
-Loaded: week3_d06_h02_w06.npy at position (6, 2, 6) (fg=0.2842%)
-Loaded: week3_d06_h03_w03.npy at position (6, 3, 3) (fg=0.5875%)
-Loaded: week3_d06_h03_w04.npy at position (6, 3, 4) (fg=0.1255%)
-Loaded: week3_d06_h04_w03.npy at position (6, 4, 3) (fg=0.0973%)
-Loaded: week3_d06_h04_w04.npy at position (6, 4, 4) (fg=0.0641%)
-Loaded: week3_d06_h05_w01.npy at position (6, 5, 1) (fg=0.1888%)
-Loaded: week3_d06_h05_w02.npy at position (6, 5, 2) (fg=0.1572%)
-Loaded: week3_d06_h05_w03.npy at position (6, 5, 3) (fg=0.1190%)
-Loaded: week3_d06_h05_w04.npy at position (6, 5, 4) (fg=0.2201%)
-Loaded: week3_d06_h05_w05.npy at position (6, 5, 5) (fg=0.1522%)
-Loaded: week3_d06_h05_w06.npy at position (6, 5, 6) (fg=0.0313%)
-Loaded: week3_d06_h06_w02.npy at position (6, 6, 2) (fg=0.2861%)
-Loaded: week3_d06_h06_w04.npy at position (6, 6, 4) (fg=0.1556%)
-Loaded: week3_d06_h06_w05.npy at position (6, 6, 5) (fg=0.4307%)
-Loaded: week3_d07_h02_w05.npy at position (7, 2, 5) (fg=0.2785%)
-Loaded: week3_d07_h02_w06.npy at position (7, 2, 6) (fg=0.4841%)
-Loaded: week3_d07_h03_w03.npy at position (7, 3, 3) (fg=0.4215%)
-Loaded: week3_d07_h03_w04.npy at position (7, 3, 4) (fg=0.1038%)
-Loaded: week3_d07_h04_w03.npy at position (7, 4, 3) (fg=0.1595%)
-Loaded: week3_d07_h05_w01.npy at position (7, 5, 1) (fg=0.4944%)
-Loaded: week3_d07_h05_w05.npy at position (7, 5, 5) (fg=0.1514%)
-Loaded: week3_d07_h06_w02.npy at position (7, 6, 2) (fg=0.3559%)
-Loaded: week3_d07_h06_w05.npy at position (7, 6, 5) (fg=0.3349%)
-Loaded: week3_d08_h02_w03.npy at position (8, 2, 3) (fg=0.0683%)
-Loaded: week3_d08_h02_w05.npy at position (8, 2, 5) (fg=0.6084%)
-Loaded: week3_d08_h03_w03.npy at position (8, 3, 3) (fg=0.3349%)
-Loaded: week3_d08_h03_w04.npy at position (8, 3, 4) (fg=0.0912%)
-Loaded: week3_d08_h03_w05.npy at position (8, 3, 5) (fg=0.1991%)
-Loaded: week3_d08_h04_w00.npy at position (8, 4, 0) (fg=0.0347%)
-Loaded: week3_d08_h04_w01.npy at position (8, 4, 1) (fg=0.2094%)
-Loaded: week3_d08_h04_w02.npy at position (8, 4, 2) (fg=0.3086%)
-Loaded: week3_d08_h05_w00.npy at position (8, 5, 0) (fg=0.0557%)
-Loaded: week3_d08_h05_w01.npy at position (8, 5, 1) (fg=0.2247%)
-Loaded: week3_d08_h05_w05.npy at position (8, 5, 5) (fg=0.1564%)
-Loaded: week3_d08_h05_w06.npy at position (8, 5, 6) (fg=0.3307%)
-Loaded: week3_d08_h06_w02.npy at position (8, 6, 2) (fg=0.3494%)
-Loaded: week3_d08_h06_w05.npy at position (8, 6, 5) (fg=0.0248%)
-Loaded: week3_d09_h02_w03.npy at position (9, 2, 3) (fg=0.0820%)
-Loaded: week3_d09_h03_w02.npy at position (9, 3, 2) (fg=0.0694%)
-Loaded: week3_d09_h03_w03.npy at position (9, 3, 3) (fg=0.3002%)
-Loaded: week3_d09_h03_w04.npy at position (9, 3, 4) (fg=0.7000%)
-Loaded: week3_d09_h03_w05.npy at position (9, 3, 5) (fg=0.0355%)
-Loaded: week3_d09_h03_w06.npy at position (9, 3, 6) (fg=0.1568%)
-Loaded: week3_d09_h04_w00.npy at position (9, 4, 0) (fg=0.0462%)
-Loaded: week3_d09_h04_w01.npy at position (9, 4, 1) (fg=0.1698%)
-Loaded: week3_d09_h04_w02.npy at position (9, 4, 2) (fg=0.6001%)
-Loaded: week3_d09_h04_w05.npy at position (9, 4, 5) (fg=0.0587%)
-Loaded: week3_d09_h04_w06.npy at position (9, 4, 6) (fg=0.3197%)
-Loaded: week3_d09_h05_w02.npy at position (9, 5, 2) (fg=0.1205%)
-Loaded: week3_d09_h05_w06.npy at position (9, 5, 6) (fg=0.2468%)
-Loaded: week3_d09_h06_w02.npy at position (9, 6, 2) (fg=0.3670%)
-Loaded: week3_d10_h01_w06.npy at position (10, 1, 6) (fg=0.0664%)
-Loaded: week3_d10_h02_w03.npy at position (10, 2, 3) (fg=0.0626%)
-Loaded: week3_d10_h02_w06.npy at position (10, 2, 6) (fg=0.2270%)
-Loaded: week3_d10_h03_w02.npy at position (10, 3, 2) (fg=0.2026%)
-Loaded: week3_d10_h03_w03.npy at position (10, 3, 3) (fg=0.6111%)
-Loaded: week3_d10_h03_w04.npy at position (10, 3, 4) (fg=0.9998%)
-Loaded: week3_d10_h03_w06.npy at position (10, 3, 6) (fg=0.1534%)
-Loaded: week3_d10_h04_w02.npy at position (10, 4, 2) (fg=0.0149%)
-Loaded: week3_d10_h04_w03.npy at position (10, 4, 3) (fg=0.5966%)
-Loaded: week3_d10_h04_w04.npy at position (10, 4, 4) (fg=0.0877%)
-Loaded: week3_d10_h04_w05.npy at position (10, 4, 5) (fg=0.1690%)
-Loaded: week3_d10_h05_w02.npy at position (10, 5, 2) (fg=0.3380%)
-Loaded: week3_d10_h05_w03.npy at position (10, 5, 3) (fg=0.0217%)
-Loaded: week3_d11_h00_w04.npy at position (11, 0, 4) (fg=0.1751%)
-Loaded: week3_d11_h00_w05.npy at position (11, 0, 5) (fg=0.1839%)
-Loaded: week3_d11_h01_w04.npy at position (11, 1, 4) (fg=0.2369%)
-Loaded: week3_d11_h01_w05.npy at position (11, 1, 5) (fg=0.1221%)
-Loaded: week3_d11_h01_w06.npy at position (11, 1, 6) (fg=0.1549%)
-Loaded: week3_d11_h02_w04.npy at position (11, 2, 4) (fg=0.2510%)
-Loaded: week3_d11_h03_w03.npy at position (11, 3, 3) (fg=2.8091%)
-Loaded: week3_d11_h03_w04.npy at position (11, 3, 4) (fg=0.3014%)
-Loaded: week3_d11_h04_w03.npy at position (11, 4, 3) (fg=0.6504%)
-
-Summary: Loaded 158 subvolumes
-Loaded 158 validation subvolumes
-
-Loading full ground truth mask from ../../data/rapids-p/week2-joint-root-class.nii.gz...
-Full mask shape (original): (800, 466, 471)
-Full mask shape (cropped): (768, 448, 448)
-Full mask foreground: 0.0240%
-Training on device: cuda
-
-============================================================
-Starting training with global DICE evaluation
-  - Training subvolumes: 73
-  - Epochs: 30
-  - Global eval every: 1 epochs
-  - Full volume shape: (768, 448, 448)
-  - DICE coefficient: 1.0
-  - Data augmentation: ENABLED (prob=0.1)
-  - Epsilon decay: exponential (smoother)
-============================================================
-
-Epoch 1/30:   0%|          | 0/73 [00:00<?, ?it/s]Epoch 1/30:   1%|▏         | 1/73 [00:00<00:27,  2.58it/s]Epoch 1/30:   3%|▎         | 2/73 [00:02<01:28,  1.24s/it]Epoch 1/30:   4%|▍         | 3/73 [00:04<01:45,  1.51s/it]Epoch 1/30:   5%|▌         | 4/73 [00:05<01:53,  1.64s/it]Epoch 1/30:   7%|▋         | 5/73 [00:07<01:56,  1.71s/it]Epoch 1/30:   8%|▊         | 6/73 [00:09<01:57,  1.76s/it]Epoch 1/30:  10%|▉         | 7/73 [00:11<01:57,  1.78s/it]Epoch 1/30:  11%|█         | 8/73 [00:13<01:57,  1.80s/it]Epoch 1/30:  12%|█▏        | 9/73 [00:15<01:55,  1.81s/it]Epoch 1/30:  14%|█▎        | 10/73 [00:16<01:54,  1.82s/it]Epoch 1/30:  15%|█▌        | 11/73 [00:18<01:53,  1.83s/it]Epoch 1/30:  16%|█▋        | 12/73 [00:20<01:51,  1.83s/it]Epoch 1/30:  18%|█▊        | 13/73 [00:22<01:50,  1.84s/it]Epoch 1/30:  19%|█▉        | 14/73 [00:24<01:48,  1.84s/it]Epoch 1/30:  21%|██        | 15/73 [00:26<01:46,  1.84s/it]Epoch 1/30:  22%|██▏       | 16/73 [00:28<01:45,  1.84s/it]Epoch 1/30:  23%|██▎       | 17/73 [00:29<01:43,  1.84s/it]Epoch 1/30:  25%|██▍       | 18/73 [00:31<01:41,  1.85s/it]Epoch 1/30:  26%|██▌       | 19/73 [00:33<01:39,  1.85s/it]Epoch 1/30:  27%|██▋       | 20/73 [00:35<01:37,  1.85s/it]Epoch 1/30:  29%|██▉       | 21/73 [00:37<01:36,  1.85s/it]Epoch 1/30:  30%|███       | 22/73 [00:39<01:34,  1.85s/it]Epoch 1/30:  32%|███▏      | 23/73 [00:40<01:32,  1.85s/it]Epoch 1/30:  33%|███▎      | 24/73 [00:42<01:30,  1.85s/it]Epoch 1/30:  34%|███▍      | 25/73 [00:44<01:28,  1.85s/it]Epoch 1/30:  36%|███▌      | 26/73 [00:46<01:26,  1.85s/it]Epoch 1/30:  37%|███▋      | 27/73 [00:48<01:25,  1.85s/it]Epoch 1/30:  38%|███▊      | 28/73 [00:50<01:23,  1.85s/it]Epoch 1/30:  40%|███▉      | 29/73 [00:52<01:21,  1.85s/it]Epoch 1/30:  41%|████      | 30/73 [00:53<01:19,  1.85s/it]Epoch 1/30:  42%|████▏     | 31/73 [00:55<01:17,  1.85s/it]Epoch 1/30:  44%|████▍     | 32/73 [00:57<01:15,  1.85s/it]Epoch 1/30:  45%|████▌     | 33/73 [00:59<01:14,  1.85s/it]Epoch 1/30:  47%|████▋     | 34/73 [01:01<01:12,  1.85s/it]Epoch 1/30:  48%|████▊     | 35/73 [01:03<01:10,  1.85s/it]Epoch 1/30:  49%|████▉     | 36/73 [01:05<01:08,  1.85s/it]Epoch 1/30:  51%|█████     | 37/73 [01:06<01:06,  1.85s/it]Epoch 1/30:  52%|█████▏    | 38/73 [01:08<01:04,  1.86s/it]Epoch 1/30:  53%|█████▎    | 39/73 [01:10<01:03,  1.85s/it]Epoch 1/30:  55%|█████▍    | 40/73 [01:12<01:01,  1.85s/it]Epoch 1/30:  56%|█████▌    | 41/73 [01:14<00:59,  1.85s/it]Epoch 1/30:  58%|█████▊    | 42/73 [01:16<00:57,  1.85s/it]Epoch 1/30:  59%|█████▉    | 43/73 [01:17<00:55,  1.85s/it]Epoch 1/30:  60%|██████    | 44/73 [01:19<00:53,  1.85s/it]Epoch 1/30:  62%|██████▏   | 45/73 [01:21<00:51,  1.85s/it]Epoch 1/30:  63%|██████▎   | 46/73 [01:23<00:50,  1.85s/it]Epoch 1/30:  64%|██████▍   | 47/73 [01:25<00:48,  1.85s/it]Epoch 1/30:  66%|██████▌   | 48/73 [01:27<00:46,  1.86s/it]Epoch 1/30:  67%|██████▋   | 49/73 [01:29<00:44,  1.86s/it]Epoch 1/30:  68%|██████▊   | 50/73 [01:30<00:42,  1.86s/it]Epoch 1/30:  70%|██████▉   | 51/73 [01:32<00:40,  1.86s/it]Epoch 1/30:  71%|███████   | 52/73 [01:34<00:39,  1.86s/it]Epoch 1/30:  73%|███████▎  | 53/73 [01:36<00:37,  1.86s/it]Epoch 1/30:  74%|███████▍  | 54/73 [01:38<00:35,  1.86s/it]Epoch 1/30:  75%|███████▌  | 55/73 [01:40<00:33,  1.86s/it]Epoch 1/30:  77%|███████▋  | 56/73 [01:42<00:31,  1.86s/it]Epoch 1/30:  78%|███████▊  | 57/73 [01:43<00:29,  1.86s/it]Epoch 1/30:  79%|███████▉  | 58/73 [01:45<00:27,  1.86s/it]Epoch 1/30:  81%|████████  | 59/73 [01:47<00:26,  1.86s/it]Epoch 1/30:  82%|████████▏ | 60/73 [01:49<00:24,  1.86s/it]Epoch 1/30:  84%|████████▎ | 61/73 [01:51<00:22,  1.86s/it]Epoch 1/30:  85%|████████▍ | 62/73 [01:53<00:20,  1.86s/it]Epoch 1/30:  86%|████████▋ | 63/73 [01:55<00:18,  1.86s/it]Epoch 1/30:  88%|████████▊ | 64/73 [01:56<00:16,  1.86s/it]Epoch 1/30:  89%|████████▉ | 65/73 [01:58<00:14,  1.86s/it]Epoch 1/30:  90%|█████████ | 66/73 [02:00<00:13,  1.86s/it]Epoch 1/30:  92%|█████████▏| 67/73 [02:02<00:11,  1.86s/it]Epoch 1/30:  93%|█████████▎| 68/73 [02:04<00:09,  1.86s/it]Epoch 1/30:  95%|█████████▍| 69/73 [02:06<00:07,  1.86s/it]Epoch 1/30:  96%|█████████▌| 70/73 [02:08<00:05,  1.86s/it]Epoch 1/30:  97%|█████████▋| 71/73 [02:10<00:03,  1.87s/it]Epoch 1/30:  99%|█████████▊| 72/73 [02:11<00:01,  1.87s/it]Epoch 1/30: 100%|██████████| 73/73 [02:13<00:00,  1.87s/it]Epoch 1/30: 100%|██████████| 73/73 [02:13<00:00,  1.83s/it]
-
-[Epoch 1] Computing global DICE on full volume...
-  GLOBAL DICE: 0.0012
-  GLOBAL IoU:  0.0006
-  Precision:   1.0000
-  Recall:      0.0006
-  TP: 22 | FP: 0 | FN: 36,944
-  Saved checkpoint: models/model_epoch_1_dice_0.0012.pth
-  [VAL] Loss: 0.002286
-  [VAL] DICE: 0.0000 | IoU: 0.0000
-  [VAL] Precision: 1.0000 | Recall: 0.0000
-  [NEW BEST] Saved best model (val DICE=0.0000)
-Epoch 1/30 | Time: 171.3s | Loss: 0.0043 | ε: 0.912
-  Returns - Total: -150323.28 | Base: -125024.84 | Cont: -25300.00 | DICE: 1.56
-Epoch 2/30:   0%|          | 0/73 [00:00<?, ?it/s]Epoch 2/30:   1%|▏         | 1/73 [00:01<02:13,  1.85s/it]Epoch 2/30:   3%|▎         | 2/73 [00:03<02:11,  1.86s/it]Epoch 2/30:   4%|▍         | 3/73 [00:05<02:09,  1.85s/it]Epoch 2/30:   5%|▌         | 4/73 [00:07<02:07,  1.85s/it]Epoch 2/30:   7%|▋         | 5/73 [00:09<02:06,  1.86s/it]Epoch 2/30:   8%|▊         | 6/73 [00:11<02:04,  1.86s/it]Epoch 2/30:  10%|▉         | 7/73 [00:12<02:02,  1.85s/it]Epoch 2/30:  11%|█         | 8/73 [00:14<02:00,  1.85s/it]Epoch 2/30:  12%|█▏        | 9/73 [00:16<01:58,  1.85s/it]Epoch 2/30:  14%|█▎        | 10/73 [00:18<01:56,  1.85s/it]Epoch 2/30:  15%|█▌        | 11/73 [00:20<01:54,  1.85s/it]Epoch 2/30:  16%|█▋        | 12/73 [00:22<01:53,  1.85s/it]Epoch 2/30:  18%|█▊        | 13/73 [00:24<01:51,  1.86s/it]Epoch 2/30:  19%|█▉        | 14/73 [00:25<01:49,  1.86s/it]Epoch 2/30:  21%|██        | 15/73 [00:27<01:47,  1.86s/it]Epoch 2/30:  22%|██▏       | 16/73 [00:29<01:45,  1.86s/it]Epoch 2/30:  23%|██▎       | 17/73 [00:31<01:44,  1.86s/it]Epoch 2/30:  25%|██▍       | 18/73 [00:33<01:42,  1.86s/it]Epoch 2/30:  26%|██▌       | 19/73 [00:35<01:40,  1.86s/it]Epoch 2/30:  27%|██▋       | 20/73 [00:37<01:38,  1.86s/it]Epoch 2/30:  29%|██▉       | 21/73 [00:39<01:36,  1.86s/it]Epoch 2/30:  30%|███       | 22/73 [00:40<01:34,  1.86s/it]Epoch 2/30:  32%|███▏      | 23/73 [00:42<01:33,  1.86s/it]Epoch 2/30:  33%|███▎      | 24/73 [00:44<01:31,  1.86s/it]Epoch 2/30:  34%|███▍      | 25/73 [00:46<01:29,  1.86s/it]Epoch 2/30:  36%|███▌      | 26/73 [00:48<01:27,  1.86s/it]Epoch 2/30:  37%|███▋      | 27/73 [00:50<01:25,  1.86s/it]Epoch 2/30:  38%|███▊      | 28/73 [00:52<01:23,  1.86s/it]Epoch 2/30:  40%|███▉      | 29/73 [00:53<01:21,  1.86s/it]Epoch 2/30:  41%|████      | 30/73 [00:55<01:20,  1.86s/it]Epoch 2/30:  42%|████▏     | 31/73 [00:57<01:18,  1.86s/it]Epoch 2/30:  44%|████▍     | 32/73 [00:59<01:16,  1.86s/it]Epoch 2/30:  45%|████▌     | 33/73 [01:01<01:14,  1.87s/it]Epoch 2/30:  47%|████▋     | 34/73 [01:03<01:12,  1.87s/it]Epoch 2/30:  48%|████▊     | 35/73 [01:05<01:10,  1.87s/it]Epoch 2/30:  49%|████▉     | 36/73 [01:06<01:09,  1.87s/it]Epoch 2/30:  51%|█████     | 37/73 [01:08<01:07,  1.87s/it]Epoch 2/30:  52%|█████▏    | 38/73 [01:10<01:05,  1.87s/it]Epoch 2/30:  53%|█████▎    | 39/73 [01:12<01:03,  1.87s/it]Epoch 2/30:  55%|█████▍    | 40/73 [01:14<01:01,  1.87s/it]Epoch 2/30:  56%|█████▌    | 41/73 [01:16<00:59,  1.87s/it]Epoch 2/30:  58%|█████▊    | 42/73 [01:18<00:57,  1.87s/it]Epoch 2/30:  59%|█████▉    | 43/73 [01:20<00:56,  1.87s/it]Epoch 2/30:  60%|██████    | 44/73 [01:21<00:54,  1.87s/it]Epoch 2/30:  62%|██████▏   | 45/73 [01:23<00:52,  1.87s/it]Epoch 2/30:  63%|██████▎   | 46/73 [01:25<00:50,  1.87s/it]Epoch 2/30:  64%|██████▍   | 47/73 [01:27<00:48,  1.87s/it]Epoch 2/30:  66%|██████▌   | 48/73 [01:29<00:46,  1.87s/it]Epoch 2/30:  67%|██████▋   | 49/73 [01:31<00:44,  1.87s/it]Epoch 2/30:  68%|██████▊   | 50/73 [01:33<00:42,  1.87s/it]Epoch 2/30:  70%|██████▉   | 51/73 [01:34<00:41,  1.87s/it]Epoch 2/30:  71%|███████   | 52/73 [01:36<00:39,  1.87s/it]Epoch 2/30:  73%|███████▎  | 53/73 [01:38<00:37,  1.87s/it]Epoch 2/30:  74%|███████▍  | 54/73 [01:40<00:35,  1.87s/it]Epoch 2/30:  75%|███████▌  | 55/73 [01:42<00:33,  1.87s/it]Epoch 2/30:  77%|███████▋  | 56/73 [01:44<00:31,  1.87s/it]Epoch 2/30:  78%|███████▊  | 57/73 [01:46<00:29,  1.87s/it]Epoch 2/30:  79%|███████▉  | 58/73 [01:48<00:28,  1.87s/it]Epoch 2/30:  81%|████████  | 59/73 [01:49<00:26,  1.87s/it]Epoch 2/30:  82%|████████▏ | 60/73 [01:51<00:24,  1.87s/it]Epoch 2/30:  84%|████████▎ | 61/73 [01:53<00:22,  1.87s/it]Epoch 2/30:  85%|████████▍ | 62/73 [01:55<00:20,  1.87s/it]Epoch 2/30:  86%|████████▋ | 63/73 [01:57<00:18,  1.87s/it]Epoch 2/30:  88%|████████▊ | 64/73 [01:59<00:16,  1.87s/it]Epoch 2/30:  89%|████████▉ | 65/73 [02:01<00:14,  1.87s/it]Epoch 2/30:  90%|█████████ | 66/73 [02:03<00:13,  1.87s/it]Epoch 2/30:  92%|█████████▏| 67/73 [02:04<00:11,  1.87s/it]Epoch 2/30:  93%|█████████▎| 68/73 [02:06<00:09,  1.87s/it]Epoch 2/30:  95%|█████████▍| 69/73 [02:08<00:07,  1.87s/it]Epoch 2/30:  96%|█████████▌| 70/73 [02:10<00:05,  1.87s/it]Epoch 2/30:  97%|█████████▋| 71/73 [02:12<00:03,  1.87s/it]Epoch 2/30:  99%|█████████▊| 72/73 [02:14<00:01,  1.87s/it]Epoch 2/30: 100%|██████████| 73/73 [02:16<00:00,  1.87s/it]Epoch 2/30: 100%|██████████| 73/73 [02:16<00:00,  1.86s/it]
-
-[Epoch 2] Computing global DICE on full volume...
-  GLOBAL DICE: 0.3515
-  GLOBAL IoU:  0.2132
-  Precision:   0.8111
-  Recall:      0.2243
-  TP: 8,293 | FP: 1,931 | FN: 28,673
-  Saved checkpoint: models/model_epoch_2_dice_0.3515.pth
-  [VAL] Loss: 0.003238
-  [VAL] DICE: 0.2180 | IoU: 0.1223
-  [VAL] Precision: 0.4334 | Recall: 0.1456
-  [NEW BEST] Saved best model (val DICE=0.2180)
-Epoch 2/30 | Time: 174.1s | Loss: 0.0029 | ε: 0.831
-  Returns - Total: -139142.12 | Base: -114274.04 | Cont: -24872.31 | DICE: 4.24
-Epoch 3/30:   0%|          | 0/73 [00:00<?, ?it/s]Epoch 3/30:   1%|▏         | 1/73 [00:01<02:13,  1.85s/it]Epoch 3/30:   3%|▎         | 2/73 [00:03<02:11,  1.86s/it]Epoch 3/30:   4%|▍         | 3/73 [00:05<02:09,  1.85s/it]Epoch 3/30:   5%|▌         | 4/73 [00:07<02:08,  1.86s/it]Epoch 3/30:   7%|▋         | 5/73 [00:09<02:06,  1.86s/it]Epoch 3/30:   8%|▊         | 6/73 [00:11<02:04,  1.86s/it]Epoch 3/30:  10%|▉         | 7/73 [00:12<02:02,  1.86s/it]Epoch 3/30:  11%|█         | 8/73 [00:14<02:00,  1.86s/it]Epoch 3/30:  12%|█▏        | 9/73 [00:16<01:58,  1.86s/it]Epoch 3/30:  14%|█▎        | 10/73 [00:18<01:57,  1.86s/it]Epoch 3/30:  15%|█▌        | 11/73 [00:20<01:55,  1.86s/it]Epoch 3/30:  16%|█▋        | 12/73 [00:22<01:53,  1.86s/it]Epoch 3/30:  18%|█▊        | 13/73 [00:24<01:51,  1.86s/it]Epoch 3/30:  19%|█▉        | 14/73 [00:25<01:49,  1.86s/it]Epoch 3/30:  21%|██        | 15/73 [00:27<01:47,  1.86s/it]Epoch 3/30:  22%|██▏       | 16/73 [00:29<01:45,  1.86s/it]Epoch 3/30:  23%|██▎       | 17/73 [00:31<01:44,  1.86s/it]Epoch 3/30:  25%|██▍       | 18/73 [00:33<01:42,  1.86s/it]Epoch 3/30:  26%|██▌       | 19/73 [00:35<01:40,  1.86s/it]Epoch 3/30:  27%|██▋       | 20/73 [00:37<01:38,  1.86s/it]Epoch 3/30:  29%|██▉       | 21/73 [00:38<01:36,  1.86s/it]Epoch 3/30:  30%|███       | 22/73 [00:40<01:34,  1.86s/it]Epoch 3/30:  32%|███▏      | 23/73 [00:42<01:32,  1.86s/it]Epoch 3/30:  33%|███▎      | 24/73 [00:44<01:30,  1.86s/it]Epoch 3/30:  34%|███▍      | 25/73 [00:46<01:29,  1.86s/it]Epoch 3/30:  36%|███▌      | 26/73 [00:48<01:27,  1.86s/it]Epoch 3/30:  37%|███▋      | 27/73 [00:50<01:25,  1.86s/it]Epoch 3/30:  38%|███▊      | 28/73 [00:51<01:23,  1.86s/it]Epoch 3/30:  40%|███▉      | 29/73 [00:53<01:21,  1.85s/it]Epoch 3/30:  41%|████      | 30/73 [00:55<01:19,  1.85s/it]Epoch 3/30:  42%|████▏     | 31/73 [00:57<01:17,  1.86s/it]Epoch 3/30:  44%|████▍     | 32/73 [00:59<01:16,  1.86s/it]Epoch 3/30:  45%|████▌     | 33/73 [01:01<01:14,  1.86s/it]Epoch 3/30:  47%|████▋     | 34/73 [01:03<01:12,  1.86s/it]Epoch 3/30:  48%|████▊     | 35/73 [01:05<01:10,  1.86s/it]Epoch 3/30:  49%|████▉     | 36/73 [01:06<01:08,  1.86s/it]Epoch 3/30:  51%|█████     | 37/73 [01:08<01:06,  1.86s/it]Epoch 3/30:  52%|█████▏    | 38/73 [01:10<01:05,  1.86s/it]Epoch 3/30:  53%|█████▎    | 39/73 [01:12<01:03,  1.86s/it]Epoch 3/30:  55%|█████▍    | 40/73 [01:14<01:01,  1.86s/it]Epoch 3/30:  56%|█████▌    | 41/73 [01:16<00:59,  1.86s/it]Epoch 3/30:  58%|█████▊    | 42/73 [01:18<00:57,  1.86s/it]Epoch 3/30:  59%|█████▉    | 43/73 [01:19<00:55,  1.86s/it]Epoch 3/30:  60%|██████    | 44/73 [01:21<00:54,  1.86s/it]Epoch 3/30:  62%|██████▏   | 45/73 [01:23<00:52,  1.86s/it]Epoch 3/30:  63%|██████▎   | 46/73 [01:25<00:50,  1.86s/it]Epoch 3/30:  64%|██████▍   | 47/73 [01:27<00:48,  1.86s/it]Epoch 3/30:  66%|██████▌   | 48/73 [01:29<00:46,  1.86s/it]Epoch 3/30:  67%|██████▋   | 49/73 [01:31<00:44,  1.87s/it]Epoch 3/30:  68%|██████▊   | 50/73 [01:32<00:42,  1.87s/it]Epoch 3/30:  70%|██████▉   | 51/73 [01:34<00:41,  1.86s/it]Epoch 3/30:  71%|███████   | 52/73 [01:36<00:39,  1.86s/it]Epoch 3/30:  73%|███████▎  | 53/73 [01:38<00:37,  1.87s/it]Epoch 3/30:  74%|███████▍  | 54/73 [01:40<00:35,  1.87s/it]Epoch 3/30:  75%|███████▌  | 55/73 [01:42<00:33,  1.87s/it]Epoch 3/30:  77%|███████▋  | 56/73 [01:44<00:31,  1.87s/it]Epoch 3/30:  78%|███████▊  | 57/73 [01:46<00:29,  1.87s/it]Epoch 3/30:  79%|███████▉  | 58/73 [01:47<00:27,  1.87s/it]Epoch 3/30:  81%|████████  | 59/73 [01:49<00:26,  1.87s/it]Epoch 3/30:  82%|████████▏ | 60/73 [01:51<00:24,  1.86s/it]Epoch 3/30:  84%|████████▎ | 61/73 [01:53<00:22,  1.86s/it]Epoch 3/30:  85%|████████▍ | 62/73 [01:55<00:20,  1.86s/it]Epoch 3/30:  86%|████████▋ | 63/73 [01:57<00:18,  1.86s/it]Epoch 3/30:  88%|████████▊ | 64/73 [01:59<00:16,  1.86s/it]Epoch 3/30:  89%|████████▉ | 65/73 [02:00<00:14,  1.86s/it]Epoch 3/30:  90%|█████████ | 66/73 [02:02<00:13,  1.86s/it]Epoch 3/30:  92%|█████████▏| 67/73 [02:04<00:11,  1.86s/it]Epoch 3/30:  93%|█████████▎| 68/73 [02:06<00:09,  1.87s/it]Epoch 3/30:  95%|█████████▍| 69/73 [02:08<00:07,  1.87s/it]Epoch 3/30:  96%|█████████▌| 70/73 [02:10<00:05,  1.87s/it]Epoch 3/30:  97%|█████████▋| 71/73 [02:12<00:03,  1.87s/it]Epoch 3/30:  99%|█████████▊| 72/73 [02:13<00:01,  1.86s/it]Epoch 3/30: 100%|██████████| 73/73 [02:15<00:00,  1.86s/it]Epoch 3/30: 100%|██████████| 73/73 [02:15<00:00,  1.86s/it]
