@@ -20,24 +20,24 @@ from collections import deque
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from env_global_coherence import PathReconstructionEnvGlobalCoherence as PathReconstructionEnv
+from env_dice import PathReconstructionEnv
 from dqn import PerPixelCNNWithHistory
 
 # ============================================================================
 # Configuration
 # ============================================================================
 
-# Data Augmentation Settings (increased for regularization)
-AUGMENT_PROB = 0.5  # Probability of applying any augmentation
+# Data Augmentation Settings
+AUGMENT_PROB = 0.1  # Probability of applying any augmentation (LOW FOR NOW)
 FLIP_PROB = 0.5     # Probability of each flip axis
 ROTATE_PROB = 0.5   # Probability of rotation
-INTENSITY_PROB = 0.4  # Probability of intensity augmentation
-NOISE_PROB = 0.3    # Probability of adding noise
+INTENSITY_PROB = 0.3  # Probability of intensity augmentation
+NOISE_PROB = 0.2    # Probability of adding noise
 
-SUBVOL_SHAPE = (100, 64, 64)  # Must match preprocessing
+SUBVOL_SHAPE = (64, 64, 64)  # Must match preprocessing
 # Full volume: (800, 466, 471) -> Grid: 8x7x7 subvolumes
-# Cropped to grid-aligned: 8*100=800, 7*64=448, 7*64=448
-FULL_VOLUME_SHAPE = (800, 448, 448)
+# Cropped to grid-aligned: 12*64=768, 7*64=448, 7*64=448
+FULL_VOLUME_SHAPE = (768, 448, 448)
 
 # ============================================================================
 # Data Augmentation
@@ -119,7 +119,6 @@ def augment_slice_online(slice_pixels: np.ndarray, slice_mask: np.ndarray) -> tu
         slice_mask = np.rot90(slice_mask, k=k).copy()
     
     return slice_pixels, slice_mask
-
 
 # ============================================================================
 # Subvolume Loading with Grid Positions
@@ -259,7 +258,6 @@ def reconstruct_full_volume_from_subvolumes(
                 continuity_decay_factor=continuity_decay_factor,
                 dice_coef=dice_coef,
                 history_len=5,
-                start_from_bottom=True
             )
             
             obs, _ = env.reset()
@@ -397,7 +395,7 @@ def train_with_global_dice(
     gamma: float = 0.99,
     epsilon_start: float = 1.0,
     epsilon_end: float = 0.01,
-    epsilon_decay_steps: int = 10000,
+    epsilon_decay_steps: int = 50000,
     replay_buffer_size: int = 50000,
     batch_size: int = 64,
     target_update_freq: int = 500,
@@ -406,8 +404,6 @@ def train_with_global_dice(
     dice_coef: float = 1.0,
     device: str = None,
     save_dir: str = "models",
-    # Early stopping
-    early_stopping_patience: int = 10,
 ):
     """
     Train DQN with global DICE evaluation every N epochs.
@@ -458,12 +454,10 @@ def train_with_global_dice(
     # Validation tracking
     val_global_dice_history = []
     val_global_metrics_history = []
+    val_losses = []  # Validation loss computed at each global_eval_interval
     best_val_dice = 0.0
     best_val_pred = None
     best_epoch = 0
-    
-    # Early stopping tracking
-    epochs_without_improvement = 0
     
     # Per-epoch metrics
     train_metrics_history = {
@@ -478,9 +472,8 @@ def train_with_global_dice(
     print(f"  - Full volume shape: {FULL_VOLUME_SHAPE}")
     print(f"  - DICE coefficient: {dice_coef}")
     print(f"  - Data augmentation: {'ENABLED' if AUGMENT_PROB > 0 else 'DISABLED'} (prob={AUGMENT_PROB})")
-    print(f"  - Epsilon decay: exponential (slower)")
-    print(f"  - Early stopping patience: {early_stopping_patience} evaluations")
-    print(f"{'='*60}\\n")
+    print(f"  - Epsilon decay: exponential (smoother)")
+    print(f"{'='*60}\n")
     
     for epoch in range(num_epochs):
         t0 = time.time()
@@ -510,7 +503,6 @@ def train_with_global_dice(
                 continuity_decay_factor=continuity_decay_factor,
                 dice_coef=dice_coef,
                 history_len=history_len,
-                start_from_bottom=True
             )
             
             obs, _ = env.reset()
@@ -552,11 +544,8 @@ def train_with_global_dice(
                 global_step += 1
                 
                 # Update epsilon (exponential decay for smoother exploration)
-                # Target: reach epsilon_end (~0.01) around epoch 35-40
-                # With ~55 subvolumes * 100 slices = 5500 steps/epoch
-                # Epoch 37.5 ~ 206,250 steps -> decay_rate = 4.6 / 206250 ≈ 2.2e-5
-                # Using decay_rate = 0.5 / epsilon_decay_steps gives slower decay
-                decay_rate = 0.5 / epsilon_decay_steps  # much slower decay
+                # epsilon = epsilon_end + (epsilon_start - epsilon_end) * exp(-global_step / epsilon_decay_steps)
+                decay_rate = 1.0 / epsilon_decay_steps  # reaches ~5% of initial after epsilon_decay_steps
                 epsilon = epsilon_end + (epsilon_start - epsilon_end) * np.exp(-decay_rate * global_step)
                 epsilon = max(epsilon, epsilon_end)  # ensure it doesn't go below epsilon_end
                 
@@ -659,6 +648,57 @@ def train_with_global_dice(
             
             # Validation on full val volume
             if val_volumes and full_val_mask is not None:
+                # Compute validation loss
+                val_loss = 0.0
+                val_loss_steps = 0
+                policy_net.eval()
+                
+                with torch.no_grad():
+                    for val_vol, val_mask in zip(val_volumes, val_masks):
+                        val_env = PathReconstructionEnv(
+                            val_vol, val_mask,
+                            continuity_coef=continuity_coef,
+                            continuity_decay_factor=continuity_decay_factor,
+                            dice_coef=dice_coef,
+                            history_len=history_len,
+                        )
+                        val_obs, _ = val_env.reset()
+                        val_done = False
+                        
+                        while not val_done:
+                            val_sp, val_pp = obs_to_tensor(val_obs, device)
+                            val_q = policy_net(val_sp, val_pp)  # (1, H, W, 2)
+                            val_action = val_q.argmax(dim=-1).cpu().numpy()[0].flatten()
+                            
+                            val_next_obs, _, val_term, val_trunc, val_info = val_env.step(val_action)
+                            val_done = val_term or val_trunc
+                            
+                            # Compute TD loss for this step (no gradient)
+                            val_pixel_rewards = val_info["pixel_rewards"]
+                            val_r = torch.tensor(val_pixel_rewards, dtype=torch.float32, device=device).view(1, H, W)
+                            val_a = torch.tensor(val_action, dtype=torch.long, device=device).view(1, H, W)
+                            
+                            val_q_sa = val_q.gather(dim=-1, index=val_a.unsqueeze(-1)).squeeze(-1)  # (1, H, W)
+                            
+                            if not val_done:
+                                val_next_sp, val_next_pp = obs_to_tensor(val_next_obs, device)
+                                val_q_next = policy_net(val_next_sp, val_next_pp)
+                                val_q_next_max = val_q_next.max(dim=-1).values
+                                val_target = val_r + gamma * val_q_next_max
+                            else:
+                                val_target = val_r
+                            
+                            val_step_loss = nn.functional.mse_loss(val_q_sa, val_target)
+                            val_loss += val_step_loss.item()
+                            val_loss_steps += 1
+                            
+                            val_obs = val_next_obs
+                
+                policy_net.train()
+                avg_val_loss = val_loss / max(val_loss_steps, 1)
+                val_losses.append(avg_val_loss)
+                print(f"  [VAL] Loss: {avg_val_loss:.6f}")
+                
                 val_pred = reconstruct_full_volume_from_subvolumes(
                     policy_net,
                     val_volumes,
@@ -679,21 +719,10 @@ def train_with_global_dice(
                     best_val_dice = val_metrics["dice"]
                     best_val_pred = val_pred.copy()
                     best_epoch = epoch + 1
-                    epochs_without_improvement = 0  # Reset counter
                     # Save best model
                     best_model_path = os.path.join(save_dir, "best_model.pth")
                     torch.save(policy_net.state_dict(), best_model_path)
                     print(f"  [NEW BEST] Saved best model (val DICE={best_val_dice:.4f})")
-                else:
-                    epochs_without_improvement += 1
-                    print(f"  [NO IMPROVEMENT] ({epochs_without_improvement}/{early_stopping_patience})")
-                    
-                    if epochs_without_improvement >= early_stopping_patience:
-                        print(f"\n{'='*60}")
-                        print(f"EARLY STOPPING: No improvement for {early_stopping_patience} evaluations")
-                        print(f"Best validation DICE: {best_val_dice:.4f} at epoch {best_epoch}")
-                        print(f"{'='*60}")
-                        break  # Exit training loop
         
         # Print epoch summary
         dt = time.time() - t0
@@ -715,7 +744,6 @@ def train_with_global_dice(
     final_pred = reconstruct_full_volume_from_subvolumes(
         policy_net, train_volumes, train_positions, device=device, dice_coef=dice_coef
     )
-    print(final_pred.shape)
     final_metrics = compute_global_metrics(final_pred, full_train_mask)
     
     print(f"Final DICE: {final_metrics['dice']:.4f}")
@@ -728,6 +756,7 @@ def train_with_global_dice(
         "global_metrics_history": global_metrics_history,
         "val_global_dice_history": val_global_dice_history,
         "val_global_metrics_history": val_global_metrics_history,
+        "val_losses": val_losses,
         "best_val_dice": best_val_dice,
         "best_val_pred": best_val_pred,
         "best_epoch": best_epoch,
@@ -802,8 +831,17 @@ def plot_training_results(results: dict, save_dir: str = "results"):
         axes[0, 1].plot(base_ma, label="Base Reward", color='green')
     else:
         axes[0, 1].plot(results["base_returns"], label="Base Reward", color='green', alpha=0.5)
-    axes[0, 1].set_title("Base Reward (Moving Average)")
-    axes[0, 1].set_ylabel("Base Reward")
+
+    if results["continuity_returns"] and len(results["continuity_returns"]) >= window:
+        cont_ma = np.convolve(results["continuity_returns"], 
+                              np.ones(window)/window, 
+                              mode='valid')
+        axes[0, 1].plot(cont_ma, label="Continuity Reward", color='orange')
+    else:
+        axes[0, 1].plot(results["continuity_returns"], label="Continuity Reward", color='orange', alpha=0.5)    
+
+    axes[0, 1].set_title("Reward components (Moving Average)")
+    axes[0, 1].set_ylabel("Reward")
     axes[0, 1].set_xlabel("Episode")
     axes[0, 1].legend()
     axes[0, 1].grid(True)
@@ -849,10 +887,21 @@ def plot_training_results(results: dict, save_dir: str = "results"):
     axes[1, 0].grid(True)
     
     # ========================================
-    # Plot 5: Training Loss
+    # Plot 5: Training & Validation Loss
     # ========================================
-    axes[1, 1].plot(results["losses"], color='red', marker='o', markersize=4, label='Train Loss')
-    axes[1, 1].set_title("Training Loss")
+    axes[1, 1].plot(results["losses"], color='blue', marker='o', markersize=4, label='Train Loss')
+    
+    # Plot validation loss if available (computed at global_eval_interval epochs)
+    if results.get("val_losses") and len(results["val_losses"]) > 0:
+        val_loss_epochs = list(range(global_eval_interval, 
+                                     len(results["val_losses"]) * global_eval_interval + 1, 
+                                     global_eval_interval))
+        # Adjust epochs to be 0-indexed for plotting alignment
+        val_loss_epochs_adj = [e - 1 for e in val_loss_epochs]  # Convert to 0-indexed
+        axes[1, 1].plot(val_loss_epochs_adj, results["val_losses"], color='red', 
+                       marker='s', markersize=6, linewidth=2, label='Val Loss')
+    
+    axes[1, 1].set_title("Training & Validation Loss")
     axes[1, 1].set_ylabel("MSE Loss")
     axes[1, 1].set_xlabel("Epoch")
     axes[1, 1].legend()
@@ -949,7 +998,7 @@ def plot_training_results(results: dict, save_dir: str = "results"):
 if __name__ == "__main__":
     # Paths - new directory structure with volumes/ and masks/ subdirectories
     # Note: Paths are relative to dqn_slice_based/ directory
-    data_dir = "../../data/rapids-p/subvolumes"
+    data_dir = "../../data/rapids-p/subvolumes_new"
     
     # Minimum foreground ratio to include subvolume (filter out empty subvolumes)
     MIN_FG_RATIO = 0.0001  # 0.01% minimum foreground
@@ -1014,8 +1063,8 @@ if __name__ == "__main__":
         val_positions=val_positions,
         # full_val_mask=None,  # TODO: Load full val mask if available
         full_val_mask=full_val_mask,
-        num_epochs=50,
-        global_eval_interval=5,
+        num_epochs=30,
+        global_eval_interval=1,
         lr=1e-3,
         gamma=0.99,
         batch_size=64,

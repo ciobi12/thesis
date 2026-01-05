@@ -1,8 +1,8 @@
 """
 Preprocess large CT volumes into smaller subvolumes for training.
 
-Given a volume of shape (D, H, W) = (800, 466, 471), split into subvolumes
-of shape (sub_d, sub_h, sub_w) = (100, 64, 64).
+Given a volume of shape (D, H, W), split into subvolumes
+of shape (sub_d, sub_h, sub_w).
 
 - Discard marginal subvolumes (those that don't fit full 64x64 slices)
 - Discard corner subvolumes that are pure background (no foreground in mask)

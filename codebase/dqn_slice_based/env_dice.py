@@ -13,7 +13,7 @@ import numpy as np
 from collections import deque
 
 
-class PathReconstructionEnvDice(gym.Env):
+class PathReconstructionEnv(gym.Env):
     """Slice-wise environment with DICE-based reward.
     
     Adds a DICE score component to reward segmentation quality directly,
@@ -27,8 +27,8 @@ class PathReconstructionEnvDice(gym.Env):
                  continuity_coef=0.1, 
                  continuity_decay_factor=0.7,
                  dice_coef=1.0,
-                 history_len=3, 
-                 start_from_bottom=True):
+                 history_len=5, 
+                 start_from_top = True):
         super().__init__()
         assert volume.shape == mask.shape, "Volume and mask must have same shape"
         self.volume = volume.astype(np.float32) / 255.0 if volume.max() > 1 else volume.astype(np.float32)
@@ -39,7 +39,7 @@ class PathReconstructionEnvDice(gym.Env):
         self.continuity_decay_factor = float(continuity_decay_factor)
         self.dice_coef = float(dice_coef)
         self.history_len = int(history_len)
-        self.start_from_bottom = bool(start_from_bottom)
+        self.start_from_top = bool(start_from_top)
 
         self.action_space = spaces.MultiBinary(self.H * self.W)
         self.observation_space = spaces.Dict({
@@ -60,7 +60,7 @@ class PathReconstructionEnvDice(gym.Env):
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
-        self._slice_order = np.arange(0, self.D) if self.start_from_bottom else np.arange(self.D-1, -1, -1)
+        self._slice_order = np.arange(self.D-1, -1, -1) if self.start_from_top  else np.arange(0, self.D) 
         self.current_slice_idx = 0
         self.prev_preds_buffer = deque(
             [np.zeros((self.H, self.W), dtype=np.float32) for _ in range(self.history_len)], 
@@ -175,7 +175,3 @@ class PathReconstructionEnvDice(gym.Env):
             "prev_slices": np.array(self.prev_slices_buffer, dtype=np.float32),
             "slice_index": np.array([1.0], dtype=np.float32),
         }
-
-
-# Alias for compatibility
-PathReconstructionEnv = PathReconstructionEnvDice

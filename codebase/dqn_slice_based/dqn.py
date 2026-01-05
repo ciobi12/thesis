@@ -66,31 +66,26 @@ class PerPixelCNN(nn.Module):
 
 class PerPixelCNNWithHistory(nn.Module):
     """Enhanced architecture that explicitly processes historical context"""
-    def __init__(self, input_channels, history_len, height, width, dropout_rate=0.2):
+    def __init__(self, input_channels, history_len, height, width):
         super().__init__()
         self.history_len = history_len
         self.height = height
         self.width = width
-        self.dropout_rate = dropout_rate
         
         # Current slice encoder
         self.slice_encoder = nn.Sequential(
             nn.Conv2d(input_channels, 64, kernel_size=7, padding=3),
             nn.ReLU(),
-            nn.Dropout2d(dropout_rate),
             nn.Conv2d(64, 64, kernel_size=5, padding=2),
             nn.ReLU(),
-            nn.Dropout2d(dropout_rate),
         )
         
         # History encoder (processes previous predictions)
         self.history_encoder = nn.Sequential(
             nn.Conv2d(history_len, 32, kernel_size=7, padding=3),
             nn.ReLU(),
-            nn.Dropout2d(dropout_rate),
             nn.Conv2d(32, 32, kernel_size=5, padding=2),
             nn.ReLU(),
-            nn.Dropout2d(dropout_rate),
         )
         
         # Cross-attention between current and history
