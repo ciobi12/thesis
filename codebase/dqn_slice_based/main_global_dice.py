@@ -34,10 +34,9 @@ ROTATE_PROB = 0.5   # Probability of rotation
 INTENSITY_PROB = 0.3  # Probability of intensity augmentation
 NOISE_PROB = 0.2    # Probability of adding noise
 
-SUBVOL_SHAPE = (64, 64, 64)  # Must match preprocessing
+SUBVOL_SHAPE = (32, 32, 32)  # Must match preprocessing
 # Full volume: (800, 466, 471) -> Grid: 8x7x7 subvolumes
-# Cropped to grid-aligned: 12*64=768, 7*64=448, 7*64=448
-FULL_VOLUME_SHAPE = (768, 448, 448)
+FULL_VOLUME_SHAPE = (800, 448, 448)
 
 # ============================================================================
 # Data Augmentation
@@ -418,22 +417,32 @@ def train_with_global_dice(
     H, W = train_volumes[0].shape[1], train_volumes[0].shape[2]
     history_len = 5
     
+    # Use smaller network for small inputs (32x32, 64x64)
+    small_input = (H <= 64 and W <= 64)
+    print(f"Input size: {H}x{W} -> Using {'small' if small_input else 'standard'} network architecture")
+    
     # Initialize networks
     policy_net = PerPixelCNNWithHistory(
         input_channels=1,
         history_len=history_len,
         height=H,
-        width=W
+        width=W,
+        small_input=small_input
     ).to(device)
     
     target_net = PerPixelCNNWithHistory(
         input_channels=1,
         history_len=history_len,
         height=H,
-        width=W
+        width=W,
+        small_input=small_input
     ).to(device)
     target_net.load_state_dict(policy_net.state_dict())
     target_net.eval()
+    
+    # Print network parameter count
+    n_params = sum(p.numel() for p in policy_net.parameters() if p.requires_grad)
+    print(f"Network parameters: {n_params:,}")
     
     optimizer = optim.Adam(policy_net.parameters(), lr=lr)
     replay_buffer = deque(maxlen=replay_buffer_size)
@@ -768,6 +777,7 @@ def train_with_global_dice(
         "epsilons": epsilons,
         "train_metrics": train_metrics_history,
         "n_train_vols": len(train_volumes),
+        "global_eval_interval": global_eval_interval,  # Pass this for correct plotting
     }
 
 
@@ -801,7 +811,8 @@ def plot_training_results(results: dict, save_dir: str = "results"):
     os.makedirs(save_dir, exist_ok=True)
     
     n_train_vols = results.get("n_train_vols", 1)
-    global_eval_interval = 5
+    # Get actual global_eval_interval from results (default to 5 for backward compatibility)
+    global_eval_interval = results.get("global_eval_interval", 5)
     
     fig, axes = plt.subplots(2, 3, figsize=(18, 12))
     
@@ -928,7 +939,7 @@ def plot_training_results(results: dict, save_dir: str = "results"):
     axes[1, 2].legend()
     axes[1, 2].grid(True)
     
-    plt.tight_layout()
+    # plt.tight_layout()
     plt.savefig(os.path.join(save_dir, "training_results.png"), dpi=300)
     plt.show()
     
@@ -1061,20 +1072,19 @@ if __name__ == "__main__":
         val_volumes=val_vols,
         val_masks=val_masks,
         val_positions=val_positions,
-        # full_val_mask=None,  # TODO: Load full val mask if available
         full_val_mask=full_val_mask,
-        num_epochs=30,
+        num_epochs=50,
         global_eval_interval=1,
         lr=1e-3,
         gamma=0.99,
         batch_size=64,
         continuity_coef=0.1,
         continuity_decay_factor=0.5,
-        dice_coef=1.0,  # NEW: DICE reward coefficient
+        dice_coef=1.0,  
     )
     
     # Plot comprehensive training results
-    plot_training_results(results, save_dir="results")
+    plot_training_results(results, save_dir="results/rapids-p/subvolumes/32x32x32")
     
     # Save best validation prediction as NIfTI file
     if results.get("best_val_pred") is not None:
@@ -1140,5 +1150,5 @@ if __name__ == "__main__":
                 done = terminated or truncated
         
         visualize_result(vol_test, mask_test, pred, 
-                        save_dir="results", 
+                        save_dir="results/rapids-p/subvolumes/32x32x32", 
                         slice_idx=vol_test.shape[0] // 2)

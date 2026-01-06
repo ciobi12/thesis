@@ -790,9 +790,6 @@ def main():
     print(f"{'IoU':<20} {history['train_iou'][-1]:<15.4f} {history['val_iou'][-1]:<15.4f} {max(history['val_iou']):<15.4f}")
     print("="*60)
     
-    # Visualize validation reconstructions
-    print("\n[6] Reconstructing full validation volume(s)...")
-    
     # Load best model for visualization
     best_checkpoint = torch.load(Path(args.save_dir) / "best_model.pth")
     model.load_state_dict(best_checkpoint['model_state_dict'])

@@ -65,45 +65,93 @@ class PerPixelCNN(nn.Module):
         return q
 
 class PerPixelCNNWithHistory(nn.Module):
-    """Enhanced architecture that explicitly processes historical context"""
-    def __init__(self, input_channels, history_len, height, width):
+    """Enhanced architecture that explicitly processes historical context.
+    
+    Args:
+        input_channels: Number of input channels (usually 1 for grayscale)
+        history_len: Number of previous prediction slices to use
+        height, width: Spatial dimensions of input slices
+        small_input: If True, use lighter architecture for 32x32 or 64x64 inputs
+    """
+    def __init__(self, input_channels, history_len, height, width, small_input=False):
         super().__init__()
         self.history_len = history_len
         self.height = height
         self.width = width
+        self.small_input = small_input
         
-        # Current slice encoder
-        self.slice_encoder = nn.Sequential(
-            nn.Conv2d(input_channels, 64, kernel_size=7, padding=3),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, kernel_size=5, padding=2),
-            nn.ReLU(),
-        )
+        if small_input:
+            # Lighter architecture for small inputs (32x32, 64x64)
+            # Smaller kernels, fewer channels to prevent overfitting
+            slice_ch = 32
+            hist_ch = 16
+            
+            self.slice_encoder = nn.Sequential(
+                nn.Conv2d(input_channels, slice_ch, kernel_size=3, padding=1),
+                nn.ReLU(),
+                nn.Conv2d(slice_ch, slice_ch, kernel_size=3, padding=1),
+                nn.ReLU(),
+            )
+            
+            self.history_encoder = nn.Sequential(
+                nn.Conv2d(history_len, hist_ch, kernel_size=3, padding=1),
+                nn.ReLU(),
+                nn.Conv2d(hist_ch, hist_ch, kernel_size=3, padding=1),
+                nn.ReLU(),
+            )
+            
+            self.attention = nn.Sequential(
+                nn.Conv2d(slice_ch + hist_ch, slice_ch, kernel_size=1),
+                nn.ReLU(),
+                nn.Conv2d(slice_ch, slice_ch, kernel_size=1),
+                nn.Sigmoid()
+            )
+            
+            self.decision = nn.Sequential(
+                nn.Conv2d(slice_ch + hist_ch, 64, kernel_size=3, padding=1),
+                nn.ReLU(),
+                nn.Dropout2d(0.1),  # Light regularization
+                nn.Conv2d(64, 32, kernel_size=3, padding=1),
+                nn.ReLU(),
+                nn.Conv2d(32, 2, kernel_size=1)
+            )
+        else:
+            # Original architecture for larger inputs (100x64, 128x128, etc.)
+            slice_ch = 64
+            hist_ch = 32
+            
+            self.slice_encoder = nn.Sequential(
+                nn.Conv2d(input_channels, slice_ch, kernel_size=7, padding=3),
+                nn.ReLU(),
+                nn.Conv2d(slice_ch, slice_ch, kernel_size=5, padding=2),
+                nn.ReLU(),
+            )
+            
+            self.history_encoder = nn.Sequential(
+                nn.Conv2d(history_len, hist_ch, kernel_size=7, padding=3),
+                nn.ReLU(),
+                nn.Conv2d(hist_ch, hist_ch, kernel_size=5, padding=2),
+                nn.ReLU(),
+            )
+            
+            self.attention = nn.Sequential(
+                nn.Conv2d(slice_ch + hist_ch, slice_ch, kernel_size=1),
+                nn.ReLU(),
+                nn.Conv2d(slice_ch, slice_ch, kernel_size=1),
+                nn.Sigmoid()
+            )
+            
+            self.decision = nn.Sequential(
+                nn.Conv2d(slice_ch + hist_ch, 128, kernel_size=5, padding=2),
+                nn.ReLU(),
+                nn.Conv2d(128, 64, kernel_size=3, padding=1),
+                nn.ReLU(),
+                nn.Conv2d(64, 2, kernel_size=1)
+            )
         
-        # History encoder (processes previous predictions)
-        self.history_encoder = nn.Sequential(
-            nn.Conv2d(history_len, 32, kernel_size=7, padding=3),
-            nn.ReLU(),
-            nn.Conv2d(32, 32, kernel_size=5, padding=2),
-            nn.ReLU(),
-        )
-        
-        # Cross-attention between current and history
-        self.attention = nn.Sequential(
-            nn.Conv2d(64 + 32, 64, kernel_size=1),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, kernel_size=1),
-            nn.Sigmoid()
-        )
-        
-        # Final decision layers
-        self.decision = nn.Sequential(
-            nn.Conv2d(64 + 32, 128, kernel_size=5, padding=2),
-            nn.ReLU(),
-            nn.Conv2d(128, 64, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(64, 2, kernel_size=1)
-        )
+        # Store channel sizes for forward pass
+        self.slice_ch = slice_ch
+        self.hist_ch = hist_ch
     
     def forward(self, slice_pixels, prev_preds):
         """

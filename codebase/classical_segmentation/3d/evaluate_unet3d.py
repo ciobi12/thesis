@@ -130,7 +130,7 @@ def reconstruct_full_volume(
     device: torch.device,
     save_dir: Path,
     threshold: float = 0.5,
-    subvol_shape: Tuple[int, int, int] = (100, 64, 64)
+    subvol_shape: Tuple[int, int, int] = (32, 32, 32)
 ):
     """
     Run inference on the original full volume using a sliding window approach.
@@ -170,7 +170,8 @@ def reconstruct_full_volume(
     if mask_path.endswith('.npy'):
         gt_mask = np.load(mask_path).astype(np.uint8)
     else:
-        gt_mask = nib.load(mask_path).get_fdata().astype(np.uint8)
+        gt = nib.load(mask_path)
+        gt_mask = gt.get_fdata().astype(np.uint8)
     
     D, H, W = volume.shape
     sub_d, sub_h, sub_w = subvol_shape
@@ -236,7 +237,7 @@ def reconstruct_full_volume(
     # Save predicted mask as NIfTI
     vol_name = Path(volume_path).stem.replace('-contrast-adjusted', '').replace('-joint', '')
     nib.save(
-        nib.Nifti1Image(full_pred.astype(np.uint8), affine=np.eye(4)),
+        nib.Nifti1Image(full_pred.astype(np.uint8), affine=np.eye(4), header=gt.header),
         save_dir / f"{vol_name}_predicted_mask.nii.gz"
     )
     print(f"Saved predicted mask to {save_dir / f'{vol_name}_predicted_mask.nii.gz'}")
