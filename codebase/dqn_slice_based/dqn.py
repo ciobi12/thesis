@@ -65,17 +65,19 @@ class PerPixelCNN(nn.Module):
         return q
 
 class PerPixelCNNWithHistory(nn.Module):
-    """Enhanced architecture that explicitly processes historical context.
+    """Enhanced architecture that explicitly processes historical and future context.
     
     Args:
         input_channels: Number of input channels (usually 1 for grayscale)
         history_len: Number of previous prediction slices to use
+        future_len: Number of future slices to look ahead
         height, width: Spatial dimensions of input slices
         small_input: If True, use lighter architecture for 32x32 or 64x64 inputs
     """
-    def __init__(self, input_channels, history_len, height, width, small_input=False):
+    def __init__(self, input_channels, history_len, height, width, future_len=3, small_input=False):
         super().__init__()
         self.history_len = history_len
+        self.future_len = future_len
         self.height = height
         self.width = width
         self.small_input = small_input
@@ -85,6 +87,7 @@ class PerPixelCNNWithHistory(nn.Module):
             # Smaller kernels, fewer channels to prevent overfitting
             slice_ch = 32
             hist_ch = 16
+            future_ch = 16
             
             self.slice_encoder = nn.Sequential(
                 nn.Conv2d(input_channels, slice_ch, kernel_size=3, padding=1),
@@ -100,15 +103,22 @@ class PerPixelCNNWithHistory(nn.Module):
                 nn.ReLU(),
             )
             
+            self.future_encoder = nn.Sequential(
+                nn.Conv2d(future_len, future_ch, kernel_size=3, padding=1),
+                nn.ReLU(),
+                nn.Conv2d(future_ch, future_ch, kernel_size=3, padding=1),
+                nn.ReLU(),
+            )
+            
             self.attention = nn.Sequential(
-                nn.Conv2d(slice_ch + hist_ch, slice_ch, kernel_size=1),
+                nn.Conv2d(slice_ch + hist_ch + future_ch, slice_ch, kernel_size=1),
                 nn.ReLU(),
                 nn.Conv2d(slice_ch, slice_ch, kernel_size=1),
                 nn.Sigmoid()
             )
             
             self.decision = nn.Sequential(
-                nn.Conv2d(slice_ch + hist_ch, 64, kernel_size=3, padding=1),
+                nn.Conv2d(slice_ch + hist_ch + future_ch, 64, kernel_size=3, padding=1),
                 nn.ReLU(),
                 nn.Dropout2d(0.1),  # Light regularization
                 nn.Conv2d(64, 32, kernel_size=3, padding=1),
@@ -119,6 +129,7 @@ class PerPixelCNNWithHistory(nn.Module):
             # Original architecture for larger inputs (100x64, 128x128, etc.)
             slice_ch = 64
             hist_ch = 32
+            future_ch = 32
             
             self.slice_encoder = nn.Sequential(
                 nn.Conv2d(input_channels, slice_ch, kernel_size=7, padding=3),
@@ -134,15 +145,22 @@ class PerPixelCNNWithHistory(nn.Module):
                 nn.ReLU(),
             )
             
+            self.future_encoder = nn.Sequential(
+                nn.Conv2d(future_len, future_ch, kernel_size=7, padding=3),
+                nn.ReLU(),
+                nn.Conv2d(future_ch, future_ch, kernel_size=5, padding=2),
+                nn.ReLU(),
+            )
+            
             self.attention = nn.Sequential(
-                nn.Conv2d(slice_ch + hist_ch, slice_ch, kernel_size=1),
+                nn.Conv2d(slice_ch + hist_ch + future_ch, slice_ch, kernel_size=1),
                 nn.ReLU(),
                 nn.Conv2d(slice_ch, slice_ch, kernel_size=1),
                 nn.Sigmoid()
             )
             
             self.decision = nn.Sequential(
-                nn.Conv2d(slice_ch + hist_ch, 128, kernel_size=5, padding=2),
+                nn.Conv2d(slice_ch + hist_ch + future_ch, 128, kernel_size=5, padding=2),
                 nn.ReLU(),
                 nn.Conv2d(128, 64, kernel_size=3, padding=1),
                 nn.ReLU(),
@@ -152,31 +170,45 @@ class PerPixelCNNWithHistory(nn.Module):
         # Store channel sizes for forward pass
         self.slice_ch = slice_ch
         self.hist_ch = hist_ch
+        self.future_ch = future_ch
     
-    def forward(self, slice_pixels, prev_preds):
+    def forward(self, slice_pixels, prev_preds, future_slices=None):
         """
         slice_pixels: (batch, height, width) -> needs unsqueeze for channel dim
         prev_preds: (batch, history_len, height, width)
+        future_slices: (batch, future_len, height, width) - optional, zeros if not provided
         """
+        B = slice_pixels.size(0) if slice_pixels.dim() > 2 else 1
+        
         # Add channel dimension to slice_pixels
         x_slice = slice_pixels.unsqueeze(1)  # (B, 1, H, W)
         x_hist = prev_preds  # (B, history_len, H, W)
         
+        # Handle future slices (default to zeros if not provided)
+        if future_slices is None:
+            x_future = torch.zeros(B, self.future_len, self.height, self.width, 
+                                   device=slice_pixels.device, dtype=slice_pixels.dtype)
+        else:
+            x_future = future_slices  # (B, future_len, H, W)
+        
         # Encode current slice
-        slice_features = self.slice_encoder(x_slice)  # (B, 64, H, W)
+        slice_features = self.slice_encoder(x_slice)  # (B, slice_ch, H, W)
         
         # Encode history
-        hist_features = self.history_encoder(x_hist)  # (B, 32, H, W)
+        hist_features = self.history_encoder(x_hist)  # (B, hist_ch, H, W)
         
-        # Combine for attention
-        combined = torch.cat([slice_features, hist_features], dim=1)  # (B, 96, H, W)
-        attention_weights = self.attention(combined)  # (B, 64, H, W)
+        # Encode future
+        future_features = self.future_encoder(x_future)  # (B, future_ch, H, W)
+        
+        # Combine all for attention
+        combined = torch.cat([slice_features, hist_features, future_features], dim=1)
+        attention_weights = self.attention(combined)  # (B, slice_ch, H, W)
         
         # Apply attention to slice features
-        attended_slice = slice_features * attention_weights  # (B, 64, H, W)
+        attended_slice = slice_features * attention_weights  # (B, slice_ch, H, W)
         
-        # Final decision with both attended slice and history
-        final_features = torch.cat([attended_slice, hist_features], dim=1)  # (B, 96, H, W)
+        # Final decision with attended slice, history, and future
+        final_features = torch.cat([attended_slice, hist_features, future_features], dim=1)
         q_values = self.decision(final_features)  # (B, 2, H, W)
         
         return q_values.permute(0, 2, 3, 1)  # (B, H, W, 2)

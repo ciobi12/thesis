@@ -221,7 +221,8 @@ def reconstruct_full_volume_from_subvolumes(
     device: str = None,
     continuity_coef: float = 0.2,
     continuity_decay_factor: float = 0.7,
-    dice_coef: float = 1.0
+    dice_coef: float = 1.0,
+    future_len: int = 3
 ) -> np.ndarray:
     """
     Reconstruct full volume prediction by running policy on each subvolume
@@ -257,6 +258,7 @@ def reconstruct_full_volume_from_subvolumes(
                 continuity_decay_factor=continuity_decay_factor,
                 dice_coef=dice_coef,
                 history_len=5,
+                future_len=future_len,
             )
             
             obs, _ = env.reset()
@@ -264,8 +266,8 @@ def reconstruct_full_volume_from_subvolumes(
             subvol_pred = np.zeros(vol.shape, dtype=np.uint8)
             
             while not done:
-                slice_pixels, prev_preds = obs_to_tensor(obs, device)
-                q = policy_net(slice_pixels, prev_preds)
+                slice_pixels, prev_preds, future_slices = obs_to_tensor(obs, device)
+                q = policy_net(slice_pixels, prev_preds, future_slices)
                 a = q.argmax(dim=-1).cpu().numpy()[0]
                 
                 next_obs, _, terminated, truncated, info = env.step(a.flatten())
@@ -344,7 +346,8 @@ def obs_to_tensor(obs, device):
     """Convert observation dict to tensors for network input."""
     slice_pixels = torch.from_numpy(obs["slice_pixels"]).float().unsqueeze(0).to(device)
     prev_preds = torch.from_numpy(obs["prev_preds"]).float().unsqueeze(0).to(device)
-    return slice_pixels, prev_preds
+    future_slices = torch.from_numpy(obs["future_slices"]).float().unsqueeze(0).to(device)
+    return slice_pixels, prev_preds, future_slices
 
 
 def epsilon_greedy_action(q_values, epsilon, n_pixels):
@@ -401,6 +404,8 @@ def train_with_global_dice(
     continuity_coef: float = 0.2,
     continuity_decay_factor: float = 0.7,
     dice_coef: float = 1.0,
+    manhattan_coef: float = 0.0,
+    future_len: int = 3,
     device: str = None,
     save_dir: str = "models",
 ):
@@ -427,6 +432,7 @@ def train_with_global_dice(
         history_len=history_len,
         height=H,
         width=W,
+        future_len=future_len,
         small_input=small_input
     ).to(device)
     
@@ -435,6 +441,7 @@ def train_with_global_dice(
         history_len=history_len,
         height=H,
         width=W,
+        future_len=future_len,
         small_input=small_input
     ).to(device)
     target_net.load_state_dict(policy_net.state_dict())
@@ -455,6 +462,8 @@ def train_with_global_dice(
     train_returns = []
     base_returns = []
     continuity_returns = []
+    gradient_returns = []
+    manhattan_returns = []
     dice_returns = []
     epsilons = []
     global_dice_history = []
@@ -481,7 +490,7 @@ def train_with_global_dice(
     print(f"  - Full volume shape: {FULL_VOLUME_SHAPE}")
     print(f"  - DICE coefficient: {dice_coef}")
     print(f"  - Data augmentation: {'ENABLED' if AUGMENT_PROB > 0 else 'DISABLED'} (prob={AUGMENT_PROB})")
-    print(f"  - Epsilon decay: exponential (smoother)")
+    print("  - Epsilon decay: exponential (smoother)")
     print(f"{'='*60}\n")
     
     for epoch in range(num_epochs):
@@ -491,6 +500,8 @@ def train_with_global_dice(
         epoch_returns = []
         epoch_base_returns = []
         epoch_continuity_returns = []
+        epoch_gradient_returns = []
+        epoch_manhattan_returns = []
         epoch_dice_returns = []
         epoch_metrics = []
         
@@ -511,7 +522,9 @@ def train_with_global_dice(
                 continuity_coef=continuity_coef,
                 continuity_decay_factor=continuity_decay_factor,
                 dice_coef=dice_coef,
+                manhattan_coef=manhattan_coef,
                 history_len=history_len,
+                future_len=future_len,
             )
             
             obs, _ = env.reset()
@@ -519,14 +532,16 @@ def train_with_global_dice(
             episode_reward = 0.0
             episode_base_reward = 0.0
             episode_continuity_reward = 0.0
+            episode_gradient_reward = 0.0
+            episode_manhattan_reward = 0.0
             episode_dice_reward = 0.0
             n_pixels = H * W
             
             while not done:
-                slice_pixels, prev_preds = obs_to_tensor(obs, device)
+                slice_pixels, prev_preds, future_slices = obs_to_tensor(obs, device)
                 
                 with torch.no_grad():
-                    q = policy_net(slice_pixels, prev_preds)
+                    q = policy_net(slice_pixels, prev_preds, future_slices)
                 
                 action = epsilon_greedy_action(q, epsilon, n_pixels)
                 next_obs, reward, terminated, truncated, info = env.step(action)
@@ -536,16 +551,19 @@ def train_with_global_dice(
                 episode_reward += reward
                 episode_base_reward += info["base_rewards"].sum()
                 episode_continuity_reward += info["continuity_rewards"].sum()
-                episode_dice_reward += info.get("dice_reward", 0.0)
+                episode_gradient_reward += info["gradient_rewards"]
+                episode_manhattan_reward += info.get("manhattan_reward", 0.0)  # Per-slice Manhattan
                 
-                # Store transition
+                # Store transition (now includes future_slices)
                 replay_buffer.append((
                     obs["slice_pixels"].copy(),
                     obs["prev_preds"].copy(),
+                    obs["future_slices"].copy(),
                     action.copy(),
                     pixel_rewards.copy(),
                     next_obs["slice_pixels"].copy(),
                     next_obs["prev_preds"].copy(),
+                    next_obs["future_slices"].copy(),
                     done
                 ))
                 
@@ -564,14 +582,16 @@ def train_with_global_dice(
                     
                     sp_batch = torch.tensor(np.array([t[0] for t in batch]), dtype=torch.float32, device=device)
                     pp_batch = torch.tensor(np.array([t[1] for t in batch]), dtype=torch.float32, device=device)
-                    a_batch = torch.tensor(np.array([t[2] for t in batch]), dtype=torch.long, device=device)
-                    r_batch = torch.tensor(np.array([t[3] for t in batch]), dtype=torch.float32, device=device)
-                    next_sp_batch = torch.tensor(np.array([t[4] for t in batch]), dtype=torch.float32, device=device)
-                    next_pp_batch = torch.tensor(np.array([t[5] for t in batch]), dtype=torch.float32, device=device)
-                    done_batch = torch.tensor(np.array([t[6] for t in batch]), dtype=torch.float32, device=device)
+                    fs_batch = torch.tensor(np.array([t[2] for t in batch]), dtype=torch.float32, device=device)
+                    a_batch = torch.tensor(np.array([t[3] for t in batch]), dtype=torch.long, device=device)
+                    r_batch = torch.tensor(np.array([t[4] for t in batch]), dtype=torch.float32, device=device)
+                    next_sp_batch = torch.tensor(np.array([t[5] for t in batch]), dtype=torch.float32, device=device)
+                    next_pp_batch = torch.tensor(np.array([t[6] for t in batch]), dtype=torch.float32, device=device)
+                    next_fs_batch = torch.tensor(np.array([t[7] for t in batch]), dtype=torch.float32, device=device)
+                    done_batch = torch.tensor(np.array([t[8] for t in batch]), dtype=torch.float32, device=device)
                     
                     # Current Q values: (B, H, W, 2)
-                    q_values = policy_net(sp_batch, pp_batch)
+                    q_values = policy_net(sp_batch, pp_batch, fs_batch)
                     
                     # Reshape action batch from (B, H*W) to (B, H, W) for gather
                     a_batch_2d = a_batch.view(batch_size, H, W)
@@ -579,7 +599,7 @@ def train_with_global_dice(
                     
                     # Target Q values
                     with torch.no_grad():
-                        q_next = target_net(next_sp_batch, next_pp_batch)  # (B, H, W, 2)
+                        q_next = target_net(next_sp_batch, next_pp_batch, next_fs_batch)  # (B, H, W, 2)
                         q_next_max = q_next.max(dim=-1).values  # (B, H, W)
                         not_done = (1.0 - done_batch).unsqueeze(-1).unsqueeze(-1)  # (B, 1, 1)
                         # r_batch is (B, H*W), reshape to (B, H, W)
@@ -603,17 +623,23 @@ def train_with_global_dice(
             epoch_returns.append(episode_reward)
             epoch_base_returns.append(episode_base_reward)
             epoch_continuity_returns.append(episode_continuity_reward)
-            epoch_dice_returns.append(episode_dice_reward)
+            epoch_gradient_returns.append(episode_gradient_reward)
+            epoch_manhattan_returns.append(episode_manhattan_reward)
             
-            # Get episode DICE from info
+            # Get episode DICE from info (computed at episode end)
             if info.get("episode_dice") is not None:
                 epoch_metrics.append({"dice": info["episode_dice"]})
+                # Capture DICE reward at episode end
+                episode_dice_reward = info.get("dice_reward", 0.0)
+                epoch_dice_returns.append(episode_dice_reward)
         
         # Store epoch results
         losses.append(epoch_loss / max(epoch_steps, 1))
         train_returns.extend(epoch_returns)
         base_returns.extend(epoch_base_returns)
         continuity_returns.extend(epoch_continuity_returns)
+        gradient_returns.extend(epoch_gradient_returns)
+        manhattan_returns.extend(epoch_manhattan_returns)
         dice_returns.extend(epoch_dice_returns)
         epsilons.append(epsilon)
         
@@ -636,7 +662,8 @@ def train_with_global_dice(
                 device=device,
                 continuity_coef=continuity_coef,
                 continuity_decay_factor=continuity_decay_factor,
-                dice_coef=dice_coef
+                dice_coef=dice_coef,
+                future_len=future_len
             )
             
             # Compute global metrics
@@ -670,13 +697,14 @@ def train_with_global_dice(
                             continuity_decay_factor=continuity_decay_factor,
                             dice_coef=dice_coef,
                             history_len=history_len,
+                            future_len=future_len,
                         )
                         val_obs, _ = val_env.reset()
                         val_done = False
                         
                         while not val_done:
-                            val_sp, val_pp = obs_to_tensor(val_obs, device)
-                            val_q = policy_net(val_sp, val_pp)  # (1, H, W, 2)
+                            val_sp, val_pp, val_fs = obs_to_tensor(val_obs, device)
+                            val_q = policy_net(val_sp, val_pp, val_fs)  # (1, H, W, 2)
                             val_action = val_q.argmax(dim=-1).cpu().numpy()[0].flatten()
                             
                             val_next_obs, _, val_term, val_trunc, val_info = val_env.step(val_action)
@@ -690,8 +718,8 @@ def train_with_global_dice(
                             val_q_sa = val_q.gather(dim=-1, index=val_a.unsqueeze(-1)).squeeze(-1)  # (1, H, W)
                             
                             if not val_done:
-                                val_next_sp, val_next_pp = obs_to_tensor(val_next_obs, device)
-                                val_q_next = policy_net(val_next_sp, val_next_pp)
+                                val_next_sp, val_next_pp, val_next_fs = obs_to_tensor(val_next_obs, device)
+                                val_q_next = policy_net(val_next_sp, val_next_pp, val_next_fs)
                                 val_q_next_max = val_q_next.max(dim=-1).values
                                 val_target = val_r + gamma * val_q_next_max
                             else:
@@ -715,7 +743,8 @@ def train_with_global_dice(
                     device=device,
                     continuity_coef=continuity_coef,
                     continuity_decay_factor=continuity_decay_factor,
-                    dice_coef=dice_coef
+                    dice_coef=dice_coef,
+                    future_len=future_len
                 )
                 val_metrics = compute_global_metrics(val_pred, full_val_mask)
                 val_global_dice_history.append(val_metrics["dice"])
@@ -738,9 +767,10 @@ def train_with_global_dice(
         avg_return = np.mean(epoch_returns)
         avg_base = np.mean(epoch_base_returns)
         avg_cont = np.mean(epoch_continuity_returns)
+        avg_grad = np.mean(epoch_gradient_returns)
         avg_dice_rew = np.mean(epoch_dice_returns)
         print(f"Epoch {epoch+1}/{num_epochs} | Time: {dt:.1f}s | Loss: {losses[-1]:.4f} | ε: {epsilon:.3f}")
-        print(f"  Returns - Total: {avg_return:.2f} | Base: {avg_base:.2f} | Cont: {avg_cont:.2f} | DICE: {avg_dice_rew:.2f}")
+        print(f"  Returns - Total: {avg_return:.2f} | Base: {avg_base:.2f} | Cont: {avg_cont:.2f} | Grad: {avg_grad:.2f}| DICE: {avg_dice_rew:.2f} | Manhattan: {np.mean(epoch_manhattan_returns):.2f}")
         
         # Save latest model
         torch.save(policy_net.state_dict(), os.path.join(save_dir, "model_latest.pth"))
@@ -751,7 +781,7 @@ def train_with_global_dice(
     print("="*60)
     
     final_pred = reconstruct_full_volume_from_subvolumes(
-        policy_net, train_volumes, train_positions, device=device, dice_coef=dice_coef
+        policy_net, train_volumes, train_positions, device=device, dice_coef=dice_coef, future_len=future_len
     )
     final_metrics = compute_global_metrics(final_pred, full_train_mask)
     
@@ -773,6 +803,8 @@ def train_with_global_dice(
         "train_returns": train_returns,
         "base_returns": base_returns,
         "continuity_returns": continuity_returns,
+        "gradient_returns": gradient_returns,
+        "manhattan_returns": manhattan_returns,
         "dice_returns": dice_returns,
         "epsilons": epsilons,
         "train_metrics": train_metrics_history,
@@ -833,7 +865,7 @@ def plot_training_results(results: dict, save_dir: str = "results"):
     axes[0, 0].grid(True)
 
     # ========================================
-    # Plot 2: Base Reward (Moving Average)
+    # Plot 2: Reward Components (Moving Average)
     # ========================================
     if results["base_returns"] and len(results["base_returns"]) >= window:
         base_ma = np.convolve(results["base_returns"], 
@@ -851,7 +883,27 @@ def plot_training_results(results: dict, save_dir: str = "results"):
     else:
         axes[0, 1].plot(results["continuity_returns"], label="Continuity Reward", color='orange', alpha=0.5)    
 
-    axes[0, 1].set_title("Reward components (Moving Average)")
+    # Gradient reward plotting
+    if results.get("gradient_returns"):
+        if len(results["gradient_returns"]) >= window:
+            grad_ma = np.convolve(results["gradient_returns"],
+                                  np.ones(window)/window,
+                                  mode='valid')
+            axes[0, 1].plot(grad_ma, label="Gradient Reward", color='purple')
+        else:
+            axes[0, 1].plot(results["gradient_returns"], label="Gradient Reward", color='purple', alpha=0.5)
+
+    # Manhattan distance reward plotting
+    if results.get("manhattan_returns"):
+        if len(results["manhattan_returns"]) >= window:
+            manh_ma = np.convolve(results["manhattan_returns"],
+                                  np.ones(window)/window,
+                                  mode='valid')
+            axes[0, 1].plot(manh_ma, label="Manhattan Reward", color='red')
+        else:
+            axes[0, 1].plot(results["manhattan_returns"], label="Manhattan Reward", color='red', alpha=0.5)
+
+    axes[0, 1].set_title("Reward Components (Moving Average)")
     axes[0, 1].set_ylabel("Reward")
     axes[0, 1].set_xlabel("Episode")
     axes[0, 1].legend()
@@ -871,17 +923,17 @@ def plot_training_results(results: dict, save_dir: str = "results"):
         if results.get("val_global_dice_history"):
             val_epochs = epochs[:len(results["val_global_dice_history"])]
             axes[0, 2].plot(val_epochs, results["val_global_dice_history"], 'r-s', 
-                           linewidth=2, markersize=6, label='Val DICE')
-            # Mark best validation
-            if results.get("best_epoch"):
-                best_idx = results["val_global_dice_history"].index(results["best_val_dice"]) if results["best_val_dice"] in results["val_global_dice_history"] else -1
-                if best_idx >= 0:
-                    axes[0, 2].scatter([val_epochs[best_idx]], [results["best_val_dice"]], 
-                                      color='red', s=150, zorder=5, marker='*')
-                    axes[0, 2].annotate(f'Best: {results["best_val_dice"]:.4f}', 
-                                       xy=(val_epochs[best_idx], results["best_val_dice"]),
-                                       xytext=(val_epochs[best_idx] + 3, results["best_val_dice"] - 0.05),
-                                       fontsize=10, color='red')
+                           linewidth=2, markersize=2, label='Val DICE')
+            # # Mark best validation
+            # if results.get("best_epoch"):
+            #     best_idx = results["val_global_dice_history"].index(results["best_val_dice"]) if results["best_val_dice"] in results["val_global_dice_history"] else -1
+            #     if best_idx >= 0:
+            #         axes[0, 2].scatter([val_epochs[best_idx]], [results["best_val_dice"]], 
+            #                           color='red', s=150, zorder=5, marker='*')
+            #         axes[0, 2].annotate(f'Best: {results["best_val_dice"]:.4f}', 
+            #                            xy=(val_epochs[best_idx], results["best_val_dice"]),
+            #                            xytext=(val_epochs[best_idx] + 3, results["best_val_dice"] - 0.05),
+            #                            fontsize=10, color='red')
     axes[0, 2].set_title("DICE Score (Train vs Val)")
     axes[0, 2].set_ylabel("DICE")
     axes[0, 2].set_xlabel("Epoch")
@@ -910,7 +962,7 @@ def plot_training_results(results: dict, save_dir: str = "results"):
         # Adjust epochs to be 0-indexed for plotting alignment
         val_loss_epochs_adj = [e - 1 for e in val_loss_epochs]  # Convert to 0-indexed
         axes[1, 1].plot(val_loss_epochs_adj, results["val_losses"], color='red', 
-                       marker='s', markersize=6, linewidth=2, label='Val Loss')
+                       marker='s', markersize=2, linewidth=2, label='Val Loss')
     
     axes[1, 1].set_title("Training & Validation Loss")
     axes[1, 1].set_ylabel("MSE Loss")
@@ -932,7 +984,7 @@ def plot_training_results(results: dict, save_dir: str = "results"):
         if results.get("val_global_metrics_history"):
             val_iou = [m["iou"] for m in results["val_global_metrics_history"]]
             val_epochs = epochs[:len(val_iou)]
-            axes[1, 2].plot(val_epochs, val_iou, 'r-s', linewidth=2, markersize=6, label='Val IoU')
+            axes[1, 2].plot(val_epochs, val_iou, 'r-s', linewidth=2, markersize=2, label='Val IoU')
     axes[1, 2].set_title("IoU Score (Train vs Val)")
     axes[1, 2].set_ylabel("IoU")
     axes[1, 2].set_xlabel("Epoch")
@@ -1078,9 +1130,10 @@ if __name__ == "__main__":
         lr=1e-3,
         gamma=0.99,
         batch_size=64,
-        continuity_coef=0.1,
+        continuity_coef=0.0,
         continuity_decay_factor=0.5,
-        dice_coef=1.0,  
+        dice_coef=1.,  
+        manhattan_coef = 0.1
     )
     
     # Plot comprehensive training results
@@ -1149,6 +1202,6 @@ if __name__ == "__main__":
                 obs = next_obs
                 done = terminated or truncated
         
-        visualize_result(vol_test, mask_test, pred, 
-                        save_dir="results/rapids-p/subvolumes/32x32x32", 
-                        slice_idx=vol_test.shape[0] // 2)
+        # visualize_result(vol_test, mask_test, pred, 
+        #                 save_dir="results/rapids-p/subvolumes/32x32x32", 
+        #                 slice_idx=vol_test.shape[0] // 2)
