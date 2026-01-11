@@ -9,6 +9,7 @@ Key improvements over main.py:
 5. Uses DICE-based reward in environment for better class imbalance handling
 """
 
+import argparse
 import os
 import time
 import random
@@ -24,11 +25,10 @@ from env_dice import PathReconstructionEnv
 from dqn import PerPixelCNNWithHistory
 
 # ============================================================================
-# Configuration
+# Configuration (defaults for import; overridden by argparse when run as script)
 # ============================================================================
 
 # Data Augmentation Settings
-AUGMENT_PROB = 0.1  # Probability of applying any augmentation (LOW FOR NOW)
 FLIP_PROB = 0.5     # Probability of each flip axis
 ROTATE_PROB = 0.5   # Probability of rotation
 INTENSITY_PROB = 0.3  # Probability of intensity augmentation
@@ -43,7 +43,7 @@ FULL_VOLUME_SHAPE = (800, 448, 448)
 # ============================================================================
 
 def augment_volume_and_mask(vol: np.ndarray, mask: np.ndarray, 
-                            augment_prob: float = AUGMENT_PROB) -> tuple:
+                            augment_prob: float = 0.0) -> tuple:
     """
     Apply random augmentations to volume and mask.
     All geometric transforms are applied identically to both.
@@ -221,6 +221,7 @@ def reconstruct_full_volume_from_subvolumes(
     device: str = None,
     continuity_coef: float = 0.2,
     continuity_decay_factor: float = 0.7,
+    gradient_coef: float = 0.1,
     dice_coef: float = 1.0,
     future_len: int = 3
 ) -> np.ndarray:
@@ -256,6 +257,7 @@ def reconstruct_full_volume_from_subvolumes(
                 vol, dummy_mask,
                 continuity_coef=continuity_coef,
                 continuity_decay_factor=continuity_decay_factor,
+                gradient_coef = gradient_coef,
                 dice_coef=dice_coef,
                 history_len=5,
                 future_len=future_len,
@@ -391,6 +393,7 @@ def train_with_global_dice(
     val_positions: list = None,
     full_val_mask: np.ndarray = None,
     # Hyperparameters
+    aug_prob: float = 0.0,
     num_epochs: int = 100,
     global_eval_interval: int = 5,
     lr: float = 1e-3,
@@ -403,6 +406,7 @@ def train_with_global_dice(
     target_update_freq: int = 500,
     continuity_coef: float = 0.2,
     continuity_decay_factor: float = 0.7,
+    gradient_coef: float = 0.1,
     dice_coef: float = 1.0,
     manhattan_coef: float = 0.0,
     future_len: int = 3,
@@ -488,6 +492,9 @@ def train_with_global_dice(
     print(f"  - Epochs: {num_epochs}")
     print(f"  - Global eval every: {global_eval_interval} epochs")
     print(f"  - Full volume shape: {FULL_VOLUME_SHAPE}")
+    print(f"  - Continuity coef: {continuity_coef} (decay: {continuity_decay_factor})")
+    print(f"  - Gradient coef: {gradient_coef}")
+    print(f"  - Manhattan coef: {manhattan_coef}")
     print(f"  - DICE coefficient: {dice_coef}")
     print(f"  - Data augmentation: {'ENABLED' if AUGMENT_PROB > 0 else 'DISABLED'} (prob={AUGMENT_PROB})")
     print("  - Epsilon decay: exponential (smoother)")
@@ -515,12 +522,13 @@ def train_with_global_dice(
             mask = train_masks[idx]
             
             # Apply data augmentation (training only)
-            vol_aug, mask_aug = augment_volume_and_mask(vol, mask)
+            vol_aug, mask_aug = augment_volume_and_mask(vol, mask, aug_prob)
             
             env = PathReconstructionEnv(
                 vol_aug, mask_aug,
                 continuity_coef=continuity_coef,
                 continuity_decay_factor=continuity_decay_factor,
+                gradient_coef = gradient_coef,
                 dice_coef=dice_coef,
                 manhattan_coef=manhattan_coef,
                 history_len=history_len,
@@ -695,6 +703,7 @@ def train_with_global_dice(
                             val_vol, val_mask,
                             continuity_coef=continuity_coef,
                             continuity_decay_factor=continuity_decay_factor,
+                            gradient_coef = gradient_coef,
                             dice_coef=dice_coef,
                             history_len=history_len,
                             future_len=future_len,
@@ -1059,12 +1068,25 @@ def plot_training_results(results: dict, save_dir: str = "results"):
 # ============================================================================
 
 if __name__ == "__main__":
-    # Paths - new directory structure with volumes/ and masks/ subdirectories
-    # Note: Paths are relative to dqn_slice_based/ directory
-    data_dir = "../../data/rapids-p/subvolumes_new"
+    parser = argparse.ArgumentParser(description="Deep Q-network training script for long-range connected structures segmentation.")
+    parser.add_argument("--data_dir", type=str, default="../../data/rapids-p/subvolumes_new", help="Directory containing subvolumes and masks")
+    parser.add_argument("--min_fg_ratio", type=float, default=0.0001, help="Minimum foreground ratio to include subvolume (filter out empty subvolumes)")
+    parser.add_argument("--aug_prob", type=float, default=0.0, help="Probability of applying data augmentation")
+    parser.add_argument("--epochs", type=int, default=50, help="Number of training epochs")
+    parser.add_argument("--cont", type=float, default=0.1, help="Continuity reward coefficient")
+    parser.add_argument("--grad", type=float, default=0.1, help="Gradient reward coefficient")
+    parser.add_argument("--manhattan", type=float, default=0.1, help="Manhattan distance reward coefficient")
+    parser.add_argument("--dice", type=float, default=1.0, help="DICE reward coefficient")
+    parser.add_argument("--save_dir", type=str, default="models", help="Directory to save trained models")
+    args = parser.parse_args()
+
+    # Update global config from args
+    AUGMENT_PROB = args.aug_prob
+
+    data_dir = args.data_dir
     
     # Minimum foreground ratio to include subvolume (filter out empty subvolumes)
-    MIN_FG_RATIO = 0.0001  # 0.01% minimum foreground
+    MIN_FG_RATIO = args.min_fg_ratio  # 0.01% minimum foreground
     
     # Load subvolumes WITH positions
     print("Loading training subvolumes with grid positions...")
@@ -1117,6 +1139,7 @@ if __name__ == "__main__":
     
     # Train with global DICE evaluation
     results = train_with_global_dice(
+        # Data
         train_volumes=train_vols,
         train_masks=train_masks,
         train_positions=train_positions,
@@ -1125,15 +1148,20 @@ if __name__ == "__main__":
         val_masks=val_masks,
         val_positions=val_positions,
         full_val_mask=full_val_mask,
-        num_epochs=50,
+        # Hyperparams
+        aug_prob=args.aug_prob,
+        num_epochs=args.epochs,
         global_eval_interval=1,
         lr=1e-3,
         gamma=0.99,
         batch_size=64,
-        continuity_coef=0.0,
+        continuity_coef=args.cont,
         continuity_decay_factor=0.5,
-        dice_coef=1.,  
-        manhattan_coef = 0.1
+        dice_coef=args.dice,  
+        gradient_coef=args.grad,
+        manhattan_coef = args.manhattan,
+        future_len = 3,
+        save_dir = args.save_dir
     )
     
     # Plot comprehensive training results
@@ -1179,10 +1207,13 @@ if __name__ == "__main__":
         
         env = PathReconstructionEnv(
             vol_test, mask_test,
-            continuity_coef=0.1,
+            continuity_coef=0.0,
             continuity_decay_factor=0.5,
+            gradient_coef = 0.0,
             dice_coef=1.0,
-            history_len=5
+            manhattan_coef=0.0,
+            history_len=5,
+            future_len=3
         )
         
         results["policy_net"].eval()
@@ -1192,8 +1223,8 @@ if __name__ == "__main__":
         
         with torch.no_grad():
             while not done:
-                slice_pixels, prev_preds = obs_to_tensor(obs, device)
-                q = results["policy_net"](slice_pixels, prev_preds)
+                slice_pixels, prev_preds, future_slices = obs_to_tensor(obs, device)
+                q = results["policy_net"](slice_pixels, prev_preds, future_slices)
                 a = q.argmax(dim=-1).cpu().numpy()[0]
                 next_obs, _, terminated, truncated, info = env.step(a.flatten())
                 slice_idx = info.get("slice_index", None)
