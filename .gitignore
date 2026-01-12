@@ -1,9 +1,12 @@
 *.pyc
 
-./.thesis/*
+.thesis/*
 
 data/rapids-p/*
 
 *.err
 *.out
 *.pth
+*.zip
+
+latex_documentation/*

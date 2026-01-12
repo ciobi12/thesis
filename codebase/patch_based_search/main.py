@@ -1,6 +1,6 @@
 from patch_based_search.env import PathTraversalEnv
 from patch_based_search.qlearner import PatchQLearner
-from l_systems import LSystemGenerator
+from l_systems_builder.l_systems_2d.l_systems_2d import LSystem2DGenerator
 
 import numpy as np
 from PIL import Image
@@ -76,20 +76,26 @@ def train(env: PathTraversalEnv, agent: PatchQLearner, lsys_iter = 2, episodes=1
     return agent, epsilons, rewards, path_coverage, ep              
 
 if __name__ == "__main__":
-    lsys_obj = LSystemGenerator(axiom = "X",
+    lsys_obj = LSystem2DGenerator(axiom = "X",
                                 rules = {"X": "F+[[X]-X]-F[-FX]+X",
                                          "F": "FF"
                                          }
                                 )
     
-    iterations = 3
+    iterations = 2
     angle = 22.5
     step = 5
 
-    segments = lsys_obj.build_l_sys(iterations = iterations, step = step, angle_deg = angle)
-    # lsys_obj.draw_lsystem()
-    mask = lsys_obj.build_mask(canvas_size=(192, 256))
-    # print(np.unique(mask))
+    segments = lsys_obj.build_l_sys(iterations = iterations, step = step, angle_deg = angle, start_angle = -90)
+    img, mask = lsys_obj.draw_lsystem_ct_style(canvas_size=(128, 256),
+                                               margin = 20,
+                                               root_width = 2,
+                                               lsys_save_path=f"patch_based_search/examples/lsys_{iterations}it.png",
+                                               mask_save_path = f"patch_based_search/examples/lsys_{iterations}it_mask.png",
+                                               add_ct_noise = False,
+                                               occlude_root = False,
+                                               skip_segments = False
+                                               )
     env = PathTraversalEnv(path_mask=mask, 
                            patch_size = 3, 
                            target_coverage=0.95, 
