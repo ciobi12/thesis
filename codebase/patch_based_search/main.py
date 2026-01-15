@@ -23,10 +23,10 @@ def train(env: PathTraversalEnv, agent: PatchQLearner, lsys_iter = 2, episodes=1
     dead_end = False
 
     for ep in range(episodes):
-        if ep == 10: 
-            options["reset_global_mask"] = True
-        else:
-            options["reset_global_mask"] = False
+        # if ep == 10: 
+        #     options["reset_global_mask"] = True
+        # else:
+        #     options["reset_global_mask"] = False
         obs, _ = env.reset(options = options)
         # print(env.agent_xy)
         ep_reward = 0.0
@@ -64,13 +64,20 @@ def train(env: PathTraversalEnv, agent: PatchQLearner, lsys_iter = 2, episodes=1
         
         if env.render_mode == "rgb_array" and ep % 25 == 0:
             frame = env.render()
-            fig, ax = plt.subplots(1, 1, figsize=(6, 10))
-            ax.imshow(frame, origin="upper")
+            fig, ax = plt.subplots(1, 1, figsize=(4, 5))
+            ax.imshow(frame)
             ax.set_xticks([]); ax.set_yticks([])
             ax.set_title(f"Episode: {ep + 1}, Coverage: {ep_coverage:.2f}%")
             plt.savefig(f"{os.getcwd()}/patch_based_search/episodes_results/lsys_{lsys_iter}it/ep_{ep+1}_total_coverage_{ep_coverage:.2f}.png")
             plt.close()
             if terminated:
+                frame = env.render()
+                fig, ax = plt.subplots(1, 1, figsize=(4, 5))
+                ax.imshow(frame, origin="upper")
+                ax.set_xticks([]); ax.set_yticks([])
+                ax.set_title(f"Episode: {ep + 1}, Coverage: {ep_coverage:.2f}%")
+                plt.savefig(f"{os.getcwd()}/patch_based_search/episodes_results/lsys_{lsys_iter}it/ep_{ep+1}_total_coverage_{ep_coverage:.2f}.png")
+                plt.close()
                 return agent, epsilons, rewards, path_coverage, ep      
             
     return agent, epsilons, rewards, path_coverage, ep              
@@ -82,12 +89,12 @@ if __name__ == "__main__":
                                          }
                                 )
     
-    iterations = 2
+    iterations = 4
     angle = 22.5
     step = 5
 
     segments = lsys_obj.build_l_sys(iterations = iterations, step = step, angle_deg = angle, start_angle = -90)
-    img, mask = lsys_obj.draw_lsystem_ct_style(canvas_size=(128, 256),
+    img, mask = lsys_obj.draw_lsystem_ct_style(canvas_size=(216, 256),
                                                margin = 20,
                                                root_width = 2,
                                                lsys_save_path=f"patch_based_search/examples/lsys_{iterations}it.png",
@@ -98,7 +105,7 @@ if __name__ == "__main__":
                                                )
     env = PathTraversalEnv(path_mask=mask, 
                            patch_size = 3, 
-                           target_coverage=0.95, 
+                           target_coverage=0.99, 
                            render_mode = "rgb_array")
     
     episodes = 200
