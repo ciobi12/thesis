@@ -15,21 +15,23 @@ from matplotlib import pyplot as plt
 from tqdm import tqdm
 from PIL import Image
 
-CT_LIKE = True
-DRIVE_DATASET = False
-STARE_DATASET = False
+CT_LIKE = False
+DRIVE_DATASET = True
+STARE_DATASET = True
 
 def obs_to_tensor(obs, device):
     """Convert observation dict to tensors on device."""
     row_pixels = torch.FloatTensor(obs["row_pixels"]).unsqueeze(0).to(device)  # (1, W, C)
     prev_preds = torch.FloatTensor(obs["prev_preds"]).unsqueeze(0).to(device)  # (1, history_len, W)
-    return row_pixels, prev_preds
+    future_rows = torch.FloatTensor(obs["future_rows"]).unsqueeze(0).to(device)  # (1, future_len, W, C)
+    return row_pixels, prev_preds, future_rows
 
 def batch_obs_to_tensor(obs_list, device):
     """Convert list of observation dicts to batched tensors."""
     row_pixels = torch.stack([torch.FloatTensor(o["row_pixels"]) for o in obs_list]).to(device)  # (B, W, C)
     prev_preds = torch.stack([torch.FloatTensor(o["prev_preds"]) for o in obs_list]).to(device)  # (B, history_len, W)
-    return row_pixels, prev_preds
+    future_rows = torch.stack([torch.FloatTensor(o["future_rows"]) for o in obs_list]).to(device)  # (B, future_len, W, C)
+    return row_pixels, prev_preds, future_rows
 
 def epsilon_greedy_action(q_values, epsilon):
     """Epsilon-greedy action selection.
@@ -124,7 +126,7 @@ def update_dataset(data_dir, size = (256, 256)):
                     if img is not None:
                         val_imgs.append(img)
 
-def validate(policy_net, val_pairs, device, continuity_coef=0.1, continuity_decay_factor=0.7):
+def validate(policy_net, val_pairs, device, continuity_coef=0.1, continuity_decay_factor=0.7, future_len=3):
     """Run validation and return average metrics, loss, and reward."""
     policy_net.eval()
     all_metrics = []
@@ -138,6 +140,7 @@ def validate(policy_net, val_pairs, device, continuity_coef=0.1, continuity_deca
                                      mask,
                                      continuity_coef=continuity_coef,
                                      continuity_decay_factor=continuity_decay_factor,
+                                     future_len=future_len,
                                      device=device)
             metrics = compute_metrics(pred, mask)
             all_metrics.append(metrics)
@@ -147,14 +150,15 @@ def validate(policy_net, val_pairs, device, continuity_coef=0.1, continuity_deca
                                         mask=mask,
                                         continuity_coef=continuity_coef,
                                         continuity_decay_factor=continuity_decay_factor,
-                                        history_len=5)
+                                        history_len=5,
+                                        future_len=future_len)
             obs, _ = env.reset()
             done = False
             episode_reward = 0.0
             
             while not done:
-                row_pixels, prev_preds = obs_to_tensor(obs, device)
-                q = policy_net(row_pixels, prev_preds)
+                row_pixels, prev_preds, future_rows = obs_to_tensor(obs, device)
+                q = policy_net(row_pixels, prev_preds, future_rows)
                 a = q.argmax(dim=-1).cpu().numpy()[0]  # Remove batch dimension
                 next_obs, reward, terminated, truncated, info = env.step(a)
                 episode_reward += reward
@@ -206,12 +210,14 @@ def train_dqn_on_images(
     policy_net = PerPixelCNNWithHistory(
         input_channels=C,
         history_len=5,
+        future_len=3,
         width=W
     ).to(device)
     
     target_net = PerPixelCNNWithHistory(
         input_channels=C,
         history_len=5,
+        future_len=3,
         width=W
     ).to(device)
     
@@ -275,6 +281,7 @@ def train_dqn_on_images(
                                         continuity_coef=continuity_coef, 
                                         continuity_decay_factor=continuity_decay_factor,
                                         history_len=5,
+                                        future_len=3,
                                         start_from_bottom=True)
             obs, _ = env.reset()
 
@@ -296,9 +303,9 @@ def train_dqn_on_images(
             }
 
             while not done:
-                row_pixels, prev_preds = obs_to_tensor(obs, device)
+                row_pixels, prev_preds, future_rows = obs_to_tensor(obs, device)
                 with torch.no_grad():
-                    q = policy_net(row_pixels, prev_preds)  # (1, W, 2)
+                    q = policy_net(row_pixels, prev_preds, future_rows)  # (1, W, 2)
                     q = q.squeeze(0)  # (W, 2)
                 a = epsilon_greedy_action(q, epsilon)  # (W,)
 
@@ -334,18 +341,18 @@ def train_dqn_on_images(
                     batch = replay.sample(batch_size)
 
                     # Batch conversion - single GPU transfer
-                    row_pixels_batch, prev_preds_batch = batch_obs_to_tensor([t.obs for t in batch], device)
+                    row_pixels_batch, prev_preds_batch, future_rows_batch = batch_obs_to_tensor([t.obs for t in batch], device)
                     act_batch = torch.tensor(np.stack([t.action for t in batch]), dtype=torch.int64, device=device)
                     rew_batch = torch.tensor(np.stack([t.pixel_rewards for t in batch]), dtype=torch.float32, device=device)
-                    next_row_pixels_batch, next_prev_preds_batch = batch_obs_to_tensor([t.next_obs for t in batch], device)
+                    next_row_pixels_batch, next_prev_preds_batch, next_future_rows_batch = batch_obs_to_tensor([t.next_obs for t in batch], device)
                     done_batch = torch.tensor([t.done for t in batch], dtype=torch.float32, device=device)
 
                     # Batched forward passes
-                    q_s = policy_net(row_pixels_batch, prev_preds_batch)  # (B, W, 2)
+                    q_s = policy_net(row_pixels_batch, prev_preds_batch, future_rows_batch)  # (B, W, 2)
                     q_s_a = q_s.gather(dim=-1, index=act_batch.unsqueeze(-1)).squeeze(-1)  # (B, W)
 
                     with torch.no_grad():
-                        q_next = target_net(next_row_pixels_batch, next_prev_preds_batch)  # (B, W, 2)
+                        q_next = target_net(next_row_pixels_batch, next_prev_preds_batch, next_future_rows_batch)  # (B, W, 2)
                         q_next_max = q_next.max(dim=-1).values  # (B, W)
 
                     not_done = (1.0 - done_batch).unsqueeze(-1)  # (B, 1)
@@ -414,13 +421,14 @@ def train_dqn_on_images(
                                                 mask=mask,
                                                 continuity_coef=continuity_coef,
                                                 continuity_decay_factor=continuity_decay_factor,
-                                                history_len=5)
+                                                history_len=5,
+                                                future_len=3)
                     obs, _ = env.reset()
                     done = False
                     
                     while not done:
-                        row_pixels, prev_preds = obs_to_tensor(obs, device)
-                        q = policy_net(row_pixels, prev_preds)
+                        row_pixels, prev_preds, future_rows = obs_to_tensor(obs, device)
+                        q = policy_net(row_pixels, prev_preds, future_rows)
                         a = q.argmax(dim=-1)
                         
                         next_obs, reward, terminated, truncated, info = env.step(a.cpu().numpy()[0])
@@ -428,12 +436,12 @@ def train_dqn_on_images(
                         done = terminated or truncated
                         
                         # Compute validation loss
-                        next_row_pixels, next_prev_preds = obs_to_tensor(next_obs, device)
+                        next_row_pixels, next_prev_preds, next_future_rows = obs_to_tensor(next_obs, device)
                         rew_tensor = torch.tensor(pixel_rewards, dtype=torch.float32, device=device).unsqueeze(0)
                         done_tensor = torch.tensor([done], dtype=torch.float32, device=device)
                         
                         q_s_a = q.gather(dim=-1, index=a.unsqueeze(-1)).squeeze(-1)
-                        q_next = target_net(next_row_pixels, next_prev_preds)
+                        q_next = target_net(next_row_pixels, next_prev_preds, next_future_rows)
                         q_next_max = q_next.max(dim=-1).values
                         
                         not_done = (1.0 - done_tensor).unsqueeze(-1)
@@ -493,12 +501,14 @@ def reconstruct_image(policy_net,
                       mask, 
                       continuity_coef=0.2, 
                       continuity_decay_factor=0.7,
+                      future_len=3,
                       device = None):
     env = PathReconstructionEnv(image, 
                                 mask, 
                                 continuity_coef=continuity_coef, 
                                 continuity_decay_factor=continuity_decay_factor,
-                                history_len=5, 
+                                history_len=5,
+                                future_len=future_len, 
                                 start_from_bottom=True)
     device = device or ("cuda" if torch.cuda.is_available() else "cpu")
     obs, _ = env.reset()
@@ -509,8 +519,8 @@ def reconstruct_image(policy_net,
     policy_net.eval()
     with torch.no_grad():
         while not done:
-            row_pixels, prev_preds = obs_to_tensor(obs, device)
-            q = policy_net(row_pixels, prev_preds)  # (1, W, 2)
+            row_pixels, prev_preds, future_rows = obs_to_tensor(obs, device)
+            q = policy_net(row_pixels, prev_preds, future_rows)  # (1, W, 2)
             a = q.argmax(dim=-1).cpu().numpy()[0]  # Remove batch dim -> (W,)
             next_obs, reward, terminated, truncated, info = env.step(a)
             # Map current row index to image coordinate
@@ -554,16 +564,15 @@ if __name__ == "__main__":
     val_imgs_paths = []
     val_masks_paths = []
 
-    size = (128, 256)
+    size = (384, 384)
     cont_coef = 0.1
 
     if CT_LIKE:
-        update_dataset("data/ct_like/2d/continuous", size=size)  
+        update_dataset("../data/ct_like/2d/continuous", size=size)  
     if DRIVE_DATASET:
-        update_dataset("data/DRIVE", size=size)
+        update_dataset("../data/DRIVE", size=size)
     if STARE_DATASET:
-        update_dataset("data/STARE", size=size)  
-
+        update_dataset("../data/STARE", size=size)      
                     
     print(train_imgs_paths[:2])
     print(len(train_imgs_paths))
@@ -593,7 +602,7 @@ if __name__ == "__main__":
                              continuity_decay_factor=0.7)
 
     print(np.unique(pred))
-    visualize_result(img_test, mask_test, pred, save_dir="dqn_row_based")
+    visualize_result(img_test, mask_test, pred, save_dir="dqn_row_based/results")
 
     # Plot training curves
     fig, axes = plt.subplots(2, 4, figsize=(20, 10))
@@ -690,7 +699,7 @@ if __name__ == "__main__":
     # axes[2, 0].grid(True)
 
     plt.tight_layout()
-    plt.savefig(f"{os.getcwd()}/dqn_row_based/results.png", dpi=300)
+    plt.savefig(f"{os.getcwd()}/dqn_row_based/results/results.png", dpi=300)
     # plt.show()
     
     # Plot conn_info metrics
@@ -785,7 +794,7 @@ if __name__ == "__main__":
     axes2[1, 3].grid(True)
     
     plt.tight_layout()
-    plt.savefig(f"{os.getcwd()}/dqn_row_based/conn_info_analysis.png", dpi=300)
+    plt.savefig(f"{os.getcwd()}/dqn_row_based/results/conn_info_analysis.png", dpi=300)
     # plt.show()
 
     

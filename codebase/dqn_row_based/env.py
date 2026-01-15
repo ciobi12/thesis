@@ -11,6 +11,11 @@ class PathReconstructionEnv(gym.Env):
     - Base accuracy:     -|action - gt|
     - Row continuity:    -continuity_coef * |action - prev_rows_action|
         (Only in-bounds neighbours are included.)
+    
+    The agent observes:
+    - Current row pixels
+    - Previous K rows (history_len) - both predictions and image pixels
+    - Future K rows (future_len) - image pixels only (no predictions yet)
     """
     metadata = {"render_modes": []}
 
@@ -18,7 +23,8 @@ class PathReconstructionEnv(gym.Env):
                  mask, 
                  continuity_coef=0.1, 
                  continuity_decay_factor=0.7,
-                 history_len=3, 
+                 history_len=3,
+                 future_len=3,
                  start_from_bottom=True):
         super().__init__()
         assert image.shape[:2] == mask.shape, "Image and mask must have same height and width"
@@ -30,6 +36,7 @@ class PathReconstructionEnv(gym.Env):
         self.continuity_coef = float(continuity_coef)
         self.continuity_decay_factor = float(continuity_decay_factor)
         self.history_len = int(history_len)
+        self.future_len = int(future_len)
         self.start_from_bottom = bool(start_from_bottom)
         
         # Expand image to add channel dimension if needed
@@ -41,13 +48,14 @@ class PathReconstructionEnv(gym.Env):
             "row_pixels": spaces.Box(0.0, 1.0, shape=(self.W, self.C), dtype=np.float32),
             "prev_preds": spaces.Box(0.0, 1.0, shape=(self.history_len, self.W), dtype=np.float32),
             "prev_rows": spaces.Box(0.0, 1.0, shape=(self.history_len, self.W, self.C), dtype=np.float32),
+            "future_rows": spaces.Box(0.0, 1.0, shape=(self.future_len, self.W, self.C), dtype=np.float32),
             "row_index": spaces.Box(0.0, 1.0, shape=(1,), dtype=np.float32),
         })
 
         self._row_order = None
         self.current_row_idx = None
         self.prev_preds_buffer = None  # Keep for reward calculation
-        self.prev_rows_buffer = None   # New: for network input
+        self.prev_rows_buffer = None   # For network input (past)
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
@@ -59,10 +67,23 @@ class PathReconstructionEnv(gym.Env):
 
     def _get_obs(self):
         row = self._row_order[self.current_row_idx]
+        
+        # Get future rows (lookahead)
+        future_rows = []
+        for i in range(1, self.future_len + 1):
+            future_idx = self.current_row_idx + i
+            if future_idx < self.H:
+                future_row = self._row_order[future_idx]
+                future_rows.append(self.image[future_row])
+            else:
+                # Pad with zeros if we're near the end
+                future_rows.append(np.zeros((self.W, self.C), dtype=np.float32))
+        
         return {
             "row_pixels": self.image[row],  # shape (W, C)
             "prev_preds": np.array(self.prev_preds_buffer, dtype=np.float32),  # (history_len, W)
             "prev_rows": np.array(self.prev_rows_buffer, dtype=np.float32),  # (history_len, W, C)
+            "future_rows": np.array(future_rows, dtype=np.float32),  # (future_len, W, C)
             "row_index": np.array([(row + 1) / self.H], dtype=np.float32),
         }
 
@@ -212,5 +233,6 @@ class PathReconstructionEnv(gym.Env):
             "row_pixels": np.zeros((self.W, self.C), dtype=np.float32),
             "prev_preds": np.array(self.prev_preds_buffer, dtype=np.float32),
             "prev_rows": np.array(self.prev_rows_buffer, dtype=np.float32),
+            "future_rows": np.zeros((self.future_len, self.W, self.C), dtype=np.float32),
             "row_index": np.array([1.0], dtype=np.float32),
         }

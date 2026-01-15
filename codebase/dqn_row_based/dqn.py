@@ -10,13 +10,14 @@ Transition = namedtuple("Transition", ("obs", "action", "pixel_rewards", "next_o
 
 def obs_to_tensor(obs, device, as_tensor = False):
     if as_tensor:
-        x = np.concatenate([obs["row_pixels"], obs["prev_rows"].reshape(-1), obs["row_index"]], axis=0).astype(np.float32)
+        x = np.concatenate([obs["row_pixels"], obs["prev_rows"].reshape(-1), obs["future_rows"].reshape(-1), obs["row_index"]], axis=0).astype(np.float32)
         return torch.from_numpy(x).to(device)
 
     return {
         "row_pixels": torch.tensor(obs["row_pixels"], dtype=torch.float32, device=device),
         "prev_preds": torch.tensor(obs["prev_preds"], dtype=torch.float32, device=device),
         "prev_rows": torch.tensor(obs["prev_rows"], dtype=torch.float32, device=device),
+        "future_rows": torch.tensor(obs["future_rows"], dtype=torch.float32, device=device),
         "row_index": torch.tensor(obs["row_index"], dtype=torch.float32, device=device),
     }
 
@@ -25,11 +26,13 @@ def batch_obs_to_tensor(obs_list, device):
     row_pixels = torch.tensor(np.stack([o["row_pixels"] for o in obs_list]), dtype=torch.float32, device=device)
     prev_preds = torch.tensor(np.stack([o["prev_preds"] for o in obs_list]), dtype=torch.float32, device=device)
     prev_rows = torch.tensor(np.stack([o["prev_rows"] for o in obs_list]), dtype=torch.float32, device=device)
+    future_rows = torch.tensor(np.stack([o["future_rows"] for o in obs_list]), dtype=torch.float32, device=device)
     row_index = torch.tensor(np.stack([o["row_index"] for o in obs_list]), dtype=torch.float32, device=device)
     return {
         "row_pixels": row_pixels,
         "prev_preds": prev_preds,
         "prev_rows": prev_rows,
+        "future_rows": future_rows,
         "row_index": row_index,
     }
 
@@ -65,10 +68,18 @@ class PerPixelCNN(nn.Module):
         return q
 
 class PerPixelCNNWithHistory(nn.Module):
-    """Enhanced architecture that explicitly processes historical context"""
-    def __init__(self, input_channels, history_len, width):
+    """Enhanced architecture that processes historical and future context.
+    
+    The network sees:
+    - Current row pixels
+    - Previous K rows (history_len) predictions
+    - Future K rows (future_len) image pixels (lookahead)
+    """
+    def __init__(self, input_channels, history_len, future_len, width):
         super().__init__()
         self.history_len = history_len
+        self.future_len = future_len
+        self.input_channels = input_channels
         
         # Current row encoder
         self.row_encoder = nn.Sequential(
@@ -86,47 +97,66 @@ class PerPixelCNNWithHistory(nn.Module):
             nn.ReLU(),
         )
         
-        # Cross-attention between current and history
+        # Future encoder (processes upcoming row pixels for lookahead)
+        self.future_encoder = nn.Sequential(
+            nn.Conv1d(future_len * input_channels, 32, kernel_size=7, padding=3),
+            nn.ReLU(),
+            nn.Conv1d(32, 32, kernel_size=5, padding=2),
+            nn.ReLU(),
+        )
+        
+        # Cross-attention between current and temporal context (history + future)
         self.attention = nn.Sequential(
-            nn.Conv1d(64 + 32, 64, kernel_size=1),
+            nn.Conv1d(64 + 32 + 32, 64, kernel_size=1),
             nn.ReLU(),
             nn.Conv1d(64, 64, kernel_size=1),
             nn.Sigmoid()
         )
         
-        # Final decision layers
+        # Final decision layers (includes history and future features)
         self.decision = nn.Sequential(
-            nn.Conv1d(64 + 32, 128, kernel_size=5, padding=2),
+            nn.Conv1d(64 + 32 + 32, 128, kernel_size=5, padding=2),
             nn.ReLU(),
             nn.Conv1d(128, 64, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.Conv1d(64, 2, kernel_size=1)
         )
     
-    def forward(self, row_pixels, prev_preds):
+    def forward(self, row_pixels, prev_preds, future_rows):
         """
         row_pixels: (batch, width, channels) -> needs transpose
         prev_preds: (batch, history_len, width)
+        future_rows: (batch, future_len, width, channels)
         """
+        B = row_pixels.size(0)
+        W = row_pixels.size(1)
+        
         # Transpose to (batch, channels, width) for Conv1d
         x_row = row_pixels.permute(0, 2, 1)  # (B, C, W)
         x_hist = prev_preds  # (B, history_len, W)
         
+        # Flatten future rows: (B, future_len, W, C) -> (B, future_len*C, W)
+        x_future = future_rows.permute(0, 1, 3, 2)  # (B, future_len, C, W)
+        x_future = x_future.reshape(B, self.future_len * self.input_channels, W)  # (B, future_len*C, W)
+        
         # Encode current row
         row_features = self.row_encoder(x_row)  # (B, 64, W)
         
-        # Encode history
+        # Encode history (past predictions)
         hist_features = self.history_encoder(x_hist)  # (B, 32, W)
         
-        # Combine for attention
-        combined = torch.cat([row_features, hist_features], dim=1)  # (B, 96, W)
+        # Encode future (upcoming image pixels)
+        future_features = self.future_encoder(x_future)  # (B, 32, W)
+        
+        # Combine all for attention
+        combined = torch.cat([row_features, hist_features, future_features], dim=1)  # (B, 128, W)
         attention_weights = self.attention(combined)  # (B, 64, W)
         
         # Apply attention to row features
         attended_row = row_features * attention_weights  # (B, 64, W)
         
-        # Final decision with both attended row and history
-        final_features = torch.cat([attended_row, hist_features], dim=1)  # (B, 96, W)
+        # Final decision with attended row, history, and future
+        final_features = torch.cat([attended_row, hist_features, future_features], dim=1)  # (B, 128, W)
         q_values = self.decision(final_features)  # (B, 2, W)
         
         return q_values.permute(0, 2, 1)  # (B, W, 2)
