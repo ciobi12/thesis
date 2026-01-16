@@ -126,7 +126,14 @@ def update_dataset(data_dir, size = (256, 256)):
                     if img is not None:
                         val_imgs.append(img)
 
-def validate(policy_net, val_pairs, device, continuity_coef=0.1, continuity_decay_factor=0.7, future_len=3):
+def validate(policy_net, 
+             val_pairs, 
+             device, 
+             continuity_coef=0.1,
+             thickness_coef = 1,
+             connectivity_coef = 1,
+             history_len = 5,
+             future_len = 3):
     """Run validation and return average metrics, loss, and reward."""
     policy_net.eval()
     all_metrics = []
@@ -139,7 +146,6 @@ def validate(policy_net, val_pairs, device, continuity_coef=0.1, continuity_deca
                                      image, 
                                      mask,
                                      continuity_coef=continuity_coef,
-                                     continuity_decay_factor=continuity_decay_factor,
                                      future_len=future_len,
                                      device=device)
             metrics = compute_metrics(pred, mask)
@@ -149,8 +155,9 @@ def validate(policy_net, val_pairs, device, continuity_coef=0.1, continuity_deca
             env = PathReconstructionEnv(image=image,
                                         mask=mask,
                                         continuity_coef=continuity_coef,
-                                        continuity_decay_factor=continuity_decay_factor,
-                                        history_len=5,
+                                        thickness_coef=thickness_coef,
+                                        connectivity_coef=connectivity_coef,
+                                        history_len=history_len,
                                         future_len=future_len)
             obs, _ = env.reset()
             done = False
@@ -191,7 +198,10 @@ def train_dqn_on_images(
     end_epsilon=0.01,
     epsilon_decay_epochs=15,
     continuity_coef=0.1,
-    continuity_decay_factor=0.7,
+    thickness_coef=1,
+    connectivity_coef=1,
+    history_len=5,
+    future_len=3,
     seed=42,
     device=None,
 ):
@@ -209,15 +219,15 @@ def train_dqn_on_images(
     # Networks
     policy_net = PerPixelCNNWithHistory(
         input_channels=C,
-        history_len=5,
-        future_len=3,
+        history_len=history_len,
+        future_len=future_len,
         width=W
     ).to(device)
     
     target_net = PerPixelCNNWithHistory(
         input_channels=C,
-        history_len=5,
-        future_len=3,
+        history_len=history_len,
+        future_len=future_len,
         width=W
     ).to(device)
     
@@ -243,19 +253,15 @@ def train_dqn_on_images(
     epsilons = []
     
     # Metrics tracking
-    train_metrics_history = {
+    train_metrics_history, val_metrics_history = 2*({
         "iou": [], "f1": [], "accuracy": [], "coverage": [], "precision": [], "recall": []
-    }
-    val_metrics_history = {
-        "iou": [], "f1": [], "accuracy": [], "coverage": [], "precision": [], "recall": []
-    }
+    },)
     
     # Conn_info tracking
     conn_info_history = {
-        "detection_reward": [],
+        "dice_coefficient": [],
+        "dice_reward": [],
         "thickness_penalty": [],
-        "width_bonus": [],
-        "confidence_penalty": [],
         "connectivity_reward": [],
         "true_positives": [],
         "false_positives": [],
@@ -279,9 +285,10 @@ def train_dqn_on_images(
             env = PathReconstructionEnv(image=image, 
                                         mask=mask, 
                                         continuity_coef=continuity_coef, 
-                                        continuity_decay_factor=continuity_decay_factor,
-                                        history_len=5,
-                                        future_len=3,
+                                        thickness_coef=thickness_coef,
+                                        connectivity_coef=connectivity_coef,
+                                        history_len=history_len,
+                                        future_len=future_len,
                                         start_from_bottom=True)
             obs, _ = env.reset()
 
@@ -292,10 +299,7 @@ def train_dqn_on_images(
             
             # Track conn_info for this episode
             episode_conn_info = {
-                "detection_reward": [],
                 "thickness_penalty": [],
-                "width_bonus": [],
-                "confidence_penalty": [],
                 "connectivity_reward": [],
                 "true_positives": [],
                 "false_positives": [],
@@ -387,9 +391,12 @@ def train_dqn_on_images(
             pred_train = reconstruct_image(policy_net, 
                                            image, 
                                            mask,
-                                           device=device,
                                            continuity_coef=continuity_coef,
-                                           continuity_decay_factor=continuity_decay_factor)
+                                           thickness_coef=thickness_coef,
+                                           connectivity_coef=connectivity_coef,
+                                           history_len=history_len,
+                                           future_len=future_len,
+                                           device=device)
                                            
             train_metrics = compute_metrics(pred_train, mask)
             epoch_train_metrics.append(train_metrics)
@@ -407,7 +414,6 @@ def train_dqn_on_images(
             avg_val_metrics = validate(
                 policy_net, val_pairs, device,
                 continuity_coef=continuity_coef,
-                continuity_decay_factor=continuity_decay_factor
             )
             
             # Compute validation loss
@@ -420,9 +426,10 @@ def train_dqn_on_images(
                     env = PathReconstructionEnv(image=image,
                                                 mask=mask,
                                                 continuity_coef=continuity_coef,
-                                                continuity_decay_factor=continuity_decay_factor,
-                                                history_len=5,
-                                                future_len=3)
+                                                thickness_coef=thickness_coef,
+                                                connectivity_coef=connectivity_coef,
+                                                history_len=history_len,
+                                                future_len=future_len)
                     obs, _ = env.reset()
                     done = False
                     
@@ -499,15 +506,18 @@ def train_dqn_on_images(
 def reconstruct_image(policy_net, 
                       image, 
                       mask, 
-                      continuity_coef=0.2, 
-                      continuity_decay_factor=0.7,
+                      continuity_coef=0.1,
+                      thickness_coef=1,
+                      connectivity_coef=1,
+                      history_len=5,
                       future_len=3,
                       device = None):
     env = PathReconstructionEnv(image, 
                                 mask, 
                                 continuity_coef=continuity_coef, 
-                                continuity_decay_factor=continuity_decay_factor,
-                                history_len=5,
+                                thickness_coef=thickness_coef,
+                                connectivity_coef=connectivity_coef,
+                                history_len=history_len,
                                 future_len=future_len, 
                                 start_from_bottom=True)
     device = device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -583,7 +593,6 @@ if __name__ == "__main__":
         val_pairs=list(zip(val_imgs, val_masks)),
         num_epochs=30,
         continuity_coef=cont_coef,
-        continuity_decay_factor=0.7,
         seed=123,
         start_epsilon=1.0,
         end_epsilon=0.01,
@@ -598,14 +607,13 @@ if __name__ == "__main__":
     pred = reconstruct_image(results["policy_net"], 
                              img_test, 
                              mask_test, 
-                             continuity_coef=cont_coef, 
-                             continuity_decay_factor=0.7)
+                             continuity_coef=cont_coef)
 
     print(np.unique(pred))
     visualize_result(img_test, mask_test, pred, save_dir="dqn_row_based/results")
 
     # Plot training curves
-    fig, axes = plt.subplots(2, 4, figsize=(20, 10))
+    fig, axes = plt.subplots(2, 3, figsize=(20, 10))
     
     # Returns (Train vs Val)
     axes[0, 0].plot(results["returns"], alpha=0.3, color='blue', label='Train (per image)')
@@ -621,72 +629,52 @@ if __name__ == "__main__":
     axes[0, 0].set_ylabel("Return")
     axes[0, 0].legend()
     axes[0, 0].grid(True)
-
-    # Base reward
-    axes[0, 1].plot(np.convolve(results["base_returns"], 
-                                 np.ones(len(train_imgs))/len(train_imgs), 
-                                 mode='valid'), 
-                    label="Base Reward", color='green')
-    axes[0, 1].set_title("Base Reward (Moving Average)")
-    axes[0, 1].set_ylabel("Reward")
-    axes[0, 1].set_xlabel("Episode")
-    axes[0, 1].grid(True)
-
-    # Continuity reward
-    axes[0, 2].plot(np.convolve(results["continuity_returns"], 
-                                 np.ones(len(train_imgs))/len(train_imgs),
-                                 mode='valid'), 
-                    label="Continuity Reward", color='blue')
-    axes[0, 2].set_title("Continuity Reward (Moving Average)")
-    axes[0, 2].set_ylabel("Reward")
-    axes[0, 2].set_xlabel("Episode")
-    axes[0, 2].grid(True)
     
     # Epsilon
-    axes[0, 3].plot(results["epsilons"], color='orange', linestyle='dashed')
-    axes[0, 3].set_title("Exploration (Epsilon)")
-    axes[0, 3].set_ylabel("ε")
-    axes[0, 3].grid(True)
+    axes[0, 1].plot(results["epsilons"], color='orange', linestyle='dashed')
+    axes[0, 1].set_title("Exploration (Epsilon)")
+    axes[0, 1].set_ylabel("ε")
+    axes[0, 1].grid(True)
     
     # Loss (Train vs Val)
-    axes[1, 0].plot(results["train_losses"], color='red', marker='o', label='Train')
+    axes[0, 2].plot(results["train_losses"], color='red', marker='o', label='Train')
     if results["val_losses"]:
-        axes[1, 0].plot(results["val_losses"], color='darkred', marker='s', label='Val')
-    axes[1, 0].set_title("Model loss per Epoch")
-    axes[1, 0].set_ylabel("MSE Loss")
+        axes[0, 2].plot(results["val_losses"], color='darkred', marker='s', label='Val')
+    axes[0, 2].set_title("Model loss per Epoch")
+    axes[0, 2].set_ylabel("MSE Loss")
+    axes[0, 2].set_xlabel("Epoch")
+    axes[0, 2].legend()
+    axes[0, 2].grid(True)
+    
+    # IoU
+    axes[1, 0].plot(results["train_metrics"]["iou"], label="Train", marker='o')
+    if results["val_metrics"]["iou"]:
+        axes[1, 0].plot(results["val_metrics"]["iou"], label="Val", marker='s')
+    axes[1, 0].set_title("IoU")
+    axes[1, 0].set_ylabel("IoU")
     axes[1, 0].set_xlabel("Epoch")
     axes[1, 0].legend()
     axes[1, 0].grid(True)
     
-    # IoU
-    axes[1, 1].plot(results["train_metrics"]["iou"], label="Train", marker='o')
-    if results["val_metrics"]["iou"]:
-        axes[1, 1].plot(results["val_metrics"]["iou"], label="Val", marker='s')
-    axes[1, 1].set_title("IoU")
-    axes[1, 1].set_ylabel("IoU")
+    # F1 Score
+    axes[1, 1].plot(results["train_metrics"]["f1"], label="Train", marker='o')
+    if results["val_metrics"]["f1"]:
+        axes[1, 1].plot(results["val_metrics"]["f1"], label="Val", marker='s')
+    axes[1, 1].set_title("F1 Score")
+    axes[1, 1].set_ylabel("F1")
     axes[1, 1].set_xlabel("Epoch")
     axes[1, 1].legend()
     axes[1, 1].grid(True)
     
-    # F1 Score
-    axes[1, 2].plot(results["train_metrics"]["f1"], label="Train", marker='o')
-    if results["val_metrics"]["f1"]:
-        axes[1, 2].plot(results["val_metrics"]["f1"], label="Val", marker='s')
-    axes[1, 2].set_title("F1 Score")
-    axes[1, 2].set_ylabel("F1")
+    # Accuracy
+    axes[1, 2].plot(results["train_metrics"]["accuracy"], label="Train", marker='o')
+    if results["val_metrics"]["accuracy"]:
+        axes[1, 2].plot(results["val_metrics"]["accuracy"], label="Val", marker='s')
+    axes[1, 2].set_title("Pixel Accuracy")
+    axes[1, 2].set_ylabel("Accuracy")
     axes[1, 2].set_xlabel("Epoch")
     axes[1, 2].legend()
     axes[1, 2].grid(True)
-    
-    # Accuracy
-    axes[1, 3].plot(results["train_metrics"]["accuracy"], label="Train", marker='o')
-    if results["val_metrics"]["accuracy"]:
-        axes[1, 3].plot(results["val_metrics"]["accuracy"], label="Val", marker='s')
-    axes[1, 3].set_title("Pixel Accuracy")
-    axes[1, 3].set_ylabel("Accuracy")
-    axes[1, 3].set_xlabel("Epoch")
-    axes[1, 3].legend()
-    axes[1, 3].grid(True)
     
     # # Coverage
     # axes[2, 0].plot(results["train_metrics"]["coverage"], label="Train", marker='o')
@@ -703,95 +691,60 @@ if __name__ == "__main__":
     # plt.show()
     
     # Plot conn_info metrics
-    fig2, axes2 = plt.subplots(2, 4, figsize=(20, 10))
+    fig2, axes2 = plt.subplots(2, 3, figsize=(20, 10))
     
     # Moving average window
     window = len(train_imgs)
-    
-    # Detection reward
-    axes2[0, 0].plot(np.convolve(results["conn_info"]["detection_reward"], 
-                                  np.ones(window)/window, mode='valid'), 
-                     color='green', label='Detection Reward')
-    axes2[0, 0].set_title("Detection Reward (TP - FP - FN)")
-    axes2[0, 0].set_ylabel("Reward")
-    axes2[0, 0].set_xlabel("Episode")
-    axes2[0, 0].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
-    axes2[0, 0].grid(True)
+
+     # Base reward
+    axes[0, 0].plot(np.convolve(results["base_returns"], 
+                                 np.ones(len(train_imgs))/len(train_imgs), 
+                                 mode='valid'), 
+                    label="Base Reward", color='green')
+    axes[0, 0].set_title("Base Reward (Moving Average)")
+    axes[0, 0].set_ylabel("Reward")
+    axes[0, 0].set_xlabel("Episode")
+    axes[0, 0].grid(True)
+
+    # Continuity reward
+    axes[0, 1].plot(np.convolve(results["continuity_returns"], 
+                                 np.ones(len(train_imgs))/len(train_imgs),
+                                 mode='valid'), 
+                    label="Continuity Reward", color='blue')
+    axes[0, 1].set_title("Continuity Reward (Moving Average)")
+    axes[0, 1].set_ylabel("Reward")
+    axes[0, 1].set_xlabel("Episode")
+    axes[0, 1].grid(True)
     
     # Thickness penalty
-    axes2[0, 1].plot(np.convolve(results["conn_info"]["thickness_penalty"], 
+    axes2[0, 2].plot(np.convolve(results["conn_info"]["thickness_penalty"], 
                                   np.ones(window)/window, mode='valid'), 
                      color='red', label='Thickness Penalty')
-    axes2[0, 1].set_title("Thickness Penalty (Width Control)")
-    axes2[0, 1].set_ylabel("Penalty")
-    axes2[0, 1].set_xlabel("Episode")
-    axes2[0, 1].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
-    axes2[0, 1].grid(True)
-    
-    # Width bonus
-    axes2[0, 2].plot(np.convolve(results["conn_info"]["width_bonus"], 
-                                  np.ones(window)/window, mode='valid'), 
-                     color='blue', label='Width Bonus')
-    axes2[0, 2].set_title("Width Bonus (Matching GT Width)")
-    axes2[0, 2].set_ylabel("Bonus")
+    axes2[0, 2].set_title("Thickness Penalty (Width Control)")
+    axes2[0, 2].set_ylabel("Penalty")
     axes2[0, 2].set_xlabel("Episode")
     axes2[0, 2].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
     axes2[0, 2].grid(True)
     
-    # Confidence penalty
-    axes2[0, 3].plot(np.convolve(results["conn_info"]["confidence_penalty"], 
+    # DICE Reward
+    axes2[1, 0].plot(np.convolve(results["conn_info"]["dice_reward"], 
                                   np.ones(window)/window, mode='valid'), 
-                     color='orange', label='Confidence Penalty')
-    axes2[0, 3].set_title("Confidence Penalty (Uncertain Predictions)")
-    axes2[0, 3].set_ylabel("Penalty")
-    axes2[0, 3].set_xlabel("Episode")
-    axes2[0, 3].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
-    axes2[0, 3].grid(True)
-    
-    # Connectivity reward
-    axes2[1, 0].plot(np.convolve(results["conn_info"]["connectivity_reward"], 
-                                  np.ones(window)/window, mode='valid'), 
-                     color='purple', label='Connectivity Reward')
-    axes2[1, 0].set_title("Connectivity Reward (Fragmentation)")
+                     color='blue', label='DICE Reward')
+    axes2[1, 0].set_title("DICE Reward (Episode-level)")
     axes2[1, 0].set_ylabel("Reward")
     axes2[1, 0].set_xlabel("Episode")
     axes2[1, 0].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
     axes2[1, 0].grid(True)
     
-    # True positives
-    axes2[1, 1].plot(np.convolve(results["conn_info"]["true_positives"], 
+    # Connectivity reward
+    axes2[2, 0].plot(np.convolve(results["conn_info"]["connectivity_reward"], 
                                   np.ones(window)/window, mode='valid'), 
-                     color='green', label='True Positives')
-    axes2[1, 1].set_title("True Positives (Correct Vessel Pixels)")
-    axes2[1, 1].set_ylabel("Count")
-    axes2[1, 1].set_xlabel("Episode")
-    axes2[1, 1].grid(True)
-    
-    # False positives vs False negatives
-    axes2[1, 2].plot(np.convolve(results["conn_info"]["false_positives"], 
-                                  np.ones(window)/window, mode='valid'), 
-                     color='red', label='False Positives')
-    axes2[1, 2].plot(np.convolve(results["conn_info"]["false_negatives"], 
-                                  np.ones(window)/window, mode='valid'), 
-                     color='darkorange', label='False Negatives')
-    axes2[1, 2].set_title("False Positives vs False Negatives")
-    axes2[1, 2].set_ylabel("Count")
-    axes2[1, 2].set_xlabel("Episode")
-    axes2[1, 2].legend()
-    axes2[1, 2].grid(True)
-    
-    # FP/FN ratio (diagnostic)
-    fp_arr = np.array(results["conn_info"]["false_positives"])
-    fn_arr = np.array(results["conn_info"]["false_negatives"])
-    ratio = np.divide(fp_arr, fn_arr + 1e-8)  # Avoid division by zero
-    axes2[1, 3].plot(np.convolve(ratio, np.ones(window)/window, mode='valid'), 
-                     color='brown', label='FP/FN Ratio')
-    axes2[1, 3].set_title("FP/FN Ratio (Over-prediction Indicator)")
-    axes2[1, 3].set_ylabel("Ratio")
-    axes2[1, 3].set_xlabel("Episode")
-    axes2[1, 3].axhline(y=1.0, color='gray', linestyle='--', alpha=0.5, label='Balanced')
-    axes2[1, 3].legend()
-    axes2[1, 3].grid(True)
+                     color='purple', label='Connectivity Reward')
+    axes2[2, 0].set_title("Connectivity Reward (Fragmentation)")
+    axes2[2, 0].set_ylabel("Reward")
+    axes2[2, 0].set_xlabel("Episode")
+    axes2[2, 0].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+    axes2[2, 0].grid(True)
     
     plt.tight_layout()
     plt.savefig(f"{os.getcwd()}/dqn_row_based/results/conn_info_analysis.png", dpi=300)
