@@ -256,7 +256,6 @@ def train_dqn_on_images(
         epsilon = max(end_epsilon, epsilon)
         
         random.shuffle(image_mask_pairs)
-        epoch_return = 0.0
         t0 = time.time()
 
         epoch_loss = 0
