@@ -1,5 +1,6 @@
 import gymnasium as gym
 from gymnasium import spaces
+from jax import grad
 import numpy as np
 from collections import deque
 from scipy import ndimage
@@ -10,8 +11,7 @@ class PathReconstructionEnv(gym.Env):
     def __init__(self, image, 
                  mask, 
                  continuity_coef=0.1, 
-                 thickness_coef=1,
-                 connectivity_coef=1,
+                 gradient_coef = 0,
                  history_len=3,
                  future_len=3,
                  start_from_bottom=True):
@@ -23,8 +23,7 @@ class PathReconstructionEnv(gym.Env):
         self.H, self.W = self.mask.shape
         self.C = 1 if self.image.ndim == 2 else self.image.shape[2]
         self.continuity_coef = float(continuity_coef)
-        self.thickness_coef = float(thickness_coef)  
-        self.connectivity_coef = float(connectivity_coef)
+        self.gradient_coef = float(gradient_coef)
         self.history_len = int(history_len)
         self.future_len = int(future_len)
         self.start_from_bottom = bool(start_from_bottom)
@@ -94,15 +93,16 @@ class PathReconstructionEnv(gym.Env):
         # ========== ENHANCED REWARD FOR VESSEL SEGMENTATION ==========
         
         # 1. WEIGHTED ACCURACY [BASE REWARD]: Combat class imbalance (reduced weight - saturating)
-        vessel_weight = 1.0  # Reduced from 3.0 since it saturates
-        background_weight = 0.3  # Further reduced background weight
+        # vessel_weight = 1.0  # Reduced from 3.0 since it saturates
+        # background_weight = 0.3  # Further reduced background weight
         
-        vessel_mask = (gt == 1)
-        weighted_accuracy = np.where(
-            vessel_mask,
-            -vessel_weight * np.abs(action - gt),      # Penalty for missing vessels
-            -background_weight * np.abs(action - gt))   # Penalty for background errors
-        
+        # vessel_mask = (gt == 1)
+        # weighted_accuracy = np.where(
+        #     vessel_mask,
+        #     -vessel_weight * np.abs(action - gt),      # Penalty for missing vessels
+        #     -background_weight * np.abs(action - gt))   # Penalty for background errors
+
+        weighted_accuracy = -np.abs(action - gt)
         
         # Track per-row stats (for logging only, reward computed at episode end)
         true_positives = np.sum((action == 1) & (gt == 1))
@@ -120,73 +120,59 @@ class PathReconstructionEnv(gym.Env):
             
             # For each active pixel, check if it connects to previous row
             curr_active_indices = np.where(action == 1)[0]
-            print(curr_active_indices)
+            # print(curr_active_indices)
             for idx in curr_active_indices:
                 # Check 5-pixel neighborhood (allow diagonal connections for branching)
                 left = max(0, idx - 2)
                 right = min(self.W, idx + 3)
                 
-                # If connected to previous row, give positive reward
+                # If connected to previous row, don't penalize
                 if np.any(prev_row[left:right] == 1):
-                    continuity_rewards[idx] = 0.8  # Reduced from 1.0
+                    continuity_rewards[idx] = 0
                 else:
-                    # STRONG penalty for isolated pixels (not connected to structure)
-                    continuity_rewards[idx] = -3.0  # Increased from -2.0 to combat noise
+                    # Penalty for isolated pixels (not connected to structure)
+                    continuity_rewards[idx] = -1.0  
             
             # Also consider inactive pixels that should maintain gaps
             # (don't penalize correctly predicting background between vessels)
-            inactive_with_inactive_above = ((action == 0) & (np.convolve(prev_row, np.ones(5), mode='same') < 0.5))
-            continuity_rewards[inactive_with_inactive_above] = 0.1  # Reduced from 0.2
+            inactive_with_inactive_above = ((action == 0) & (np.convolve(prev_row, np.ones(3), mode='same') == 0))
+            continuity_rewards[inactive_with_inactive_above] = 0.0 
         
-        continuity_rewards *= self.continuity_coef
+        # 3. GRADIENT-BASED REWARD: Encourage smooth intensity transitions
+        gradient_rewards = np.zeros((self.W,), dtype=np.float32)
         
-        # 3. THICKNESS CONTROL: Penalize over-thick predictions
-        thickness_penalty = 0.0
-        
-        if np.sum(action== 1) > 0 and np.sum(gt == 1) > 0:
-            from scipy.ndimage import binary_dilation, binary_erosion
-            binary_pred = (action == 1).astype(np.uint8)
-            binary_gt = (gt == 1).astype(np.uint8)
+        if len(self.prev_preds_buffer) >= 1:
+            prev_pred = list(self.prev_preds_buffer)[-1]
+            prev_active_indices = np.where(prev_pred == 1)[0]
+            curr_active_indices = np.where(action == 1)[0]
             
-            # Compare local widths: count active pixels in sliding windows
-            pred_width = np.sum(binary_pred)
-            gt_width = np.sum(binary_gt)
+            # Current row intensity (squeeze channel dim if needed)
+            curr_intensity = self.image[row].squeeze()  # (W,)
+            # Previous row intensity
+            prev_row_idx = self._row_order[self.current_row_idx - 1] if self.current_row_idx > 0 else row
+            prev_intensity = self.image[prev_row_idx].squeeze()  # (W,)
             
-            # STRONG penalty for being wider than ground truth
-            if pred_width > gt_width:
-                thickness_penalty = -3.0 * (pred_width - gt_width) / gt_width
-            
-            # Penalize isolated noisy pixels
-            neighbor_count = ndimage.convolve(binary_pred.astype(float), np.ones(3), mode='constant')
-            isolated_pixels = np.sum((binary_pred > 0) & (neighbor_count <= 1))
-            if isolated_pixels > 0:
-                thickness_penalty -= 2.0 * isolated_pixels
-                
-        # 4. TOPOLOGY: Prevent creating disconnected fragments - NOT USED NOW
-        connectivity_reward = 0.0
+            if len(prev_active_indices) > 0 and len(curr_active_indices) > 0:
+                for idx in curr_active_indices:
+                    # Find the closest active pixel in the previous row
+                    distances = np.abs(prev_active_indices - idx)
+                    closest_prev_idx = prev_active_indices[np.argmin(distances)]
+                    if np.abs(closest_prev_idx - idx) > 5:
+                        continue  # Skip if too far away
+                    
+                    # Calculate intensity difference between current pixel and closest previous pixel
+                    intensity_diff = np.abs(curr_intensity[idx] - prev_intensity[closest_prev_idx])
+                    
+                    # Reward small intensity differences (smooth transitions)
+                    # Penalize large intensity jumps (indicates noise or discontinuity)
+                    # intensity_diff is 0-1, so we reward when it's small
+                    gradient_rewards[idx] = - intensity_diff 
+
         conn_info = {}
         
-        if len(self.prev_preds_buffer) >= 2:
-            # Build local 4-row window
-            window_rows = list(self.prev_preds_buffer)[-3:]
-            window_rows.append(action)
-            window = np.vstack(window_rows)
-            binary_window = (window > 0.5).astype(np.uint8)
-            
-            # Count components - penalize fragmentation
-            labeled, num_components = ndimage.label(binary_window, structure=np.ones((3, 3)))
-            
-            if num_components > 2:  # Allow some branching (2-3 main branches)
-                # Strong penalty for excessive fragmentation
-                connectivity_reward = -2.0 * (num_components - 3)  # Increased from -1.5
-                conn_info["num_components"] = num_components
-                conn_info["fragmentation_penalty"] = connectivity_reward
-        
         # Combine all rewards
-        pixel_rewards = weighted_accuracy + continuity_rewards
-        reward = float(pixel_rewards.sum()) \
-                + self.thickness_coef * thickness_penalty \
-                + self.connectivity_coef * connectivity_reward
+        pixel_rewards = weighted_accuracy + self.continuity_coef * continuity_rewards + self.gradient_coef * gradient_rewards
+        reward = float(pixel_rewards.sum()) 
         
         # Update history
         self.prev_preds_buffer.append(action.copy())
@@ -194,39 +180,18 @@ class PathReconstructionEnv(gym.Env):
         self.current_row_idx += 1
         terminated = self.current_row_idx >= self.H
         
-        # Calculate episode-level DICE coefficient at the end
-        dice_coefficient = 0.0
-        dice_reward = 0.0
-        if terminated:
-            pred_binary = (self.episode_predictions > 0.5).astype(np.float32)
-            gt_binary = (self.episode_ground_truth > 0.5).astype(np.float32)
-            
-            intersection = np.sum(pred_binary * gt_binary)
-            pred_sum = np.sum(pred_binary)
-            gt_sum = np.sum(gt_binary)
-            
-            # DICE = 2 * |A ∩ B| / (|A| + |B|)
-            dice_coefficient = (2.0 * intersection) / (pred_sum + gt_sum + 1e-8)
-            
-            # Scale DICE reward to be significant (DICE is 0-1, scale to match other rewards)
-            # Higher DICE = better segmentation = positive reward
-            dice_reward = 100.0 * (dice_coefficient - 0.5)  # Centered around 0.5 DICE
-            reward += dice_reward
         
         conn_info.update({
-            "thickness_penalty": thickness_penalty,
             "true_positives": float(true_positives),
             "false_positives": float(false_positives),
             "false_negatives": float(false_negatives),
-            "dice_coefficient": dice_coefficient,
-            "dice_reward": dice_reward,
         })
 
         info = {
             "pixel_rewards": pixel_rewards.astype(np.float32),
             "weighted_accuracy": weighted_accuracy.astype(np.float32),
             "continuity_rewards": continuity_rewards.astype(np.float32),
-            "connectivity_reward": connectivity_reward,
+            "gradient_rewards": gradient_rewards.astype(np.float32),
             "row_index": row,
         }
         info.update(conn_info)

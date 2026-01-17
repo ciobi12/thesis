@@ -72,7 +72,7 @@ class PerPixelCNNWithHistory(nn.Module):
     
     The network sees:
     - Current row pixels
-    - Previous K rows (history_len) predictions
+    - Previous K rows (history_len) image pixels (not predictions)
     - Future K rows (future_len) image pixels (lookahead)
     """
     def __init__(self, input_channels, history_len, future_len, width):
@@ -89,9 +89,9 @@ class PerPixelCNNWithHistory(nn.Module):
             nn.ReLU(),
         )
         
-        # History encoder (processes previous predictions)
+        # History encoder (processes previous row pixels)
         self.history_encoder = nn.Sequential(
-            nn.Conv1d(history_len, 32, kernel_size=7, padding=3),
+            nn.Conv1d(history_len * input_channels, 32, kernel_size=7, padding=3),
             nn.ReLU(),
             nn.Conv1d(32, 32, kernel_size=5, padding=2),
             nn.ReLU(),
@@ -122,10 +122,10 @@ class PerPixelCNNWithHistory(nn.Module):
             nn.Conv1d(64, 2, kernel_size=1)
         )
     
-    def forward(self, row_pixels, prev_preds, future_rows):
+    def forward(self, row_pixels, prev_rows, future_rows):
         """
         row_pixels: (batch, width, channels) -> needs transpose
-        prev_preds: (batch, history_len, width)
+        prev_rows: (batch, history_len, width, channels) - previous row image pixels
         future_rows: (batch, future_len, width, channels)
         """
         B = row_pixels.size(0)
@@ -133,7 +133,10 @@ class PerPixelCNNWithHistory(nn.Module):
         
         # Transpose to (batch, channels, width) for Conv1d
         x_row = row_pixels.permute(0, 2, 1)  # (B, C, W)
-        x_hist = prev_preds  # (B, history_len, W)
+        
+        # Flatten history rows: (B, history_len, W, C) -> (B, history_len*C, W)
+        x_hist = prev_rows.permute(0, 1, 3, 2)  # (B, history_len, C, W)
+        x_hist = x_hist.reshape(B, self.history_len * self.input_channels, W)  # (B, history_len*C, W)
         
         # Flatten future rows: (B, future_len, W, C) -> (B, future_len*C, W)
         x_future = future_rows.permute(0, 1, 3, 2)  # (B, future_len, C, W)
@@ -142,7 +145,7 @@ class PerPixelCNNWithHistory(nn.Module):
         # Encode current row
         row_features = self.row_encoder(x_row)  # (B, 64, W)
         
-        # Encode history (past predictions)
+        # Encode history (past row pixels)
         hist_features = self.history_encoder(x_hist)  # (B, 32, W)
         
         # Encode future (upcoming image pixels)

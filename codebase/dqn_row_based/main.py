@@ -1,12 +1,10 @@
+import argparse
 import cv2
-
 import numpy as np
 import os
 import random
 import time
 import torch
-import torch.optim as optim
-import torch.nn as nn
 
 from dqn_row_based.dqn import PerPixelCNNWithHistory, ReplayBuffer
 from dqn_row_based.env import PathReconstructionEnv
@@ -15,23 +13,19 @@ from matplotlib import pyplot as plt
 from tqdm import tqdm
 from PIL import Image
 
-CT_LIKE = False
-DRIVE_DATASET = True
-STARE_DATASET = True
-
 def obs_to_tensor(obs, device):
     """Convert observation dict to tensors on device."""
     row_pixels = torch.FloatTensor(obs["row_pixels"]).unsqueeze(0).to(device)  # (1, W, C)
-    prev_preds = torch.FloatTensor(obs["prev_preds"]).unsqueeze(0).to(device)  # (1, history_len, W)
+    prev_rows = torch.FloatTensor(obs["prev_rows"]).unsqueeze(0).to(device)  # (1, history_len, W, C)
     future_rows = torch.FloatTensor(obs["future_rows"]).unsqueeze(0).to(device)  # (1, future_len, W, C)
-    return row_pixels, prev_preds, future_rows
+    return row_pixels, prev_rows, future_rows
 
 def batch_obs_to_tensor(obs_list, device):
     """Convert list of observation dicts to batched tensors."""
     row_pixels = torch.stack([torch.FloatTensor(o["row_pixels"]) for o in obs_list]).to(device)  # (B, W, C)
-    prev_preds = torch.stack([torch.FloatTensor(o["prev_preds"]) for o in obs_list]).to(device)  # (B, history_len, W)
+    prev_rows = torch.stack([torch.FloatTensor(o["prev_rows"]) for o in obs_list]).to(device)  # (B, history_len, W, C)
     future_rows = torch.stack([torch.FloatTensor(o["future_rows"]) for o in obs_list]).to(device)  # (B, future_len, W, C)
-    return row_pixels, prev_preds, future_rows
+    return row_pixels, prev_rows, future_rows
 
 def epsilon_greedy_action(q_values, epsilon):
     """Epsilon-greedy action selection.
@@ -96,7 +90,7 @@ def update_dataset(data_dir, size = (256, 256)):
             
             if "train" in root:
                 if "segm" in root:  # Check if in ground_truth folder
-                    print(f"Train mask: {file_path}")
+                    # print(f"Train mask: {file_path}")
                     train_masks_paths.append(file_path)
                     # img = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
                     img = np.array(Image.open(file_path).convert("L").resize(size))
@@ -104,7 +98,7 @@ def update_dataset(data_dir, size = (256, 256)):
                         train_masks.append(img)
                 elif "images" in root:  # Check if in images folder
                     train_imgs_paths.append(file_path)
-                    print(f"Train image: {file_path}")
+                    # print(f"Train image: {file_path}")
                     img = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
                     img = cv2.resize(img, size)
                     if img is not None:
@@ -113,14 +107,14 @@ def update_dataset(data_dir, size = (256, 256)):
             elif "val" in root:
                 if "segm" in root:  # Check if in ground_truth folder
                     val_masks_paths.append(file_path)
-                    print(f"Val mask: {file_path}")
+                    # print(f"Val mask: {file_path}")
                     # img = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
                     img = np.array(Image.open(file_path).convert("L").resize(size))
                     if img is not None:
                         val_masks.append(img)
                 elif "images" in root:  # Check if in images folder
                     val_imgs_paths.append(file_path)
-                    print(f"Val image: {file_path}")
+                    # print(f"Val image: {file_path}")
                     img = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
                     img = cv2.resize(img, size)  
                     if img is not None:
@@ -130,9 +124,8 @@ def validate(policy_net,
              val_pairs, 
              device, 
              continuity_coef=0.1,
-             thickness_coef = 1,
-             connectivity_coef = 1,
-             history_len = 5,
+             gradient_coef = 1,
+             history_len = 3,
              future_len = 3):
     """Run validation and return average metrics, loss, and reward."""
     policy_net.eval()
@@ -146,6 +139,7 @@ def validate(policy_net,
                                      image, 
                                      mask,
                                      continuity_coef=continuity_coef,
+                                     gradient_coef=gradient_coef,
                                      future_len=future_len,
                                      device=device)
             metrics = compute_metrics(pred, mask)
@@ -155,8 +149,7 @@ def validate(policy_net,
             env = PathReconstructionEnv(image=image,
                                         mask=mask,
                                         continuity_coef=continuity_coef,
-                                        thickness_coef=thickness_coef,
-                                        connectivity_coef=connectivity_coef,
+                                        gradient_coef=gradient_coef,
                                         history_len=history_len,
                                         future_len=future_len)
             obs, _ = env.reset()
@@ -164,8 +157,8 @@ def validate(policy_net,
             episode_reward = 0.0
             
             while not done:
-                row_pixels, prev_preds, future_rows = obs_to_tensor(obs, device)
-                q = policy_net(row_pixels, prev_preds, future_rows)
+                row_pixels, prev_rows, future_rows = obs_to_tensor(obs, device)
+                q = policy_net(row_pixels, prev_rows, future_rows)
                 a = q.argmax(dim=-1).cpu().numpy()[0]  # Remove batch dimension
                 next_obs, reward, terminated, truncated, info = env.step(a)
                 episode_reward += reward
@@ -186,22 +179,22 @@ def validate(policy_net,
     return avg_metrics
 
 def train_dqn_on_images(
-    image_mask_pairs,      # list of (image, mask) tuples
-    val_pairs=None,        # validation pairs
-    num_epochs=20,
-    buffer_capacity=10000,
-    batch_size=64,
-    gamma=0.95,
-    lr=1e-3,
-    target_update_every=500,
-    start_epsilon=1.0,
-    end_epsilon=0.01,
-    epsilon_decay_epochs=15,
-    continuity_coef=0.1,
-    thickness_coef=1,
-    connectivity_coef=1,
-    history_len=5,
-    future_len=3,
+    image_mask_pairs,    # list of (image, mask) tuples
+    val_pairs = None,      
+    num_epochs = 20,
+    buffer_capacity = 10000,
+    batch_size = 64,
+    gamma = 0.95,
+    lr = 1e-3,
+    target_update_every = 500,
+    start_epsilon = 1.0,
+    end_epsilon = 0.01,
+    epsilon_decay_epochs = 15,
+    continuity_coef = 0.1,
+    gradient_coef = 1,
+    history_len = 3,
+    future_len = 3,
+    save_dir = None,
     seed=42,
     device=None,
 ):
@@ -217,19 +210,8 @@ def train_dqn_on_images(
     C = 1 if sample_image.ndim == 2 else sample_image.shape[2]
 
     # Networks
-    policy_net = PerPixelCNNWithHistory(
-        input_channels=C,
-        history_len=history_len,
-        future_len=future_len,
-        width=W
-    ).to(device)
-    
-    target_net = PerPixelCNNWithHistory(
-        input_channels=C,
-        history_len=history_len,
-        future_len=future_len,
-        width=W
-    ).to(device)
+    policy_net = PerPixelCNNWithHistory(input_channels=C, history_len=history_len, future_len=future_len, width=W).to(device)
+    target_net = PerPixelCNNWithHistory(input_channels=C, history_len=history_len, future_len=future_len, width=W).to(device)
     
     target_net.load_state_dict(policy_net.state_dict())
     target_net.eval()
@@ -253,16 +235,16 @@ def train_dqn_on_images(
     epsilons = []
     
     # Metrics tracking
-    train_metrics_history, val_metrics_history = 2*({
-        "iou": [], "f1": [], "accuracy": [], "coverage": [], "precision": [], "recall": []
-    },)
+    train_metrics_history, val_metrics_history = [{"iou": [], 
+                                                   "f1": [], 
+                                                   "accuracy": [], 
+                                                   "coverage": [], 
+                                                   "precision": [], 
+                                                   "recall": []} for x in range(2)]
     
     # Conn_info tracking
     conn_info_history = {
-        "dice_coefficient": [],
-        "dice_reward": [],
-        "thickness_penalty": [],
-        "connectivity_reward": [],
+        "gradient_rewards": [],
         "true_positives": [],
         "false_positives": [],
         "false_negatives": []
@@ -285,8 +267,7 @@ def train_dqn_on_images(
             env = PathReconstructionEnv(image=image, 
                                         mask=mask, 
                                         continuity_coef=continuity_coef, 
-                                        thickness_coef=thickness_coef,
-                                        connectivity_coef=connectivity_coef,
+                                        gradient_coef=gradient_coef,
                                         history_len=history_len,
                                         future_len=future_len,
                                         start_from_bottom=True)
@@ -296,20 +277,20 @@ def train_dqn_on_images(
             img_return = 0.0
             base_return = 0.0
             continuity_return = 0.0
+            gradient_return = 0.0
             
             # Track conn_info for this episode
             episode_conn_info = {
-                "thickness_penalty": [],
-                "connectivity_reward": [],
+                "gradient_rewards": [],
                 "true_positives": [],
                 "false_positives": [],
                 "false_negatives": []
             }
 
             while not done:
-                row_pixels, prev_preds, future_rows = obs_to_tensor(obs, device)
+                row_pixels, prev_rows, future_rows = obs_to_tensor(obs, device)
                 with torch.no_grad():
-                    q = policy_net(row_pixels, prev_preds, future_rows)  # (1, W, 2)
+                    q = policy_net(row_pixels, prev_rows, future_rows)  # (1, W, 2)
                     q = q.squeeze(0)  # (W, 2)
                 a = epsilon_greedy_action(q, epsilon)  # (W,)
 
@@ -318,15 +299,17 @@ def train_dqn_on_images(
                 pixel_rewards = info["pixel_rewards"]
                 base_reward = info["weighted_accuracy"].sum()
                 continuity_reward = info["continuity_rewards"].sum()
+                gradient_reward = info["gradient_rewards"].sum()
                 
                 # Track conn_info metrics
                 for key in episode_conn_info.keys():
                     if key in info:
-                        episode_conn_info[key].append(info[key])
+                        episode_conn_info[key].append(info[key] if not isinstance(info[key], np.ndarray) else info[key].sum())
                 
                 done = terminated or truncated
                 base_return += base_reward
                 continuity_return += continuity_reward
+                gradient_return += gradient_reward
                 img_return += reward
 
                 replay.push(
@@ -345,18 +328,18 @@ def train_dqn_on_images(
                     batch = replay.sample(batch_size)
 
                     # Batch conversion - single GPU transfer
-                    row_pixels_batch, prev_preds_batch, future_rows_batch = batch_obs_to_tensor([t.obs for t in batch], device)
+                    row_pixels_batch, prev_rows_batch, future_rows_batch = batch_obs_to_tensor([t.obs for t in batch], device)
                     act_batch = torch.tensor(np.stack([t.action for t in batch]), dtype=torch.int64, device=device)
                     rew_batch = torch.tensor(np.stack([t.pixel_rewards for t in batch]), dtype=torch.float32, device=device)
-                    next_row_pixels_batch, next_prev_preds_batch, next_future_rows_batch = batch_obs_to_tensor([t.next_obs for t in batch], device)
+                    next_row_pixels_batch, next_prev_rows_batch, next_future_rows_batch = batch_obs_to_tensor([t.next_obs for t in batch], device)
                     done_batch = torch.tensor([t.done for t in batch], dtype=torch.float32, device=device)
 
                     # Batched forward passes
-                    q_s = policy_net(row_pixels_batch, prev_preds_batch, future_rows_batch)  # (B, W, 2)
+                    q_s = policy_net(row_pixels_batch, prev_rows_batch, future_rows_batch)  # (B, W, 2)
                     q_s_a = q_s.gather(dim=-1, index=act_batch.unsqueeze(-1)).squeeze(-1)  # (B, W)
 
                     with torch.no_grad():
-                        q_next = target_net(next_row_pixels_batch, next_prev_preds_batch, next_future_rows_batch)  # (B, W, 2)
+                        q_next = target_net(next_row_pixels_batch, next_prev_rows_batch, next_future_rows_batch)  # (B, W, 2)
                         q_next_max = q_next.max(dim=-1).values  # (B, W)
 
                     not_done = (1.0 - done_batch).unsqueeze(-1)  # (B, 1)
@@ -376,7 +359,6 @@ def train_dqn_on_images(
 
             base_returns.append(base_return)
             continuity_returns.append(continuity_return)
-            # print(continuity_returns)
             train_returns.append(img_return)
             epsilons.append(epsilon)
             
@@ -392,8 +374,7 @@ def train_dqn_on_images(
                                            image, 
                                            mask,
                                            continuity_coef=continuity_coef,
-                                           thickness_coef=thickness_coef,
-                                           connectivity_coef=connectivity_coef,
+                                           gradient_coef=gradient_coef,
                                            history_len=history_len,
                                            future_len=future_len,
                                            device=device)
@@ -426,8 +407,7 @@ def train_dqn_on_images(
                     env = PathReconstructionEnv(image=image,
                                                 mask=mask,
                                                 continuity_coef=continuity_coef,
-                                                thickness_coef=thickness_coef,
-                                                connectivity_coef=connectivity_coef,
+                                                gradient_coef=gradient_coef,
                                                 history_len=history_len,
                                                 future_len=future_len)
                     obs, _ = env.reset()
@@ -469,21 +449,31 @@ def train_dqn_on_images(
             
             val_losses.append(val_epoch_loss / val_c if val_c > 0 else 0)
             val_returns.append(avg_val_metrics["reward"])
+
+            pred = reconstruct_image(policy_net, 
+                             val_pairs[0][0], 
+                             val_pairs[0][1], 
+                             continuity_coef=continuity_coef,
+                             gradient_coef=gradient_coef,
+                             history_len=history_len,
+                             future_len=future_len,
+                             device=device)
+            if epoch % 5 == 0:
+                visualize_result(val_pairs[0][0], val_pairs[0][1], pred, f"dqn_row_based/results/{save_dir}/reconstructions/reconstruction_1st_img_epoch_{epoch+1}.png")
         
         train_losses.append(epoch_loss / c if c > 0 else 0)
         dt = time.time() - t0
-        if CT_LIKE:
-            save_dir = "ct_like"
-        elif DRIVE_DATASET:
-            save_dir = "drive"
-        elif DRIVE_DATASET and STARE_DATASET:
-            save_dir = "drive+stare"
-        torch.save(target_net.state_dict(), 'dqn_row_based/models/{}/model_cont.pth'.format(save_dir))
+        torch.save(target_net.state_dict(), f"dqn_row_based/models/{save_dir}/model_epoch_{epoch}_f1_{avg_val_metrics['f1']:.3f}.pth")
         
         # Print epoch summary
+        avg_base = np.mean(base_returns[-len(image_mask_pairs):])
+        avg_cont = np.mean(continuity_returns[-len(image_mask_pairs):])
+        avg_grad = np.mean(conn_info_history["gradient_rewards"][-len(image_mask_pairs):]) if conn_info_history["gradient_rewards"] else 0.0
+        
         print(f"\nEpoch {epoch+1}/{num_epochs} | Time: {dt:.1f}s")
         print(f"  Train - Loss: {train_losses[-1]:.4f} | Avg Return: {np.mean(train_returns[-len(image_mask_pairs):]):.2f} | ε: {epsilon:.3f}")
         print(f"          IoU: {avg_train_metrics['iou']:.3f} | F1: {avg_train_metrics['f1']:.3f} | Acc: {avg_train_metrics['accuracy']:.3f} | Cov: {avg_train_metrics['coverage']:.3f}")
+        print(f"          Rewards -> Base: {avg_base:.2f} | Cont: {avg_cont:.2f} | Grad: {avg_grad:.2f}")
         if val_pairs:
             print(f"  Val   - Loss: {val_losses[-1]:.4f} | Avg Return: {val_returns[-1]:.2f}")
             print(f"          IoU: {avg_val_metrics['iou']:.3f} | F1: {avg_val_metrics['f1']:.3f} | Acc: {avg_val_metrics['accuracy']:.3f} | Cov: {avg_val_metrics['coverage']:.3f}")
@@ -494,6 +484,7 @@ def train_dqn_on_images(
         "returns": train_returns,
         "base_returns": base_returns,
         "continuity_returns": continuity_returns,
+        "gradient_returns": conn_info_history["gradient_rewards"],
         "val_returns": val_returns,
         "epsilons": epsilons,
         "train_losses": train_losses,
@@ -507,16 +498,15 @@ def reconstruct_image(policy_net,
                       image, 
                       mask, 
                       continuity_coef=0.1,
-                      thickness_coef=1,
-                      connectivity_coef=1,
-                      history_len=5,
+                      gradient_coef=1,
+                      history_len=3,
                       future_len=3,
                       device = None):
+    """Reconstruct image path using trained policy network."""
     env = PathReconstructionEnv(image, 
                                 mask, 
                                 continuity_coef=continuity_coef, 
-                                thickness_coef=thickness_coef,
-                                connectivity_coef=connectivity_coef,
+                                gradient_coef=gradient_coef,
                                 history_len=history_len,
                                 future_len=future_len, 
                                 start_from_bottom=True)
@@ -542,7 +532,7 @@ def reconstruct_image(policy_net,
     policy_net.train()
     return pred
 
-def visualize_result(img, mask, pred, save_dir: str = None) -> None:
+def visualize_result(img, mask, pred, save_path: str = None) -> None:
     fig, axs = plt.subplots(1, 3, figsize=(12, 6))
     axs[0].imshow(img, cmap="gray")
     axs[0].set_title("Original Image")
@@ -556,12 +546,32 @@ def visualize_result(img, mask, pred, save_dir: str = None) -> None:
     axs[2].set_title("Reconstruction")
     axs[2].axis("off")
 
-    if save_dir:
-        plt.savefig(os.path.join(save_dir, "reconstruction.png"))
+    if save_path:
+        plt.savefig(save_path)
     # plt.show()
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+
+    # Data
+    parser.add_argument('--ct_like', action='store_true', help='Use CT-Like dataset')
+    parser.add_argument('--drive', action='store_true', help='Use DRIVE dataset')
+    parser.add_argument('--stare', action='store_true', help='Use STARE dataset')
+    parser.add_argument('--image_size', type=int, nargs=2, default = [384, 384], help='Resize images to this size (H W)')
+
+    # Model
+    parser.add_argument("--epochs",  type=int, default=30, help="Number of training epochs")
+    parser.add_argument("--history_len", type=int, default=3, help="History length")
+    parser.add_argument("--future_len", type=int, default=3, help="Future length")
+
+    # RL env
+    parser.add_argument('--base_coef', type=float, default=1.0, help='Base reward coefficient')
+    parser.add_argument("--cont_coef", type=float, default=0.1, help="Continuity reward coefficient")
+    parser.add_argument("--grad_coef", type=float, default=1.0, help="Gradient-based reward coefficient")
+    
+    args = parser.parse_args()
+
     train_imgs = []
     train_masks = []
     
@@ -574,43 +584,44 @@ if __name__ == "__main__":
     val_imgs_paths = []
     val_masks_paths = []
 
-    size = (384, 384)
-    cont_coef = 0.1
-
-    if CT_LIKE:
-        update_dataset("../data/ct_like/2d/continuous", size=size)  
-    if DRIVE_DATASET:
-        update_dataset("../data/DRIVE", size=size)
-    if STARE_DATASET:
-        update_dataset("../data/STARE", size=size)      
+    if args.ct_like:
+        update_dataset("../data/ct_like/2d/continuous", size = args.image_size)
+        save_dir = "ct_like"
+    elif args.drive and not args.stare:
+        update_dataset("../data/DRIVE", size = args.image_size)
+        save_dir = "drive"
+    elif args.stare and not args.drive:
+        update_dataset("../data/STARE", size = args.image_size)    
+        save_dir = "stare"
+    elif args.drive and args.stare:
+        update_dataset("../data/DRIVE", size = args.image_size)
+        update_dataset("../data/STARE", size = args.image_size)    
+        save_dir = "drive+stare"
                     
-    print(train_imgs_paths[:2])
-    print(len(train_imgs_paths))
-    print(train_masks_paths[:2])
-    print(len(train_masks_paths))
     results = train_dqn_on_images(
         list(zip(train_imgs, train_masks)),
         val_pairs=list(zip(val_imgs, val_masks)),
-        num_epochs=30,
-        continuity_coef=cont_coef,
-        seed=123,
+        num_epochs=args.epochs,
         start_epsilon=1.0,
         end_epsilon=0.01,
         epsilon_decay_epochs=15,
+        continuity_coef=args.cont_coef,
+        gradient_coef=args.grad_coef,
+        history_len=args.history_len,
+        future_len=args.future_len,
+        save_dir=save_dir,
+        seed=123,
         device="cuda" if torch.cuda.is_available() else "cpu"
     )
-
-    img_test = cv2.imread(val_imgs_paths[0], cv2.IMREAD_GRAYSCALE)
-    img_test = cv2.resize(img_test, size)
-    mask_test = np.array(Image.open(val_masks_paths[0]).convert("L").resize(size))
-
-    pred = reconstruct_image(results["policy_net"], 
-                             img_test, 
-                             mask_test, 
-                             continuity_coef=cont_coef)
-
-    print(np.unique(pred))
-    visualize_result(img_test, mask_test, pred, save_dir="dqn_row_based/results")
+    for i, (img_test, mask_test) in enumerate(list(zip(val_imgs, val_masks))):
+        pred = reconstruct_image(results["policy_net"], 
+                                 img_test, 
+                                 mask_test, 
+                                 continuity_coef=args.cont_coef,
+                                 gradient_coef=args.grad_coef,
+                                 history_len=args.history_len,
+                                 future_len=args.future_len)
+        visualize_result(img_test, mask_test, pred, save_path = f"dqn_row_based/results/{save_dir}/reconstructions/final_image_{i+1}.png")
 
     # Plot training curves
     fig, axes = plt.subplots(2, 3, figsize=(20, 10))
@@ -621,133 +632,114 @@ if __name__ == "__main__":
     window = len(train_imgs)
     train_returns_ma = [np.mean(results["returns"][max(0, i-window+1):i+1]) 
                         for i in range(len(results["returns"]))]
-    axes[0, 0].plot(train_returns_ma, color='blue', linewidth=2, label='Train (epoch avg)')
+    axes[0, 0].plot(train_returns_ma, color='blue', linewidth=2, label='Train (moving average)')
     # if results["val_returns"]:
     #     axes[0, 0].plot(np.arange(len(results["val_returns"])) * len(train_imgs), 
     #                     results["val_returns"], color='red', marker='o', linewidth=2, label='Val')
     axes[0, 0].set_title("Episode Returns")
-    axes[0, 0].set_ylabel("Return")
+    # axes[0, 0].set_ylabel("Return")
+    axes[0, 0].set_xlabel("Episode")
     axes[0, 0].legend()
     axes[0, 0].grid(True)
     
     # Epsilon
     axes[0, 1].plot(results["epsilons"], color='orange', linestyle='dashed')
     axes[0, 1].set_title("Exploration (Epsilon)")
-    axes[0, 1].set_ylabel("ε")
+    # axes[0, 1].set_ylabel("ε")
+    axes[0, 1].set_xlabel("Episode")
     axes[0, 1].grid(True)
     
     # Loss (Train vs Val)
     axes[0, 2].plot(results["train_losses"], color='red', marker='o', label='Train')
     if results["val_losses"]:
         axes[0, 2].plot(results["val_losses"], color='darkred', marker='s', label='Val')
-    axes[0, 2].set_title("Model loss per Epoch")
-    axes[0, 2].set_ylabel("MSE Loss")
+    axes[0, 2].set_title("MSE loss per Epoch")
+    # axes[0, 2].set_ylabel("MSE Loss")
     axes[0, 2].set_xlabel("Epoch")
     axes[0, 2].legend()
     axes[0, 2].grid(True)
     
     # IoU
-    axes[1, 0].plot(results["train_metrics"]["iou"], label="Train", marker='o')
+    axes[1, 0].plot(results["train_metrics"]["iou"], label="Train", marker='o', markersize = 2)
     if results["val_metrics"]["iou"]:
-        axes[1, 0].plot(results["val_metrics"]["iou"], label="Val", marker='s')
+        axes[1, 0].plot(results["val_metrics"]["iou"], label="Val", marker='s', markersize = 2)
     axes[1, 0].set_title("IoU")
-    axes[1, 0].set_ylabel("IoU")
+    # axes[1, 0].set_ylabel("IoU")
     axes[1, 0].set_xlabel("Epoch")
     axes[1, 0].legend()
     axes[1, 0].grid(True)
     
     # F1 Score
-    axes[1, 1].plot(results["train_metrics"]["f1"], label="Train", marker='o')
+    axes[1, 1].plot(results["train_metrics"]["f1"], label="Train", marker='o', markersize = 2)
     if results["val_metrics"]["f1"]:
-        axes[1, 1].plot(results["val_metrics"]["f1"], label="Val", marker='s')
+        axes[1, 1].plot(results["val_metrics"]["f1"], label="Val", marker='s', markersize = 2)
     axes[1, 1].set_title("F1 Score")
-    axes[1, 1].set_ylabel("F1")
+    # axes[1, 1].set_ylabel("F1")
     axes[1, 1].set_xlabel("Epoch")
     axes[1, 1].legend()
     axes[1, 1].grid(True)
     
-    # Accuracy
-    axes[1, 2].plot(results["train_metrics"]["accuracy"], label="Train", marker='o')
-    if results["val_metrics"]["accuracy"]:
-        axes[1, 2].plot(results["val_metrics"]["accuracy"], label="Val", marker='s')
-    axes[1, 2].set_title("Pixel Accuracy")
-    axes[1, 2].set_ylabel("Accuracy")
+    # # Accuracy
+    # axes[1, 2].plot(results["train_metrics"]["accuracy"], label="Train", marker='o', markersize = 2)
+    # if results["val_metrics"]["accuracy"]:
+    #     axes[1, 2].plot(results["val_metrics"]["accuracy"], label="Val", marker='s', markersize = 2)
+    # axes[1, 2].set_title("Pixel Accuracy")
+    # # axes[1, 2].set_ylabel("Accuracy")
+    # axes[1, 2].set_xlabel("Epoch")
+    # axes[1, 2].legend()
+    # axes[1, 2].grid(True)
+    
+    # Coverage
+    axes[1, 2].plot(results["train_metrics"]["coverage"], label="Train", marker='o', markersize = 2)
+    if results["val_metrics"]["coverage"]:
+        axes[1, 2].plot(results["val_metrics"]["coverage"], label="Val", marker='s', markersize = 2)
+    axes[1, 2].set_title("Coverage")
+    # axes[1, 2].set_ylabel("Coverage")
     axes[1, 2].set_xlabel("Epoch")
     axes[1, 2].legend()
     axes[1, 2].grid(True)
-    
-    # # Coverage
-    # axes[2, 0].plot(results["train_metrics"]["coverage"], label="Train", marker='o')
-    # if results["val_metrics"]["coverage"]:
-    #     axes[2, 0].plot(results["val_metrics"]["coverage"], label="Val", marker='s')
-    # axes[2, 0].set_title("Coverage")
-    # axes[2, 0].set_ylabel("Coverage")
-    # axes[2, 0].set_xlabel("Epoch")
-    # axes[2, 0].legend()
-    # axes[2, 0].grid(True)
 
     plt.tight_layout()
-    plt.savefig(f"{os.getcwd()}/dqn_row_based/results/results.png", dpi=300)
+    plt.savefig(f"dqn_row_based/results/{save_dir}/training_results.png", dpi=300)
     # plt.show()
     
-    # Plot conn_info metrics
-    fig2, axes2 = plt.subplots(2, 3, figsize=(20, 10))
+    # Plot conn_info metrics (reward components)
+    fig2, axes2 = plt.subplots(1, 3, figsize=(20, 5))
     
     # Moving average window
     window = len(train_imgs)
 
-     # Base reward
-    axes[0, 0].plot(np.convolve(results["base_returns"], 
-                                 np.ones(len(train_imgs))/len(train_imgs), 
-                                 mode='valid'), 
-                    label="Base Reward", color='green')
-    axes[0, 0].set_title("Base Reward (Moving Average)")
-    axes[0, 0].set_ylabel("Reward")
-    axes[0, 0].set_xlabel("Episode")
-    axes[0, 0].grid(True)
+    # Base reward
+    axes2[0].plot(np.convolve(results["base_returns"], 
+                              np.ones(window)/window, 
+                              mode='valid'), 
+                  label="Base Reward", color='green')
+    axes2[0].set_title("Base Reward (Moving Average)")
+    axes2[0].set_ylabel("Reward")
+    axes2[0].set_xlabel("Episode")
+    axes2[0].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+    axes2[0].grid(True)
 
     # Continuity reward
-    axes[0, 1].plot(np.convolve(results["continuity_returns"], 
-                                 np.ones(len(train_imgs))/len(train_imgs),
-                                 mode='valid'), 
-                    label="Continuity Reward", color='blue')
-    axes[0, 1].set_title("Continuity Reward (Moving Average)")
-    axes[0, 1].set_ylabel("Reward")
-    axes[0, 1].set_xlabel("Episode")
-    axes[0, 1].grid(True)
+    axes2[1].plot(np.convolve(results["continuity_returns"], 
+                              np.ones(window)/window,
+                              mode='valid'), 
+                  label="Continuity Reward", color='blue')
+    axes2[1].set_title("Continuity Reward (Moving Average)")
+    axes2[1].set_xlabel("Episode")
+    axes2[1].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+    axes2[1].grid(True)
     
-    # Thickness penalty
-    axes2[0, 2].plot(np.convolve(results["conn_info"]["thickness_penalty"], 
-                                  np.ones(window)/window, mode='valid'), 
-                     color='red', label='Thickness Penalty')
-    axes2[0, 2].set_title("Thickness Penalty (Width Control)")
-    axes2[0, 2].set_ylabel("Penalty")
-    axes2[0, 2].set_xlabel("Episode")
-    axes2[0, 2].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
-    axes2[0, 2].grid(True)
-    
-    # DICE Reward
-    axes2[1, 0].plot(np.convolve(results["conn_info"]["dice_reward"], 
-                                  np.ones(window)/window, mode='valid'), 
-                     color='blue', label='DICE Reward')
-    axes2[1, 0].set_title("DICE Reward (Episode-level)")
-    axes2[1, 0].set_ylabel("Reward")
-    axes2[1, 0].set_xlabel("Episode")
-    axes2[1, 0].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
-    axes2[1, 0].grid(True)
-    
-    # Connectivity reward
-    axes2[2, 0].plot(np.convolve(results["conn_info"]["connectivity_reward"], 
-                                  np.ones(window)/window, mode='valid'), 
-                     color='purple', label='Connectivity Reward')
-    axes2[2, 0].set_title("Connectivity Reward (Fragmentation)")
-    axes2[2, 0].set_ylabel("Reward")
-    axes2[2, 0].set_xlabel("Episode")
-    axes2[2, 0].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
-    axes2[2, 0].grid(True)
+    # Gradient reward
+    axes2[2].plot(np.convolve(results["gradient_returns"], 
+                              np.ones(window)/window,
+                              mode='valid'), 
+                  label="Gradient Reward", color='orange')
+    axes2[2].set_title("Gradient Reward (Moving Average)")
+    axes2[2].set_xlabel("Episode")
+    axes2[2].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+    axes2[2].grid(True)
     
     plt.tight_layout()
-    plt.savefig(f"{os.getcwd()}/dqn_row_based/results/conn_info_analysis.png", dpi=300)
+    plt.savefig(f"dqn_row_based/results/{save_dir}/reward_components_analysis.png", dpi=300)
     # plt.show()
-
-    
