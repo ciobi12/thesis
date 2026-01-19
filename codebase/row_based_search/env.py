@@ -1,3 +1,4 @@
+
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
@@ -12,9 +13,10 @@ class PixelPathEnv(gym.Env):
 
     def __init__(self, image, render_mode: str = "human"):
         super(PixelPathEnv, self).__init__()
-        self.image = image
-        print(np.unique_values(self.image))
-        self.H, self.W = image.shape
+        # Normalize image to binary 0/1 values
+        self.image = (image > 0).astype(np.uint8)
+        print(np.unique(self.image))
+        self.H, self.W = self.image.shape
 
         # Action space: 0 (background), 1 (path)
         self.action_space = spaces.Discrete(2)

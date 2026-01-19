@@ -285,7 +285,7 @@ if __name__ == "__main__":
         }
     )
     
-    iterations = 4
+    iterations = 2
     angle = 25.0
     step = 8
 
@@ -299,7 +299,7 @@ if __name__ == "__main__":
 
     canvas_size = (128, 256)
     root_width = 1
-    examples_folder = "l_systems_2d/examples"
+    examples_folder = "examples"
     ct_bg_intensity = 80  # Dark gray like reference, fixed value
     margin = 10
     
@@ -312,7 +312,7 @@ if __name__ == "__main__":
         margin = margin,
         root_width = root_width,
         lsys_save_path = f"{examples_folder}/root_ct_clear.png",
-        mask_save_path = f"{examples_folder}/root_mask_clear.png",
+        mask_save_path = f"{examples_folder}/root_mask.png",
         add_ct_noise = True,
         occlude_root = False,
         skip_segments = False,
@@ -321,99 +321,42 @@ if __name__ == "__main__":
         align_top=True
     )
     
-    print("\n=== 2. With segment gaps (10% skipped) ===")
-    img_gaps_light, mask_gaps_light = lsys_obj.draw_lsystem_ct_style(
-        canvas_size=canvas_size,
-        margin=20,
-        root_width=root_width,
-        lsys_save_path=f"{examples_folder}/root_ct_gaps_light.png",
-        mask_save_path=f"{examples_folder}/root_mask_gaps_light.png",
-        add_ct_noise=True,
-        occlude_root=False,
-        skip_segments=True,
-        skip_probability=0.1,  # 10% of segments skipped
-        ct_background_intensity=ct_bg_intensity,
-        root_intensity_range=(10, 40),
-        align_top=True
-    )
-    
-    print("\n=== 3. With segment gaps (20% skipped) ===")
-    img_gaps_medium, mask_gaps_medium = lsys_obj.draw_lsystem_ct_style(
-        canvas_size=canvas_size,
-        margin=20,
-        root_width=root_width,
-        lsys_save_path=f"{examples_folder}/root_ct_gaps_medium.png",
-        mask_save_path=f"{examples_folder}/root_mask_gaps_medium.png",
-        add_ct_noise=True,
-        occlude_root=False,
-        skip_segments=True,
-        skip_probability=0.2,  # 20% of segments skipped
-        ct_background_intensity=ct_bg_intensity,
-        root_intensity_range=(10, 40),
-        align_top=True
-    )
-    
-    print("\n=== 4. Gaps + Occlusion (like reference) ===")
+    print("\n=== 2. Extra blur ===")
     img_realistic, mask_realistic = lsys_obj.draw_lsystem_ct_style(
         canvas_size=canvas_size,
         margin=20,
         root_width=root_width,
-        lsys_save_path=f"{examples_folder}/root_ct_realistic.png",
-        mask_save_path=f"{examples_folder}/root_mask_realistic.png",
+        lsys_save_path=f"{examples_folder}/root_ct_occluded.png",
+        mask_save_path=f"{examples_folder}/root_mask.png",
         add_ct_noise=True,
         occlude_root=True,
-        occlusion_strength=0.4,  # Moderate occlusion
-        skip_segments=True,
-        skip_probability=0.5,  # 50% of segments skipped
-        ct_background_intensity=ct_bg_intensity,
-        root_intensity_range=(0, 5),
-        align_top=True
-    )
-    
-    print("\n=== 5. Heavy occlusion (hardest case) ===")
-    img_hard, mask_hard = lsys_obj.draw_lsystem_ct_style(
-        canvas_size=canvas_size,
-        margin=20,
-        root_width=root_width,
-        lsys_save_path=f"{examples_folder}/root_ct_hard.png",
-        mask_save_path=f"{examples_folder}/root_mask_hard.png",
-        add_ct_noise=True,
-        occlude_root=True,
-        occlusion_strength=0.6,  # Strong occlusion
-        skip_segments=True,
-        skip_probability=0.25,  # 25% of segments skipped
+        occlusion_strength=0.5,  # Moderate occlusion
+        skip_segments=False,
         ct_background_intensity=ct_bg_intensity,
         root_intensity_range=(10, 40),
         align_top=True
     )
     
     # Visualize all versions
-    fig, axes = plt.subplots(5, 2, figsize=(10, 20))
-    
-    versions = [
-        (img_clear, mask_clear, "Clear (Dark BG)"),
-        (img_gaps_light, mask_gaps_light, "10% Gaps"),
-        (img_gaps_medium, mask_gaps_medium, "20% Gaps"),
-        (img_realistic, mask_realistic, "50% Gaps + Occlusion"),
-        (img_hard, mask_hard, "25% Gaps + Heavy Occlusion")
-    ]
-    
-    for i, (img, mask, title) in enumerate(versions):
-        axes[i, 0].imshow(img, cmap='gray', vmin=0, vmax=255)
-        axes[i, 0].set_title(f'{title} - CT Image')
-        axes[i, 0].axis('off')
+    fig, axes = plt.subplots(1, 3, figsize=(10, 20))
+    axes[0].imshow(img_clear, cmap='gray', vmin=0, vmax=255)
+    axes[0].set_title('Clear, no occlusion')
+    axes[0].axis('off')
+
+    axes[1].imshow(img_realistic, cmap='gray', vmin=0, vmax=255)
+    axes[1].set_title('Extra blur')
+    axes[1].axis('off')
         
-        axes[i, 1].imshow(mask, cmap='gray', vmin=0, vmax=255)
-        axes[i, 1].set_title(f'{title} - Ground Truth Mask')
-        axes[i, 1].axis('off')
+    axes[2].imshow(mask_clear, cmap='gray', vmin=0, vmax=255)
+    axes[2].set_title('Ground Truth Mask')
+    axes[2].axis('off')
     
     plt.tight_layout()
-    plt.savefig('root_realistic_comparison.png', dpi=150, bbox_inches='tight')
+    plt.savefig('examples/root_realistic_comparison.png', dpi=150, bbox_inches='tight')
     plt.show()
     
     print("\n=== All images saved! ===")
     print("Parameters for reference-like appearance:")
     print("- ct_background_intensity: 80 (dark gray)")
     print("- root_intensity_range: (10, 40) (darker than background)")
-    print("- skip_probability: 0.1-0.25 (natural gaps)")
     print("- occlusion_strength: 0.3-0.6 (realistic noise)")
