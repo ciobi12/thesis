@@ -1,7 +1,7 @@
 import gymnasium as gym
-from gymnasium import spaces
-from jax import grad
 import numpy as np
+
+from gymnasium import spaces
 from collections import deque
 from scipy import ndimage
 
@@ -9,9 +9,10 @@ class PathReconstructionEnv(gym.Env):
     metadata = {"render_modes": []}
 
     def __init__(self, image, 
-                 mask, 
+                 mask,
+                 base_coef = 1,
                  continuity_coef=0.1, 
-                 gradient_coef = 0,
+                 gradient_coef = 1,
                  history_len=3,
                  future_len=3,
                  start_from_bottom=True):
@@ -22,6 +23,7 @@ class PathReconstructionEnv(gym.Env):
         # print(np.unique(self.mask))
         self.H, self.W = self.mask.shape
         self.C = 1 if self.image.ndim == 2 else self.image.shape[2]
+        self.base_coef = float(base_coef)
         self.continuity_coef = float(continuity_coef)
         self.gradient_coef = float(gradient_coef)
         self.history_len = int(history_len)
@@ -102,7 +104,7 @@ class PathReconstructionEnv(gym.Env):
         #     -vessel_weight * np.abs(action - gt),      # Penalty for missing vessels
         #     -background_weight * np.abs(action - gt))   # Penalty for background errors
 
-        weighted_accuracy = -np.abs(action - gt)
+        base_rewards = - self.base_coef * np.abs(action - gt)
         
         # Track per-row stats (for logging only, reward computed at episode end)
         true_positives = np.sum((action == 1) & (gt == 1))
@@ -115,7 +117,7 @@ class PathReconstructionEnv(gym.Env):
         # 2. CONTINUITY REWARD: Enhanced to allow branching
         continuity_rewards = np.zeros((self.W,), dtype=np.float32)
         
-        if len(self.prev_preds_buffer) >= 1:
+        if len(self.prev_preds_buffer) >= 1 and row < self.H - 1:
             prev_row = list(self.prev_preds_buffer)[-1]
             
             # For each active pixel, check if it connects to previous row
@@ -127,7 +129,7 @@ class PathReconstructionEnv(gym.Env):
                 right = min(self.W, idx + 3)
                 
                 # If connected to previous row, don't penalize
-                if np.any(prev_row[left:right] == 1):
+                if np.any(prev_row[left:right] == 1) and np.any(self.mask[row + 1][left:right] == 1):
                     continuity_rewards[idx] = 0
                 else:
                     # Penalty for isolated pixels (not connected to structure)
@@ -137,41 +139,50 @@ class PathReconstructionEnv(gym.Env):
             # (don't penalize correctly predicting background between vessels)
             inactive_with_inactive_above = ((action == 0) & (np.convolve(prev_row, np.ones(3), mode='same') == 0))
             continuity_rewards[inactive_with_inactive_above] = 0.0 
-        
+        continuity_rewards *= self.continuity_coef
+
         # 3. GRADIENT-BASED REWARD: Encourage smooth intensity transitions
         gradient_rewards = np.zeros((self.W,), dtype=np.float32)
         
-        if len(self.prev_preds_buffer) >= 1:
+        if len(self.prev_preds_buffer) >= 1 and self.gradient_coef > 0:
             prev_pred = list(self.prev_preds_buffer)[-1]
             prev_active_indices = np.where(prev_pred == 1)[0]
             curr_active_indices = np.where(action == 1)[0]
+
+            # Assign labels to groups of active pixels
+            labels, num_comp = ndimage.label(prev_pred)
             
             # Current row intensity (squeeze channel dim if needed)
             curr_intensity = self.image[row].squeeze()  # (W,)
             # Previous row intensity
-            prev_row_idx = self._row_order[self.current_row_idx - 1] if self.current_row_idx > 0 else row
-            prev_intensity = self.image[prev_row_idx].squeeze()  # (W,)
+            prev_intensity = self.prev_rows_buffer[-1].squeeze()
             
             if len(prev_active_indices) > 0 and len(curr_active_indices) > 0:
                 for idx in curr_active_indices:
                     # Find the closest active pixel in the previous row
                     distances = np.abs(prev_active_indices - idx)
                     closest_prev_idx = prev_active_indices[np.argmin(distances)]
+
                     if np.abs(closest_prev_idx - idx) > 5:
                         continue  # Skip if too far away
-                    
+                    group = prev_intensity[labels == labels[closest_prev_idx]]
+                    if len(group) <= 1:
+                        continue
                     # Calculate intensity difference between current pixel and closest previous pixel
-                    intensity_diff = np.abs(curr_intensity[idx] - prev_intensity[closest_prev_idx])
-                    
+                    # intensity_diff = np.abs(curr_intensity[idx] - prev_intensity[closest_prev_idx])
+                    belongs_to_group = curr_intensity[idx] > group.min() and curr_intensity[idx] < group.max()
+                    intensity_diff = np.abs(curr_intensity[idx] - group.mean()) / (group.max() - group.min() + 1e-5) # DON'T USE NOW
                     # Reward small intensity differences (smooth transitions)
                     # Penalize large intensity jumps (indicates noise or discontinuity)
                     # intensity_diff is 0-1, so we reward when it's small
-                    gradient_rewards[idx] = - intensity_diff 
+                    gradient_rewards[idx] = - int(belongs_to_group)
+        gradient_rewards *= self.gradient_coef
+        # print(gradient_rewards)
 
         conn_info = {}
         
         # Combine all rewards
-        pixel_rewards = weighted_accuracy + self.continuity_coef * continuity_rewards + self.gradient_coef * gradient_rewards
+        pixel_rewards = base_rewards + continuity_rewards + gradient_rewards
         reward = float(pixel_rewards.sum()) 
         
         # Update history
@@ -189,7 +200,7 @@ class PathReconstructionEnv(gym.Env):
 
         info = {
             "pixel_rewards": pixel_rewards.astype(np.float32),
-            "weighted_accuracy": weighted_accuracy.astype(np.float32),
+            "base_rewards": base_rewards.astype(np.float32),
             "continuity_rewards": continuity_rewards.astype(np.float32),
             "gradient_rewards": gradient_rewards.astype(np.float32),
             "row_index": row,
