@@ -4,6 +4,8 @@ import numpy as np
 import os
 import random
 import time
+from onnx import save
+from sklearn import base
 import torch
 
 from dqn_row_based.dqn import PerPixelCNNWithHistory, ReplayBuffer
@@ -123,6 +125,7 @@ def update_dataset(data_dir, size = (256, 256)):
 def validate(policy_net, 
              val_pairs, 
              device, 
+             base_coef = 1,
              continuity_coef=0.1,
              gradient_coef = 1,
              history_len = 3,
@@ -148,6 +151,7 @@ def validate(policy_net,
             # Compute validation reward by running through environment
             env = PathReconstructionEnv(image=image,
                                         mask=mask,
+                                        base_coef = base_coef,
                                         continuity_coef=continuity_coef,
                                         gradient_coef=gradient_coef,
                                         history_len=history_len,
@@ -190,6 +194,7 @@ def train_dqn_on_images(
     start_epsilon = 1.0,
     end_epsilon = 0.01,
     epsilon_decay_epochs = 15,
+    base_coef = 1,
     continuity_coef = 0.1,
     gradient_coef = 1,
     history_len = 3,
@@ -265,6 +270,7 @@ def train_dqn_on_images(
         for image, mask in tqdm(image_mask_pairs, desc=f"Epoch {epoch+1}/{num_epochs}"):
             env = PathReconstructionEnv(image=image, 
                                         mask=mask, 
+                                        base_coef=base_coef,
                                         continuity_coef=continuity_coef, 
                                         gradient_coef=gradient_coef,
                                         history_len=history_len,
@@ -296,7 +302,7 @@ def train_dqn_on_images(
                 # Keep action on GPU, only convert to numpy when needed for env
                 next_obs, reward, terminated, truncated, info = env.step(a.cpu().numpy())
                 pixel_rewards = info["pixel_rewards"]
-                base_reward = info["weighted_accuracy"].sum()
+                base_reward = info["base_rewards"].sum()
                 continuity_reward = info["continuity_rewards"].sum()
                 gradient_reward = info["gradient_rewards"].sum()
                 
@@ -372,6 +378,7 @@ def train_dqn_on_images(
             pred_train = reconstruct_image(policy_net, 
                                            image, 
                                            mask,
+                                           base_coef = base_coef,
                                            continuity_coef=continuity_coef,
                                            gradient_coef=gradient_coef,
                                            history_len=history_len,
@@ -405,6 +412,7 @@ def train_dqn_on_images(
                 for image, mask in val_pairs:
                     env = PathReconstructionEnv(image=image,
                                                 mask=mask,
+                                                base_coef = base_coef,
                                                 continuity_coef=continuity_coef,
                                                 gradient_coef=gradient_coef,
                                                 history_len=history_len,
@@ -496,6 +504,7 @@ def train_dqn_on_images(
 def reconstruct_image(policy_net, 
                       image, 
                       mask, 
+                      base_coef = 1,
                       continuity_coef=0.1,
                       gradient_coef=1,
                       history_len=3,
@@ -504,6 +513,7 @@ def reconstruct_image(policy_net,
     """Reconstruct image path using trained policy network."""
     env = PathReconstructionEnv(image, 
                                 mask, 
+                                base_coef = base_coef,
                                 continuity_coef=continuity_coef, 
                                 gradient_coef=gradient_coef,
                                 history_len=history_len,
@@ -532,7 +542,7 @@ def reconstruct_image(policy_net,
     return pred
 
 def visualize_result(img, mask, pred, save_path: str = None) -> None:
-    fig, axs = plt.subplots(1, 3, figsize=(12, 6))
+    fig, axs = plt.subplots(1, 3, figsize=(9, 6))
     axs[0].imshow(img, cmap="gray")
     axs[0].set_title("Original Image")
     axs[0].axis("off")
@@ -596,6 +606,9 @@ if __name__ == "__main__":
         update_dataset("../data/DRIVE", size = args.image_size)
         update_dataset("../data/STARE", size = args.image_size)    
         save_dir = "drive+stare"
+    save_dir = os.path.join(save_dir, f"base_{args.base_coef}_cont_{args.cont_coef}_grad_{args.grad_coef}")
+    os.makedirs(f"dqn_row_based/results/{save_dir}/reconstructions", exist_ok=True)
+    os.makedirs(f"dqn_row_based/models/{save_dir}", exist_ok=True)
                     
     results = train_dqn_on_images(
         list(zip(train_imgs, train_masks)),
@@ -604,6 +617,7 @@ if __name__ == "__main__":
         start_epsilon=1.0,
         end_epsilon=0.01,
         epsilon_decay_epochs=15,
+        base_coef = args.base_coef,
         continuity_coef=args.cont_coef,
         gradient_coef=args.grad_coef,
         history_len=args.history_len,
@@ -616,6 +630,7 @@ if __name__ == "__main__":
         pred = reconstruct_image(results["policy_net"], 
                                  img_test, 
                                  mask_test, 
+                                 base_coef = args.base_coef,
                                  continuity_coef=args.cont_coef,
                                  gradient_coef=args.grad_coef,
                                  history_len=args.history_len,
