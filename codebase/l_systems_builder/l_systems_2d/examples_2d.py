@@ -340,7 +340,7 @@ if __name__ == "__main__":
             mask_save_path=f"{output_dir}/{name}_mask.png",
             add_ct_noise=True,
             occlude_root=True,
-            occlusion_strength=0.2,
+            occlusion_strength=random.uniform(0.2, 0.4),
             skip_segments=False,
             skip_probability=0.5,
             ct_background_intensity=80,
