@@ -64,6 +64,7 @@ class LSystem2DGenerator:
                           add_ct_noise=True,
                           occlude_root=False,
                           occlusion_strength=0.3,
+                          ring_prob = 0.1,
                           skip_segments=False,
                           skip_probability=0.2,
                           ct_background_intensity=80,  # Darker gray like reference
@@ -171,15 +172,15 @@ class LSystem2DGenerator:
             # 2. Salt & pepper noise (sporadic artifacts)
             salt_pepper_prob = 0.003  # Slightly increased
             rnd = np.random.rand(*img.shape)
-            img[rnd < salt_pepper_prob] = random.randint(150, 200)  # bright spots (adjusted for darker bg)
-            img[rnd > 1 - salt_pepper_prob] = random.randint(0, 30)   # dark spots
+            img[rnd < salt_pepper_prob] = 255  # bright spots (adjusted for darker bg)
+            img[rnd > 1 - salt_pepper_prob] = 0   # dark spots
             
             # 3. Subtle texture variation (tissue heterogeneity)
             texture = np.random.normal(0, 5, img.shape).astype(np.int16)  # Increased
             img = np.clip(img.astype(np.int16) + texture, 0, 255).astype(np.uint8)
             
             # 4. Reduce ring artifacts for more realistic look
-            if random.random() < 0.15:  # Reduced from 0.3
+            if random.random() < ring_prob:  # Reduced from 0.3
                 center = (W // 2, H // 2)
                 num_rings = random.randint(1, 3)
                 for _ in range(num_rings):
@@ -258,8 +259,7 @@ class LSystem2DGenerator:
                      line_width=2,
                      lsys_save_path="lsystem_ct.png", 
                      mask_save_path="lsystem_mask.png", 
-                     add_noise=True, 
-                     add_artifacts=True) -> Tuple[np.ndarray, np.ndarray]:
+                     add_noise=True) -> Tuple[np.ndarray, np.ndarray]:
         """
         DEPRECATED: Use draw_lsystem_ct_style() instead.
         Legacy method for backward compatibility.
@@ -284,6 +284,13 @@ if __name__ == "__main__":
             "F": "F[+F]F[-F]F",  # Branching pattern similar to roots
         }
     )
+    examples_folder = "examples/simple_axiom"
+    # lsys_obj = LSystem2DGenerator(
+    #     axiom = "X",
+    #     rules = {"X": "F-[[X]+X]+F[+FX]-X",
+    #              "F": "FF"},
+    # )
+    # examples_folder = "examples/complex_axiom"
     
     iterations = 2
     angle = 25.0
@@ -297,9 +304,9 @@ if __name__ == "__main__":
         start_angle=-90  # Point downward like roots
     )
 
-    canvas_size = (128, 256)
+    canvas_size = (128, 192)
     root_width = 1
-    examples_folder = "examples"
+    
     ct_bg_intensity = 80  # Dark gray like reference, fixed value
     margin = 10
     
