@@ -8,6 +8,5 @@ data/rapids-p/*
 *.out
 *.pth
 *.zip
-*.log
 
 latex_documentation/*

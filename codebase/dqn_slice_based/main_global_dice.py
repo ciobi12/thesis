@@ -268,8 +268,8 @@ def reconstruct_full_volume_from_subvolumes(
             subvol_pred = np.zeros(vol.shape, dtype=np.uint8)
             
             while not done:
-                slice_pixels, prev_preds, future_slices = obs_to_tensor(obs, device)
-                q = policy_net(slice_pixels, prev_preds, future_slices)
+                slice_pixels, prev_slices, future_slices = obs_to_tensor(obs, device)
+                q = policy_net(slice_pixels, prev_slices, future_slices)
                 a = q.argmax(dim=-1).cpu().numpy()[0]
                 
                 next_obs, _, terminated, truncated, info = env.step(a.flatten())
@@ -347,9 +347,9 @@ def compute_global_metrics(pred: np.ndarray, mask: np.ndarray) -> dict:
 def obs_to_tensor(obs, device):
     """Convert observation dict to tensors for network input."""
     slice_pixels = torch.from_numpy(obs["slice_pixels"]).float().unsqueeze(0).to(device)
-    prev_preds = torch.from_numpy(obs["prev_preds"]).float().unsqueeze(0).to(device)
+    prev_slices = torch.from_numpy(obs["prev_slices"]).float().unsqueeze(0).to(device)
     future_slices = torch.from_numpy(obs["future_slices"]).float().unsqueeze(0).to(device)
-    return slice_pixels, prev_preds, future_slices
+    return slice_pixels, prev_slices, future_slices
 
 
 def epsilon_greedy_action(q_values, epsilon, n_pixels):
@@ -546,10 +546,10 @@ def train_with_global_dice(
             n_pixels = H * W
             
             while not done:
-                slice_pixels, prev_preds, future_slices = obs_to_tensor(obs, device)
+                slice_pixels, prev_slices, future_slices = obs_to_tensor(obs, device)
                 
                 with torch.no_grad():
-                    q = policy_net(slice_pixels, prev_preds, future_slices)
+                    q = policy_net(slice_pixels, prev_slices, future_slices)
                 
                 action = epsilon_greedy_action(q, epsilon, n_pixels)
                 next_obs, reward, terminated, truncated, info = env.step(action)
@@ -565,12 +565,12 @@ def train_with_global_dice(
                 # Store transition (now includes future_slices)
                 replay_buffer.append((
                     obs["slice_pixels"].copy(),
-                    obs["prev_preds"].copy(),
+                    obs["prev_slices"].copy(),
                     obs["future_slices"].copy(),
                     action.copy(),
                     pixel_rewards.copy(),
                     next_obs["slice_pixels"].copy(),
-                    next_obs["prev_preds"].copy(),
+                    next_obs["prev_slices"].copy(),
                     next_obs["future_slices"].copy(),
                     done
                 ))
@@ -589,17 +589,17 @@ def train_with_global_dice(
                     batch = random.sample(replay_buffer, batch_size)
                     
                     sp_batch = torch.tensor(np.array([t[0] for t in batch]), dtype=torch.float32, device=device)
-                    pp_batch = torch.tensor(np.array([t[1] for t in batch]), dtype=torch.float32, device=device)
+                    ps_batch = torch.tensor(np.array([t[1] for t in batch]), dtype=torch.float32, device=device)  # prev_slices
                     fs_batch = torch.tensor(np.array([t[2] for t in batch]), dtype=torch.float32, device=device)
                     a_batch = torch.tensor(np.array([t[3] for t in batch]), dtype=torch.long, device=device)
                     r_batch = torch.tensor(np.array([t[4] for t in batch]), dtype=torch.float32, device=device)
                     next_sp_batch = torch.tensor(np.array([t[5] for t in batch]), dtype=torch.float32, device=device)
-                    next_pp_batch = torch.tensor(np.array([t[6] for t in batch]), dtype=torch.float32, device=device)
+                    next_ps_batch = torch.tensor(np.array([t[6] for t in batch]), dtype=torch.float32, device=device)  # next prev_slices
                     next_fs_batch = torch.tensor(np.array([t[7] for t in batch]), dtype=torch.float32, device=device)
                     done_batch = torch.tensor(np.array([t[8] for t in batch]), dtype=torch.float32, device=device)
                     
                     # Current Q values: (B, H, W, 2)
-                    q_values = policy_net(sp_batch, pp_batch, fs_batch)
+                    q_values = policy_net(sp_batch, ps_batch, fs_batch)
                     
                     # Reshape action batch from (B, H*W) to (B, H, W) for gather
                     a_batch_2d = a_batch.view(batch_size, H, W)
@@ -607,7 +607,7 @@ def train_with_global_dice(
                     
                     # Target Q values
                     with torch.no_grad():
-                        q_next = target_net(next_sp_batch, next_pp_batch, next_fs_batch)  # (B, H, W, 2)
+                        q_next = target_net(next_sp_batch, next_ps_batch, next_fs_batch)  # (B, H, W, 2)
                         q_next_max = q_next.max(dim=-1).values  # (B, H, W)
                         not_done = (1.0 - done_batch).unsqueeze(-1).unsqueeze(-1)  # (B, 1, 1)
                         # r_batch is (B, H*W), reshape to (B, H, W)
@@ -712,8 +712,8 @@ def train_with_global_dice(
                         val_done = False
                         
                         while not val_done:
-                            val_sp, val_pp, val_fs = obs_to_tensor(val_obs, device)
-                            val_q = policy_net(val_sp, val_pp, val_fs)  # (1, H, W, 2)
+                            val_sp, val_ps, val_fs = obs_to_tensor(val_obs, device)
+                            val_q = policy_net(val_sp, val_ps, val_fs)  # (1, H, W, 2)
                             val_action = val_q.argmax(dim=-1).cpu().numpy()[0].flatten()
                             
                             val_next_obs, _, val_term, val_trunc, val_info = val_env.step(val_action)
@@ -727,8 +727,8 @@ def train_with_global_dice(
                             val_q_sa = val_q.gather(dim=-1, index=val_a.unsqueeze(-1)).squeeze(-1)  # (1, H, W)
                             
                             if not val_done:
-                                val_next_sp, val_next_pp, val_next_fs = obs_to_tensor(val_next_obs, device)
-                                val_q_next = policy_net(val_next_sp, val_next_pp, val_next_fs)
+                                val_next_sp, val_next_ps, val_next_fs = obs_to_tensor(val_next_obs, device)
+                                val_q_next = policy_net(val_next_sp, val_next_ps, val_next_fs)
                                 val_q_next_max = val_q_next.max(dim=-1).values
                                 val_target = val_r + gamma * val_q_next_max
                             else:
@@ -1223,8 +1223,8 @@ if __name__ == "__main__":
         
         with torch.no_grad():
             while not done:
-                slice_pixels, prev_preds, future_slices = obs_to_tensor(obs, device)
-                q = results["policy_net"](slice_pixels, prev_preds, future_slices)
+                slice_pixels, prev_slices, future_slices = obs_to_tensor(obs, device)
+                q = results["policy_net"](slice_pixels, prev_slices, future_slices)
                 a = q.argmax(dim=-1).cpu().numpy()[0]
                 next_obs, _, terminated, truncated, info = env.step(a.flatten())
                 slice_idx = info.get("slice_index", None)
