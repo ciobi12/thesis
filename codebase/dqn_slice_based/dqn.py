@@ -172,17 +172,17 @@ class PerPixelCNNWithHistory(nn.Module):
         self.hist_ch = hist_ch
         self.future_ch = future_ch
     
-    def forward(self, slice_pixels, prev_preds, future_slices=None):
+    def forward(self, slice_pixels, prev_slices, future_slices=None):
         """
         slice_pixels: (batch, height, width) -> needs unsqueeze for channel dim
-        prev_preds: (batch, history_len, height, width)
+        prev_slices: (batch, history_len, height, width) - previous image slices
         future_slices: (batch, future_len, height, width) - optional, zeros if not provided
         """
         B = slice_pixels.size(0) if slice_pixels.dim() > 2 else 1
         
         # Add channel dimension to slice_pixels
         x_slice = slice_pixels.unsqueeze(1)  # (B, 1, H, W)
-        x_hist = prev_preds  # (B, history_len, H, W)
+        x_hist = prev_slices  # (B, history_len, H, W)
         
         # Handle future slices (default to zeros if not provided)
         if future_slices is None:
