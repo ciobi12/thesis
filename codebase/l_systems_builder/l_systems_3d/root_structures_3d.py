@@ -1,151 +1,175 @@
+import argparse
+import math
+import matplotlib.pyplot as plt
 import numpy as np
 import pyvista as pv
-from scipy.ndimage import gaussian_filter, binary_dilation
+import random
+from scipy.ndimage import gaussian_filter
 import os
 
-# Different axioms for structural variety
-AXIOMS = [
-    "F",                    # Simple trunk
-    "X",                    # X-based system (needs X rules)
-    "FF",                   # Longer initial trunk
-    "F[+F][-F]",           # Pre-branched
-    "FX",                   # Mixed system
-    "F[X]F",               # Bracketed mixed
-    "FFF",                  # Very long trunk
-    "F[+X][-X]F",          # Complex start
-]
+from preset import LSYSTEM_PRESETS
 
-# Expanded rule sets with multiple symbol transformations
-RULE_SETS = [
-    # Classic balanced branching
-    {"F": "F[+F]F[-F]F"},
-    
-    # X-based systems (good for complex structures)
-    {"X": "F[+X][-X]FX", "F": "FF"},
-    {"X": "F[-X][X]F[+FX]", "F": "FF"},
-    {"X": "F[+X]F[-X]+X", "F": "F"},
-    
-    # Wider angles and asymmetry
-    {"F": "F[++F][--F]F"},
-    {"F": "FF[+F][-F]F"},
-    {"F": "F[+F]F[-F][F]"},
-    {"F": "F[+F][F][-F]F"},
-    
-    # Dense branching patterns
-    {"F": "FF[+F][+F][-F][-F]F"},
-    {"F": "F[++F][+F][-F][--F]F"},
-    
-    # Sparse, long segments
-    {"F": "FFF[+F][-F]"},
-    {"F": "FF[+FF][-FF]F"},
-    
-    # Complex mixed systems
-    {"X": "F[+X]F[-X]", "F": "FF"},
-    {"X": "F[-X][+X]FX", "F": "F[+F]"},
-    {"X": "F[++X][--X]F", "F": "FF[+F]"},
-    
-    # Hierarchical branching
-    {"F": "F[+F[-F]]F[--F[+F]]"},
-    {"F": "FF[+++F][---F]F"},
-    
-    # Alternating patterns
-    {"X": "F[+F][-X]", "F": "FX"},
-    {"X": "F[-F][+X]F", "F": "F"},
-    
-    # Very dense root mats
-    {"F": "F[+F][-F][++F][--F]F"},
-    {"X": "F[+X][X][-X][F]", "F": "FF"},
-]
-
-def apply_rules(axiom, iterations, rules):
-    seq = axiom
+# -------------------------------
+# L-System generation
+# -------------------------------
+def generate_lsystem(axiom, rules, iterations):
+    """Generate an L-system string after a given number of iterations."""
+    current = axiom
     for _ in range(iterations):
-        seq = "".join(rules.get(ch, ch) for ch in seq)
-    return seq
+        next_seq = []
+        for ch in current:
+            next_seq.append(rules.get(ch, ch))  # Apply rule if exists
+        current = "".join(next_seq)
+    return current
 
-def generate_root_structure(iterations=3, angle_base=np.pi/6, step=0.1, 
-                            angle_variation=0.1, rules_idx=0, axiom_idx=0, seed=None):
-    """Generate a root structure using L-systems with variations.
-    
-    Args:
-        iterations: Number of L-system iterations
-        angle_base: Base branching angle
-        step: Step size for each F move
-        angle_variation: Random variation in angles
-        rules_idx: Index into RULE_SETS
-        axiom_idx: Index into AXIOMS
-        seed: Random seed for reproducibility
-    """
-    if seed is not None:
-        np.random.seed(seed)
-    
-    rules = RULE_SETS[rules_idx % len(RULE_SETS)]
-    axiom = AXIOMS[axiom_idx % len(AXIOMS)]
-    sequence = apply_rules(axiom, iterations, rules)
-    
-    # Parameters with variation
-    points = [[0, 0, 0]]
-    lines = []
+# -------------------------------
+# 3D Turtle Interpreter
+# -------------------------------
+def draw_lsystem_3d(instructions, angle, step):
+    """Interpret L-system instructions in 3D space."""
+    # Turtle state: position, heading, left, up vectors
+    pos = np.array([0.0, 0.0, 0.0])
+    heading = np.array([0.0, 0.0, 1.0])  # Forward direction along +Z (will grow downward)
+    left = np.array([-1.0, 0.0, 0.0])
+    up = np.array([0.0, 1.0, 0.0])
+
     stack = []
-    direction = np.array([0, 0, -1])  # downward root growth
-    
-    for ch in sequence:
-        if ch == "F":
-            # Add slight randomness to step length
-            current_step = step * (1 + np.random.uniform(-0.2, 0.2))
-            new_point = points[-1] + current_step * direction
-            points.append(new_point.tolist())
-            lines.append([2, len(points)-2, len(points)-1])
-        elif ch == "+":
-            # Vary angle slightly
-            angle = angle_base + np.random.uniform(-angle_variation, angle_variation)
-            # Rotate around x-axis
-            rot = np.array([[1, 0, 0],
-                           [0, np.cos(angle), -np.sin(angle)],
-                           [0, np.sin(angle), np.cos(angle)]])
-            direction = rot @ direction
-        elif ch == "-":
-            # Vary angle slightly
-            angle = angle_base + np.random.uniform(-angle_variation, angle_variation)
-            # Rotate around y-axis
-            rot = np.array([[np.cos(angle), 0, np.sin(angle)],
-                           [0, 1, 0],
-                           [-np.sin(angle), 0, np.cos(angle)]])
-            direction = rot @ direction
-        elif ch == "[":
-            stack.append((points[-1], direction.copy()))
-        elif ch == "]":
-            if stack:
-                pos, direction = stack.pop()
-                points.append(pos)
-    
-    return np.array(points), lines
+    lines = []
 
-def points_to_volume(points, res_d=64, res_h=16, res_w=16, thickness=1):
-    """Convert point cloud to voxel volume."""
-    volume = np.zeros((res_d, res_h, res_w), dtype=np.uint8)
+    def rotate(vec, axis, theta):
+        """Rotate vector vec around axis by theta degrees."""
+        axis = axis / np.linalg.norm(axis)
+        theta_rad = math.radians(theta)
+        return (vec * math.cos(theta_rad) +
+                np.cross(axis, vec) * math.sin(theta_rad) +
+                axis * np.dot(axis, vec) * (1 - math.cos(theta_rad)))
+
+    for cmd in instructions:
+        if cmd == "F":  # Move forward and draw
+            new_pos = pos + heading * step
+            lines.append((pos.copy(), new_pos.copy()))
+            pos = new_pos
+        elif cmd == "f":  # Move forward without drawing
+            pos += heading * step
+        elif cmd == "+":  # Turn left around up vector
+            heading = rotate(heading, up, angle)
+            left = rotate(left, up, angle)
+        elif cmd == "-":  # Turn right around up vector
+            heading = rotate(heading, up, -angle)
+            left = rotate(left, up, -angle)
+        elif cmd == "&":  # Pitch down
+            heading = rotate(heading, left, angle)
+            up = rotate(up, left, angle)
+        elif cmd == "^":  # Pitch up
+            heading = rotate(heading, left, -angle)
+            up = rotate(up, left, -angle)
+        elif cmd == "\\":  # Roll left
+            left = rotate(left, heading, angle)
+            up = rotate(up, heading, angle)
+        elif cmd == "/":  # Roll right
+            left = rotate(left, heading, -angle)
+            up = rotate(up, heading, -angle)
+        elif cmd == "|":  # Turn 180 degrees
+            heading = -heading
+            left = -left
+        elif cmd == "[":  # Save state
+            stack.append((pos.copy(), heading.copy(), left.copy(), up.copy()))
+        elif cmd == "]":  # Restore state
+            pos, heading, left, up = stack.pop()
+
+    return lines
+
+# -------------------------------
+# Convert line segments to voxel volume
+# -------------------------------
+def draw_line_3d_volume(volume, p1, p2, thickness=1):
+    """Draw a 3D line in the volume using DDA algorithm."""
+    D, H, W = volume.shape
     
-    # Normalize each axis separately
-    min_vals = points.min(axis=0)
-    max_vals = points.max(axis=0)
+    dx = p2[0] - p1[0]
+    dy = p2[1] - p1[1]
+    dz = p2[2] - p1[2]
     
-    scaled_points = np.zeros_like(points)
-    scaled_points[:, 0] = (points[:, 0] - min_vals[0]) / (max_vals[0] - min_vals[0] + 1e-8) * (res_w - 1)
-    scaled_points[:, 1] = (points[:, 1] - min_vals[1]) / (max_vals[1] - min_vals[1] + 1e-8) * (res_h - 1)
-    scaled_points[:, 2] = (points[:, 2] - min_vals[2]) / (max_vals[2] - min_vals[2] + 1e-8) * (res_d - 1)
+    steps = int(max(abs(dx), abs(dy), abs(dz))) + 1
+    if steps == 0:
+        return
     
-    scaled_points = scaled_points.astype(int)
+    x_inc = dx / steps
+    y_inc = dy / steps
+    z_inc = dz / steps
     
-    # Fill voxels with optional thickness
-    for p in scaled_points:
-        x, y, z = p
-        if 0 <= z < res_d and 0 <= y < res_h and 0 <= x < res_w:
-            volume[z, y, x] = 1
+    x, y, z = p1[0], p1[1], p1[2]
     
-    # Thicken the structure slightly
-    if thickness > 1:
-        from scipy.ndimage import binary_dilation
-        volume = binary_dilation(volume, iterations=thickness-1).astype(np.uint8)
+    for _ in range(steps + 1):
+        ix, iy, iz = int(round(x)), int(round(y)), int(round(z))
+        
+        for dz_off in range(-thickness + 1, thickness):
+            for dy_off in range(-thickness + 1, thickness):
+                for dx_off in range(-thickness + 1, thickness):
+                    if dx_off**2 + dy_off**2 + dz_off**2 <= thickness**2:
+                        vx = ix + dx_off
+                        vy = iy + dy_off
+                        vz = iz + dz_off
+                        if 0 <= vx < W and 0 <= vy < H and 0 <= vz < D:
+                            volume[vz, vy, vx] = 1
+        
+        x += x_inc
+        y += y_inc
+        z += z_inc
+
+def segments_to_volume(segments, volume_shape=(64, 64, 64), thickness=1):
+    """Convert line segments to a voxel volume.
+    
+    Structure grows along Z-axis with starting point at z=0 (upper-most slice).
+    Volume shape is (D, H, W) = (depth, height, width).
+    """
+    D, H, W = volume_shape
+    volume = np.zeros(volume_shape, dtype=np.uint8)
+    
+    if len(segments) == 0:
+        return volume
+    
+    # Collect all points from segments
+    all_points = []
+    for start, end in segments:
+        all_points.append(start)
+        all_points.append(end)
+    all_points = np.array(all_points)
+    
+    # Get bounds
+    min_vals = all_points.min(axis=0)
+    max_vals = all_points.max(axis=0)
+    
+    # Add margin
+    margin = 2
+    
+    # Scale and translate points to fit in volume
+    # X -> W (width), Y -> H (height), Z -> D (depth)
+    scaled_segments = []
+    for start, end in segments:
+        scaled_start = np.zeros(3)
+        scaled_end = np.zeros(3)
+        
+        for i, (s, e) in enumerate(zip(start, end)):
+            range_val = max_vals[i] - min_vals[i]
+            if range_val < 1e-8:
+                range_val = 1.0
+            
+            if i == 0:  # X -> W
+                scaled_start[i] = (s - min_vals[i]) / range_val * (W - 1 - 2*margin) + margin
+                scaled_end[i] = (e - min_vals[i]) / range_val * (W - 1 - 2*margin) + margin
+            elif i == 1:  # Y -> H
+                scaled_start[i] = (s - min_vals[i]) / range_val * (H - 1 - 2*margin) + margin
+                scaled_end[i] = (e - min_vals[i]) / range_val * (H - 1 - 2*margin) + margin
+            else:  # Z -> D (depth grows along Z, starting at z=0)
+                scaled_start[i] = (s - min_vals[i]) / range_val * (D - 1 - 2*margin) + margin
+                scaled_end[i] = (e - min_vals[i]) / range_val * (D - 1 - 2*margin) + margin
+        
+        scaled_segments.append((scaled_start, scaled_end))
+    
+    # Draw lines
+    for start, end in scaled_segments:
+        draw_line_3d_volume(volume, start, end, thickness)
     
     return volume
 
@@ -289,53 +313,50 @@ def add_ct_artifacts(volume, noise_sigma=0.15, streak_prob=0.15, blur_sigma=0.7)
     
     return np.clip(noisy, 0, 1)
 
-def generate_dataset(num_samples=5, size = (64, 16, 16), output_dir="generated_roots", min_voxels=100):
+def generate_dataset(num_samples=5, 
+                     presets = {"plant_basic": {"axiom": "F",
+                                                "rules": {"F": "F/[+F]F&[-F]F"},
+                                                "angle": 25,
+                                                "description": "Basic 3D plant with balanced branching"}
+                                                },
+                     size = (128, 128, 128),
+                     noise_sigma=0.15,
+                     streak_prob=0.15, 
+                     output_dir="generated_roots"):
     """Generate multiple root volumes with variations."""
     os.makedirs(output_dir, exist_ok=True)
     
     i = 0
-    attempts = 0
-    max_attempts = num_samples * 5  # Avoid infinite loops
+
+    os.makedirs(os.path.join(output_dir, "train", "volumes"), exist_ok=True)
+    os.makedirs(os.path.join(output_dir, "train", "masks"), exist_ok=True)
+    os.makedirs(os.path.join(output_dir, "val", "volumes"), exist_ok=True)
+    os.makedirs(os.path.join(output_dir, "val", "masks"), exist_ok=True)
     
-    while i < num_samples and attempts < max_attempts:
-        attempts += 1
-        print(f"Generating sample {i+1}/{num_samples} (attempt {attempts})...")
+    while i < num_samples:
+        print(f"Generating sample {i+1}/{num_samples} ...")
         
-        # Vary parameters for each sample
-        iterations = np.random.randint(4, 6)
-        angle_base = np.random.uniform(np.pi/8, np.pi/4)
-        step = np.random.uniform(0.08, 0.12)
-        rules_idx = np.random.randint(0, len(RULE_SETS))  # Random rule set
-        axiom_idx = np.random.randint(0, len(AXIOMS))     # Random axiom
-        thickness = np.random.randint(2, 4)  # Increased max thickness
+        # Vary parameters for each sample - optimized for THIN, CONNECTED root structures
+        iterations = np.random.randint(3, 5)  # Moderate iterations
+        step = np.random.uniform(1.0, 2.0)  # Step size for forward movement
+        thickness = 1  # Thin roots (single voxel width)
         
-        print(f"  Using Axiom: {AXIOMS[axiom_idx]}, Rules: {list(RULE_SETS[rules_idx].keys())}")
+        rand_preset = random.choice(list(presets.values()))
+        print(f"Using preset: {rand_preset['description']}")
+        # Generate root structure with full 3D turtle graphics
+        lsys_str = generate_lsystem(
+            axiom = rand_preset["axiom"],
+            rules =  rand_preset["rules"],
+            iterations=iterations)
+
+        segments = draw_lsystem_3d(lsys_str, 25, step)
         
-        # Generate root structure
-        points, lines = generate_root_structure(
-            iterations=iterations,
-            angle_base=angle_base,
-            step=step,
-            angle_variation=0.1,
-            rules_idx=rules_idx,
-            axiom_idx=axiom_idx,
-            seed=42 + attempts
-        )
-        
-        # Convert to volume (this is the clean mask)
-        mask = points_to_volume(points, res_d=size[0], res_h=size[1], res_w=size[2], thickness=thickness)
-        
-        # Check if structure is too sparse
-        voxel_count = mask.sum()
-        if voxel_count < min_voxels:
-            print(f"  ⚠ Skipping: only {voxel_count} voxels (< {min_voxels} threshold). Regenerating...")
-            continue
-        
-        # Check if structure is too sparse
-        voxel_count = mask.sum()
-        if voxel_count < min_voxels:
-            print(f"  ⚠ Skipping: only {voxel_count} voxels (< {min_voxels} threshold). Regenerating...")
-            continue
+        # Convert to volume with connected lines (this is the clean mask)
+        mask = segments_to_volume(segments, volume_shape = size, thickness=thickness)
+        print("Sparsity:")
+        print(f"\nVolume shape: {mask.shape} (D, H, W)")
+        print(f"Non-zero voxels: {mask.sum()}")
+        print(f"Voxel occupancy: {mask.sum() / mask.size * 100:.2f}%")
         
         # Create CT-like volume: roots are DARKER than background
         background_intensity = np.random.uniform(0.65, 0.75)  # Vary background per sample
@@ -343,109 +364,136 @@ def generate_dataset(num_samples=5, size = (64, 16, 16), output_dir="generated_r
         volume_clean = create_ct_volume(mask, background_intensity, root_intensity_range)
         
         # Add CT artifacts and noise (with stronger parameters for more challenging dataset)
-        volume_noisy = add_ct_artifacts(volume_clean, noise_sigma=0.15, streak_prob=0.15, blur_sigma=0.7)
+        volume_noisy = add_ct_artifacts(volume_clean, 
+                                        noise_sigma=noise_sigma,
+                                        streak_prob=streak_prob, 
+                                        blur_sigma=0.7)
         
         # Convert to uint8 for storage
         volume_noisy_uint8 = (volume_noisy * 255).astype(np.uint8)
         
         # Save files
-        np.save(os.path.join(output_dir, f"root_volume_{i:03d}.npy"), volume_noisy_uint8)
-        np.save(os.path.join(output_dir, f"root_mask_{i:03d}.npy"), mask)
+        if np.random.rand() < 0.8:
+            np.save(os.path.join(output_dir, "train", "volumes", f"root_volume_{i:03d}.npy"), volume_noisy_uint8)
+            np.save(os.path.join(output_dir, "train", "masks", f"root_mask_{i:03d}.npy"), mask)
+        else:
+            np.save(os.path.join(output_dir, "val", "volumes", f"root_volume_{i:03d}.npy"), volume_noisy_uint8)
+            np.save(os.path.join(output_dir, "val", "masks", f"root_mask_{i:03d}.npy"), mask)   
         
         print(f"  ✓ Saved: root_volume_{i:03d}.npy and root_mask_{i:03d}.npy")
-        print(f"  Mask voxels: {voxel_count}, Shape: {mask.shape}")
         i += 1  # Only increment on successful generation
     
-    if attempts >= max_attempts:
-        print(f"\n⚠ Warning: Reached max attempts ({max_attempts}). Generated {i}/{num_samples} samples.")
-
 # Generate dataset
-if __name__ == "__main__":
+if __name__ == "__main__":    
     print("Generating root structure dataset...")
-    generate_dataset(num_samples=20, size=(128, 128, 128), output_dir="data/ct_like/3d_new", min_voxels=500)
+    ds_dir = "../../../data/ct_like/3d"
+    generate_dataset(num_samples=10,
+                     presets=LSYSTEM_PRESETS,
+                     size=(128, 128, 128), 
+                     noise_sigma=0.1,
+                     streak_prob=0.1,
+                     output_dir=ds_dir)
     print("\nDone! Volumes saved to 'data/ct_like/3d_new/' directory")
+
+    val_vols_path = os.path.join(ds_dir, "val", "volumes")
+    val_masks_path = os.path.join(ds_dir, "val", "masks")
     
-    # Visualize one example
+    # Find the validation volume with the highest number of non-zero voxels
+    best_vol_path = None
+    best_nonzero_count = 0
+    for vol_file in os.listdir(val_vols_path):
+        mask_file = vol_file.replace("volume", "mask")
+        mask_tmp = np.load(os.path.join(val_masks_path, mask_file))
+        nonzero_count = np.count_nonzero(mask_tmp)
+        if nonzero_count > best_nonzero_count:
+            best_nonzero_count = nonzero_count
+            best_vol_path = vol_file
+    
+    print(f"Selected volume with highest voxel count: {best_vol_path} ({best_nonzero_count} non-zero voxels)")
+    mask_path = best_vol_path.replace("volume", "mask")
+
+    volume = np.load(os.path.join(val_vols_path, best_vol_path)).astype(np.float32) / 255.0
+    mask = np.load(os.path.join(val_masks_path, mask_path)).astype(np.float32)  # Don't divide by 255, mask is already 0/1
+    print(np.unique(mask))
+    val_masks = []
+    for file in os.listdir(val_masks_path):
+        val_masks.append(np.load(os.path.join(val_masks_path, file)).astype(np.float32))  # Don't divide by 255 
+    
+    # Select top 3 slices with highest number of non-zero voxels
+    D = mask.shape[0]
+    slice_nonzero_counts = [(z, np.count_nonzero(mask[z])) for z in range(D)]
+    slice_nonzero_counts.sort(key=lambda x: x[1], reverse=True)
+    slice_indices = sorted([s[0] for s in slice_nonzero_counts[:3]])
+    print(f"Selected slices with highest voxel counts: {[(s[0], s[1]) for s in slice_nonzero_counts[:3]]}")
+    
     print("\nVisualizing sample with slices...")
-    volume = np.load("data/ct_like/3d_new/root_volume_003.npy").astype(np.float32) / 255.0
-    print(volume.shape)
-    mask = np.load("data/ct_like/3d_new/root_mask_003.npy")
-    
-    # Select slices to visualize (beginning, middle, end)
-    D = volume.shape[0]
-    slice_indices = [D//4, D//2, 3*D//4]  # 25%, 50%, 75% through volume
-    
-    import matplotlib.pyplot as plt
-    
-    # Create matplotlib figure for slice comparison
-    fig, axes = plt.subplots(3, 3, figsize=(12, 12))
-    fig.suptitle('Volume Slices: Noisy (left) | Mask (middle) | Overlay (right)', fontsize=14)
+    fig, axes = plt.subplots(2, 3, figsize=(16, 8))
+    fig.suptitle('Volume Slices: Noisy (1st row) | Mask (2nd row)', fontsize=14)
     
     for i, slice_idx in enumerate(slice_indices):
         # Noisy volume slice
-        axes[i, 0].imshow(volume[slice_idx], cmap='gray', vmin=0, vmax=1)
-        axes[i, 0].set_title(f'Noisy - Slice {slice_idx}/{D}')
-        axes[i, 0].axis('off')
+        axes[0, i].imshow(volume[slice_idx], cmap='gray', vmin=0, vmax=1)
+        axes[0, i].set_title(f'Noisy - Slice {slice_idx}/{D}')
+        axes[0, i].axis('off')
         
         # Mask slice
-        axes[i, 1].imshow(mask[slice_idx], cmap='gray', vmin=0, vmax=1)
-        axes[i, 1].set_title(f'Mask - Slice {slice_idx}/{D}')
-        axes[i, 1].axis('off')
+        axes[1, i].imshow(mask[slice_idx], cmap='gray', vmin=0, vmax=1)
+        axes[1, i].set_title(f'Mask - Slice {slice_idx}/{D}')
+        axes[1, i].axis('off')
         
-        # Overlay: show mask in red on top of noisy volume
-        overlay = np.stack([
-            volume[slice_idx] + 0.5 * mask[slice_idx],  # Red channel
-            volume[slice_idx],                          # Green channel
-            volume[slice_idx]                           # Blue channel
-        ], axis=-1)
-        overlay = np.clip(overlay, 0, 1)
-        axes[i, 2].imshow(overlay)
-        axes[i, 2].set_title(f'Overlay - Slice {slice_idx}/{D}')
-        axes[i, 2].axis('off')
+        # # Overlay: show mask in red on top of noisy volume
+        # overlay = np.stack([
+        #     volume[slice_idx] + 0.5 * mask[slice_idx],  # Red channel
+        #     volume[slice_idx],                          # Green channel
+        #     volume[slice_idx]                           # Blue channel
+        # ], axis=-1)
+        # overlay = np.clip(overlay, 0, 1)
+        # axes[i, 2].imshow(overlay)
+        # axes[i, 2].set_title(f'Overlay - Slice {slice_idx}/{D}')
+        # axes[i, 2].axis('off')
     
     plt.tight_layout()
     plt.savefig('slice_visualization.png', dpi=150, bbox_inches='tight')
     print("Saved slice visualization to 'slice_visualization.png'")
     plt.show()
     
-    # 3D visualization with PyVista
-    print("\nShowing 3D visualization...")
-    pv.global_theme.allow_empty_mesh = True
-    plotter = pv.Plotter(shape=(1, 2))
+    # # 3D visualization with PyVista
+    # print("\nShowing 3D visualization...")
+    # pv.global_theme.allow_empty_mesh = True
+    # plotter = pv.Plotter(shape=(1, 2), window_size=(1800, 600))
     
-    # Noisy volume - multiple contours
-    plotter.subplot(0, 0)
-    grid1 = pv.ImageData()
-    grid1.dimensions = np.array(volume.shape)
-    grid1.origin = (0, 0, 0)
-    grid1.spacing = (1, 1, 1)
-    grid1.point_data["values"] = volume.flatten(order="F")
+    # # Add main title
+    # plotter.add_text("Generated 3D L-systems", position='upper_edge', font_size=16, color='black')
     
-    # Use adaptive threshold based on volume statistics
-    threshold = min(0.3, volume.max() * 0.5)
-    contour1 = grid1.contour([threshold])
-    if contour1.n_points > 0:
-        plotter.add_mesh(contour1, color="tan", opacity=0.7)
-        plotter.add_text(f"Noisy Volume (threshold={threshold:.2f})", font_size=10)
-    else:
-        plotter.add_text("Noisy Volume (empty contour)", font_size=10)
+    # for i, mask in enumerate(val_masks[:2]):
+    #     # Noisy volume - multiple contours
+    #     plotter.subplot(0, i)
+    #     grid = pv.ImageData()
+    #     grid.dimensions = np.array(mask.shape)
+    #     grid.origin = (0, 0, 0)
+    #     grid.spacing = (1, 1, 1)
+    #     grid.point_data["values"] = mask.flatten(order="F")
+
+    #     # Use adaptive threshold based on volume statistics
+    #     threshold = min(0.3, mask.max() * 0.5)
+    #     contour = grid.contour([0.5])
+    #     if contour.n_points > 0:
+    #         plotter.add_mesh(contour, color="tan", opacity=0.7)
+    #     else:
+    #         plotter.add_text("Empty mask", font_size=10)
+        
+    #     # Set camera to view structure straight (front view looking at XY plane)
+    #     # plotter.camera_position = 'yz'
+    #     # plotter.camera.elevation = 0
+    #     # plotter.camera.azimuth = 30
     
-    # Clean mask
-    plotter.subplot(0, 1)
-    grid2 = pv.ImageData()
-    grid2.dimensions = np.array(mask.shape)
-    grid2.origin = (0, 0, 0)
-    grid2.spacing = (1, 1, 1)
-    grid2.point_data["values"] = mask.flatten(order="F")
-    contour2 = grid2.contour([0.5])
-    if contour2.n_points > 0:
-        plotter.add_mesh(contour2, color="brown")
-        plotter.add_text("Ground Truth Mask", font_size=10)
-    else:
-        plotter.add_text("Ground Truth Mask (empty)", font_size=10)
-    
-    try:
-        plotter.show()
-    except Exception as e:
-        print(f"Could not display 3D plot (no display available): {e}")
-        print("Visualization completed successfully (slice images saved).")
+    # try:
+    #     # Save snapshot (off_screen mode allows screenshot without display)
+    #     # plotter.screenshot('3d_lsystems_visualization.png')
+    #     # print("Saved 3D visualization to '3d_lsystems_visualization.png'")
+    #     plotter.show()
+    #     # plotter.close()
+    #     # plt.imshow(plt.imread('3d_lsystems_visualization.png'))
+    # except Exception as e:
+    #     print(f"Could not save 3D plot: {e}")
+    #     print("Visualization completed successfully (slice images saved).")
