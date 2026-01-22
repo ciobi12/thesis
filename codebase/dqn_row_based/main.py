@@ -594,7 +594,7 @@ if __name__ == "__main__":
     val_masks_paths = []
 
     if args.ct_like:
-        update_dataset("../data/ct_like/2d/continuous", size = args.image_size)
+        update_dataset("../data/ct_like/2d", size = args.image_size)
         save_dir = "ct_like"
     elif args.drive and not args.stare:
         update_dataset("../data/DRIVE", size = args.image_size)
@@ -606,6 +606,7 @@ if __name__ == "__main__":
         update_dataset("../data/DRIVE", size = args.image_size)
         update_dataset("../data/STARE", size = args.image_size)    
         save_dir = "drive+stare"
+
     save_dir = os.path.join(save_dir, f"base_{args.base_coef}_cont_{args.cont_coef}_grad_{args.grad_coef}")
     os.makedirs(f"dqn_row_based/results/{save_dir}/reconstructions", exist_ok=True)
     os.makedirs(f"dqn_row_based/models/{save_dir}", exist_ok=True)

@@ -1,0 +1,84 @@
+
+Epoch 1/20:   0%|          | 0/38 [00:00<?, ?it/s]
+Epoch 1/20:   3%|▎         | 1/38 [00:09<05:38,  9.15s/it]
+Epoch 1/20:   5%|▌         | 2/38 [00:15<04:31,  7.54s/it]
+Epoch 1/20:   8%|▊         | 3/38 [00:21<03:59,  6.85s/it]
+Epoch 1/20:  11%|█         | 4/38 [00:27<03:45,  6.64s/it]
+Epoch 1/20:  13%|█▎        | 5/38 [00:33<03:32,  6.43s/it]
+Epoch 1/20:  16%|█▌        | 6/38 [00:40<03:22,  6.33s/it]
+Epoch 1/20:  18%|█▊        | 7/38 [00:46<03:21,  6.49s/it]
+Epoch 1/20:  21%|██        | 8/38 [00:53<03:13,  6.45s/it]
+Epoch 1/20:  24%|██▎       | 9/38 [00:59<03:05,  6.38s/it]
+Epoch 1/20:  26%|██▋       | 10/38 [01:05<02:56,  6.32s/it]
+Epoch 1/20:  29%|██▉       | 11/38 [01:12<02:52,  6.39s/it]
+Epoch 1/20:  32%|███▏      | 12/38 [01:18<02:46,  6.42s/it]
+Epoch 1/20:  34%|███▍      | 13/38 [01:24<02:39,  6.36s/it]
+Epoch 1/20:  37%|███▋      | 14/38 [01:31<02:32,  6.34s/it]
+Epoch 1/20:  39%|███▉      | 15/38 [01:37<02:24,  6.30s/it]
+Epoch 1/20:  42%|████▏     | 16/38 [01:43<02:18,  6.31s/it]
+Epoch 1/20:  45%|████▍     | 17/38 [01:50<02:12,  6.30s/it]
+Epoch 1/20:  47%|████▋     | 18/38 [01:56<02:06,  6.34s/it]
+Epoch 1/20:  50%|█████     | 19/38 [02:03<02:03,  6.48s/it]
+Epoch 1/20:  53%|█████▎    | 20/38 [02:09<01:55,  6.44s/it]
+Epoch 1/20:  55%|█████▌    | 21/38 [02:15<01:48,  6.40s/it]
+Epoch 1/20:  58%|█████▊    | 22/38 [02:22<01:41,  6.35s/it]
+Epoch 1/20:  61%|██████    | 23/38 [02:28<01:35,  6.39s/it]
+Epoch 1/20:  63%|██████▎   | 24/38 [02:35<01:29,  6.39s/it]
+Epoch 1/20:  66%|██████▌   | 25/38 [02:41<01:23,  6.42s/it]
+Epoch 1/20:  68%|██████▊   | 26/38 [02:47<01:16,  6.38s/it]
+Epoch 1/20:  71%|███████   | 27/38 [02:54<01:11,  6.50s/it]
+Epoch 1/20:  74%|███████▎  | 28/38 [03:00<01:04,  6.44s/it]
+Epoch 1/20:  76%|███████▋  | 29/38 [03:07<00:57,  6.38s/it]
+Epoch 1/20:  79%|███████▉  | 30/38 [03:13<00:50,  6.35s/it]
+Epoch 1/20:  82%|████████▏ | 31/38 [03:19<00:44,  6.36s/it]
+Epoch 1/20:  84%|████████▍ | 32/38 [03:26<00:38,  6.45s/it]
+Epoch 1/20:  87%|████████▋ | 33/38 [03:33<00:32,  6.55s/it]
+Epoch 1/20:  89%|████████▉ | 34/38 [03:39<00:26,  6.52s/it]
+Epoch 1/20:  92%|█████████▏| 35/38 [03:46<00:19,  6.47s/it]
+Epoch 1/20:  95%|█████████▍| 36/38 [03:52<00:12,  6.39s/it]
+Epoch 1/20:  97%|█████████▋| 37/38 [03:58<00:06,  6.39s/it]
+Epoch 1/20: 100%|██████████| 38/38 [04:05<00:00,  6.52s/it]
+Epoch 1/20: 100%|██████████| 38/38 [04:05<00:00,  6.46s/it]
+
+Epoch 1/20 | Time: 251.6s
+  Train - Loss: 0.0188 | Avg Return: -81235.29 | ε: 1.000
+          IoU: 0.807 | F1: 0.889 | Acc: 0.986 | Cov: 0.871
+          Rewards -> Base: -73736.00 | Cont: -6637.82 | Grad: -2.24
+  Val   - Loss: 0.0130 | Avg Return: -4014.20
+          IoU: 0.821 | F1: 0.901 | Acc: 0.993 | Cov: 0.886
+
+Epoch 2/20:   0%|          | 0/38 [00:00<?, ?it/s]
+Epoch 2/20:   3%|▎         | 1/38 [00:06<03:43,  6.05s/it]
+Epoch 2/20:   5%|▌         | 2/38 [00:12<03:37,  6.05s/it]
+Epoch 2/20:   8%|▊         | 3/38 [00:17<03:25,  5.87s/it]
+Epoch 2/20:  11%|█         | 4/38 [00:23<03:18,  5.84s/it]
+Epoch 2/20:  13%|█▎        | 5/38 [00:29<03:10,  5.77s/it]
+Epoch 2/20:  16%|█▌        | 6/38 [00:35<03:07,  5.85s/it]
+Epoch 2/20:  18%|█▊        | 7/38 [00:40<02:58,  5.77s/it]
+Epoch 2/20:  21%|██        | 8/38 [00:47<02:57,  5.92s/it]
+Epoch 2/20:  24%|██▎       | 9/38 [00:53<02:57,  6.11s/it]
+Epoch 2/20:  26%|██▋       | 10/38 [01:02<03:14,  6.95s/it]
+Epoch 2/20:  29%|██▉       | 11/38 [01:09<03:09,  7.02s/it]
+Epoch 2/20:  32%|███▏      | 12/38 [01:15<02:51,  6.60s/it]
+Epoch 2/20:  34%|███▍      | 13/38 [01:21<02:41,  6.47s/it]
+Epoch 2/20:  37%|███▋      | 14/38 [01:29<02:43,  6.83s/it]
+Epoch 2/20:  39%|███▉      | 15/38 [01:37<02:51,  7.44s/it]
+Epoch 2/20:  42%|████▏     | 16/38 [01:43<02:31,  6.90s/it]
+Epoch 2/20:  45%|████▍     | 17/38 [01:49<02:16,  6.50s/it]
+Epoch 2/20:  47%|████▋     | 18/38 [01:55<02:06,  6.32s/it]
+Epoch 2/20:  50%|█████     | 19/38 [02:00<01:56,  6.14s/it]
+Epoch 2/20:  50%|█████     | 19/38 [02:05<02:05,  6.58s/it]
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/home/sysadmin/thesis/codebase/dqn_row_based/main.py", line 614, in <module>
+    results = train_dqn_on_images(
+  File "/home/sysadmin/thesis/codebase/dqn_row_based/main.py", line 336, in train_dqn_on_images
+    row_pixels_batch, prev_rows_batch, future_rows_batch = batch_obs_to_tensor([t.obs for t in batch], device)
+  File "/home/sysadmin/thesis/codebase/dqn_row_based/main.py", line 27, in batch_obs_to_tensor
+    row_pixels = torch.stack([torch.FloatTensor(o["row_pixels"]) for o in obs_list]).to(device)  # (B, W, C)
+  File "/home/sysadmin/thesis/codebase/dqn_row_based/main.py", line 27, in <listcomp>
+    row_pixels = torch.stack([torch.FloatTensor(o["row_pixels"]) for o in obs_list]).to(device)  # (B, W, C)
+KeyboardInterrupt

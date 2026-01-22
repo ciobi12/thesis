@@ -1,44 +1,199 @@
-import os
+import argparse
 import cv2
-import time
 import numpy as np
+import os
 import random
+import time
 import torch
 import torch.nn.functional as F
 
+from dqn_patch_based.dqn import PerPatchCNNWithHistory, ReplayBuffer, obs_to_tensor, batch_obs_to_tensor, epsilon_greedy_action
 from dqn_patch_based.env import PatchClassificationEnv
-from dqn_patch_based.dqn import PerPatchCNN, ReplayBuffer, obs_to_tensor, epsilon_greedy_action
 
 from matplotlib import pyplot as plt
+from tqdm import tqdm
+from PIL import Image
 
 
-def train_dqn_patch(
-    image_mask_pairs,
+def compute_metrics(pred, mask):
+    """Compute segmentation metrics: IoU, F1, accuracy, coverage."""
+    pred_binary = (pred > 0).astype(np.float32)
+    mask_binary = (mask > 0).astype(np.float32)
+    
+    intersection = np.logical_and(pred_binary, mask_binary).sum()
+    union = np.logical_or(pred_binary, mask_binary).sum()
+    
+    # IoU
+    iou = intersection / (union + 1e-8)
+    
+    # F1
+    tp = intersection
+    fp = (pred_binary * (1 - mask_binary)).sum()
+    fn = ((1 - pred_binary) * mask_binary).sum()
+    precision = tp / (tp + fp + 1e-8)
+    recall = tp / (tp + fn + 1e-8)
+    f1 = 2 * precision * recall / (precision + recall + 1e-8)
+    
+    # Pixel accuracy
+    correct = (pred_binary == mask_binary).sum()
+    total = pred_binary.size
+    accuracy = correct / total
+    
+    # Coverage (|pred ∧ path| / |path|)
+    coverage = intersection / (mask_binary.sum() + 1e-8)
+    
+    return {
+        "iou": iou,
+        "f1": f1,
+        "accuracy": accuracy,
+        "coverage": coverage,
+        "precision": precision,
+        "recall": recall
+    }
+
+
+def update_dataset(data_dir, size=(256, 256)):
+    for root, _, files in os.walk(data_dir):
+        for file in sorted(files):
+            file_path = os.path.join(root, file)
+            
+            # Skip the mask folder (used in other datasets)
+            if os.sep + "mask" + os.sep in file_path:
+                continue
+            
+            if "train" in root:
+                if "segm" in root:  # Check if in ground_truth folder
+                    train_masks_paths.append(file_path)
+                    img = np.array(Image.open(file_path).convert("L").resize(size))
+                    if img is not None:
+                        train_masks.append(img)
+                elif "images" in root:  # Check if in images folder
+                    train_imgs_paths.append(file_path)
+                    img = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+                    img = cv2.resize(img, size)
+                    if img is not None:
+                        train_imgs.append(img)
+                    
+            elif "val" in root:
+                if "segm" in root:  # Check if in ground_truth folder
+                    val_masks_paths.append(file_path)
+                    img = np.array(Image.open(file_path).convert("L").resize(size))
+                    if img is not None:
+                        val_masks.append(img)
+                elif "images" in root:  # Check if in images folder
+                    val_imgs_paths.append(file_path)
+                    img = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+                    img = cv2.resize(img, size)  
+                    if img is not None:
+                        val_imgs.append(img)
+
+
+def validate(policy_net, 
+             val_pairs, 
+             device, 
+             patch_size=16,
+             base_coef=1.0,
+             continuity_coef=0.1,
+             gradient_coef=0.0,
+             neighbor_coef=0.1,
+             history_len=3,
+             future_len=3):
+    """Run validation and return average metrics, loss, and reward."""
+    policy_net.eval()
+    all_metrics = []
+    val_rewards = []
+    
+    with torch.no_grad():
+        for image, mask in val_pairs:
+            # Reconstruct and compute metrics
+            pred = reconstruct_image(policy_net, 
+                                     image, 
+                                     mask,
+                                     patch_size=patch_size,
+                                     base_coef=base_coef,
+                                     continuity_coef=continuity_coef,
+                                     gradient_coef=gradient_coef,
+                                     neighbor_coef=neighbor_coef,
+                                     history_len=history_len,
+                                     future_len=future_len,
+                                     device=device)
+            metrics = compute_metrics(pred, mask)
+            all_metrics.append(metrics)
+            
+            # Compute validation reward by running through environment
+            env = PatchClassificationEnv(image=image,
+                                         mask=mask,
+                                         patch_size=patch_size,
+                                         base_coef=base_coef,
+                                         continuity_coef=continuity_coef,
+                                         gradient_coef=gradient_coef,
+                                         neighbor_coef=neighbor_coef,
+                                         history_len=history_len,
+                                         future_len=future_len)
+            obs, _ = env.reset()
+            done = False
+            episode_reward = 0.0
+            
+            while not done:
+                patch_pixels, prev_patches, future_patches = obs_to_tensor(obs, device)
+                q = policy_net(patch_pixels, prev_patches, future_patches)
+                a = q.argmax(dim=-1).cpu().numpy()  # (N, N)
+                next_obs, reward, terminated, truncated, info = env.step(a)
+                episode_reward += reward
+                obs = next_obs
+                done = terminated or truncated
+            
+            val_rewards.append(episode_reward)
+    
+    policy_net.train()
+    
+    # Average metrics
+    avg_metrics = {}
+    for key in all_metrics[0].keys():
+        avg_metrics[key] = np.mean([m[key] for m in all_metrics])
+    
+    avg_metrics["reward"] = np.mean(val_rewards)
+    
+    return avg_metrics
+
+
+def train_dqn_on_images(
+    image_mask_pairs,    # list of (image, mask) tuples
+    val_pairs=None,      
+    num_epochs=20,
     patch_size=16,
-    num_epochs=10,
     buffer_capacity=10000,
     batch_size=64,
     gamma=0.95,
     lr=1e-3,
     target_update_every=500,
     start_epsilon=1.0,
-    end_epsilon=0.05,
-    epsilon_decay_steps=5000,
-    continuity_coef=0.0,
+    end_epsilon=0.01,
+    epsilon_decay_epochs=15,
+    base_coef=1.0,
+    continuity_coef=0.1,
+    gradient_coef=0.0,
     neighbor_coef=0.1,
+    history_len=3,
+    future_len=3,
+    save_dir=None,
     seed=42,
     device=None,
 ):
+    
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     device = device or ("cuda" if torch.cuda.is_available() else "cpu")
 
+    # Infer image shape
     sample_image, _ = image_mask_pairs[0]
     C = 1 if sample_image.ndim == 2 else sample_image.shape[2]
 
-    policy_net = PerPatchCNN(N=patch_size, C=C).to(device)
-    target_net = PerPatchCNN(N=patch_size, C=C).to(device)
+    # Networks
+    policy_net = PerPatchCNNWithHistory(input_channels=C, history_len=history_len, future_len=future_len, patch_size=patch_size).to(device)
+    target_net = PerPatchCNNWithHistory(input_channels=C, history_len=history_len, future_len=future_len, patch_size=patch_size).to(device)
+    
     target_net.load_state_dict(policy_net.state_dict())
     target_net.eval()
 
@@ -46,130 +201,349 @@ def train_dqn_patch(
     replay = ReplayBuffer(buffer_capacity)
 
     epsilon = start_epsilon
-    epsilon_decay = (start_epsilon - end_epsilon) / max(1, epsilon_decay_steps)
+    # Exponential decay per epoch: epsilon = end + (start - end) * exp(-epoch / decay_epochs)
+    epsilon_decay_rate = -np.log(end_epsilon / start_epsilon) / epsilon_decay_epochs
 
     global_step = 0
-    returns, losses, epsilons = [], [], []
+    train_losses = []
+    val_losses = []
+
+    train_returns = []
+    val_returns = []
+    base_returns = []
+    continuity_returns = []
+    neighbor_returns = []
+    
+    epsilons = []
+    
+    # Metrics tracking
+    train_metrics_history, val_metrics_history = [{"iou": [], 
+                                                   "f1": [], 
+                                                   "accuracy": [], 
+                                                   "coverage": [], 
+                                                   "precision": [], 
+                                                   "recall": []} for x in range(2)]
+    
+    # Conn_info tracking
+    conn_info_history = {
+        "gradient_rewards": [],
+        "true_positives": [],
+        "false_positives": [],
+        "false_negatives": []
+    }
 
     for epoch in range(num_epochs):
+        # Update epsilon at the start of each epoch
+        epsilon = end_epsilon + (start_epsilon - end_epsilon) * np.exp(-epsilon_decay_rate * epoch)
+        epsilon = max(end_epsilon, epsilon)
+        
         random.shuffle(image_mask_pairs)
         t0 = time.time()
-        epoch_return = 0.0
-        epoch_loss = 0.0
-        c_updates = 0
 
-        for image, mask in image_mask_pairs:
-            env = PatchClassificationEnv(
-                image=image,
-                mask=mask,
-                patch_size=patch_size,
-                continuity_coef=continuity_coef,
-                neighbor_coef=neighbor_coef,
-                start_from_bottom_left=True,
-            )
+        epoch_loss = 0
+        c = 0
+        epoch_train_metrics = []
+
+        for image, mask in tqdm(image_mask_pairs, desc=f"Epoch {epoch+1}/{num_epochs}"):
+            env = PatchClassificationEnv(image=image, 
+                                         mask=mask, 
+                                         patch_size=patch_size,
+                                         base_coef=base_coef,
+                                         continuity_coef=continuity_coef, 
+                                         gradient_coef=gradient_coef,
+                                         neighbor_coef=neighbor_coef,
+                                         history_len=history_len,
+                                         future_len=future_len,
+                                         start_from_bottom_left=True)
             obs, _ = env.reset()
+
             done = False
             img_return = 0.0
+            base_return = 0.0
+            continuity_return = 0.0
+            neighbor_return = 0.0
+            
+            # Track conn_info for this episode
+            episode_conn_info = {
+                "gradient_rewards": [],
+                "true_positives": [],
+                "false_positives": [],
+                "false_negatives": []
+            }
 
             while not done:
-                xt = obs_to_tensor(obs, device)
-                q = policy_net(xt)  # (2, N, N)
+                patch_pixels, prev_patches, future_patches = obs_to_tensor(obs, device)
+                with torch.no_grad():
+                    q = policy_net(patch_pixels, prev_patches, future_patches)  # (N, N, 2)
                 a = epsilon_greedy_action(q, epsilon)  # (N, N)
 
-                next_obs, reward, terminated, truncated, info = env.step(a.detach().cpu().numpy())
+                # Keep action on GPU, only convert to numpy when needed for env
+                next_obs, reward, terminated, truncated, info = env.step(a.cpu().numpy())
+                pixel_rewards = info["pixel_rewards"]
+                base_reward = info["base_rewards"].sum()
+                continuity_reward = info["continuity_rewards"].sum()
+                neighbor_reward = info["neighbour_rewards"].sum()
+                
+                # Track conn_info metrics
+                for key in episode_conn_info.keys():
+                    if key in info:
+                        episode_conn_info[key].append(info[key] if not isinstance(info[key], np.ndarray) else info[key].sum())
+                
                 done = terminated or truncated
+                base_return += base_reward
+                continuity_return += continuity_reward
+                neighbor_return += neighbor_reward
                 img_return += reward
 
-                pixel_rewards = info["pixel_rewards"]  # (N, N)
+                replay.push(
+                    obs,
+                    a.cpu().numpy(),
+                    pixel_rewards.astype(np.float32),
+                    next_obs,
+                    done
+                )
 
-                replay.push(obs, a.detach().cpu().numpy(), pixel_rewards.astype(np.float32), next_obs, done)
                 obs = next_obs
-
                 global_step += 1
-                epsilon = max(end_epsilon, epsilon - epsilon_decay)
 
+                # Optimize - batched processing
                 if len(replay) >= batch_size:
                     batch = replay.sample(batch_size)
 
-                    q_s_a_list = []
-                    q_next_max_list = []
-                    rew_list = []
-                    done_list = []
+                    # Batch conversion - single GPU transfer
+                    patch_pixels_batch, prev_patches_batch, future_patches_batch = batch_obs_to_tensor([t.obs for t in batch], device)
+                    act_batch = torch.tensor(np.stack([t.action for t in batch]), dtype=torch.int64, device=device)  # (B, N, N)
+                    rew_batch = torch.tensor(np.stack([t.pixel_rewards for t in batch]), dtype=torch.float32, device=device)  # (B, N, N)
+                    next_patch_pixels_batch, next_prev_patches_batch, next_future_patches_batch = batch_obs_to_tensor([t.next_obs for t in batch], device)
+                    done_batch = torch.tensor([t.done for t in batch], dtype=torch.float32, device=device)
 
-                    for t in batch:
-                        o = obs_to_tensor(t.obs, device)
-                        q_s = policy_net(o)  # (2, N, N)
-                        # gather Q for chosen actions
-                        a_idx = torch.tensor(t.action, dtype=torch.int64, device=device)  # (N, N)
-                        q_s_a = q_s.permute(1,2,0).gather(dim=-1, index=a_idx.unsqueeze(-1)).squeeze(-1)  # (N, N)
+                    # Batched forward passes
+                    q_s = policy_net(patch_pixels_batch, prev_patches_batch, future_patches_batch)  # (B, N, N, 2)
+                    q_s_a = q_s.gather(dim=-1, index=act_batch.unsqueeze(-1)).squeeze(-1)  # (B, N, N)
 
-                        with torch.no_grad():
-                            o2 = obs_to_tensor(t.next_obs, device)
-                            q_next = target_net(o2)  # (2, N, N)
-                            q_next_max = q_next.max(dim=0).values  # (N, N)
+                    with torch.no_grad():
+                        q_next = target_net(next_patch_pixels_batch, next_prev_patches_batch, next_future_patches_batch)  # (B, N, N, 2)
+                        q_next_max = q_next.max(dim=-1).values  # (B, N, N)
 
-                        q_s_a_list.append(q_s_a)
-                        q_next_max_list.append(q_next_max)
-                        rew_list.append(torch.tensor(t.pixel_rewards, dtype=torch.float32, device=device))
-                        done_list.append(torch.tensor(1.0 if t.done else 0.0, dtype=torch.float32, device=device))
-
-                    q_s_a = torch.stack(q_s_a_list)           # (B, N, N)
-                    q_next_max = torch.stack(q_next_max_list) # (B, N, N)
-                    rew = torch.stack(rew_list)               # (B, N, N)
-                    done_b = torch.stack(done_list).view(-1, 1, 1)  # (B,1,1)
-                    target = rew + gamma * (1.0 - done_b) * q_next_max
+                    not_done = (1.0 - done_batch).unsqueeze(-1).unsqueeze(-1)  # (B, 1, 1)
+                    target = rew_batch + gamma * not_done * q_next_max  # (B, N, N)
 
                     loss = F.mse_loss(q_s_a, target)
                     optimizer.zero_grad()
                     loss.backward()
-                    torch.nn.utils.clip_grad_norm_(policy_net.parameters(), 5.0)
+                    torch.nn.utils.clip_grad_norm_(policy_net.parameters(), max_norm=5.0)
                     optimizer.step()
-
+                    
                     epoch_loss += loss.item()
-                    c_updates += 1
+                    c += 1
 
                 if global_step % target_update_every == 0:
                     target_net.load_state_dict(policy_net.state_dict())
 
-            returns.append(img_return)
+            base_returns.append(base_return)
+            continuity_returns.append(continuity_return)
+            neighbor_returns.append(neighbor_return)
+            train_returns.append(img_return)
             epsilons.append(epsilon)
+            
+            # Aggregate conn_info for this episode (average across patches)
+            for key in episode_conn_info.keys():
+                if len(episode_conn_info[key]) > 0:
+                    conn_info_history[key].append(np.mean(episode_conn_info[key]))
+                else:
+                    conn_info_history[key].append(0.0)
+            
+            # Compute metrics for this training image
+            pred_train = reconstruct_image(policy_net, 
+                                           image, 
+                                           mask,
+                                           patch_size=patch_size,
+                                           base_coef=base_coef,
+                                           continuity_coef=continuity_coef,
+                                           gradient_coef=gradient_coef,
+                                           neighbor_coef=neighbor_coef,
+                                           history_len=history_len,
+                                           future_len=future_len,
+                                           device=device)
+                                           
+            train_metrics = compute_metrics(pred_train, mask)
+            epoch_train_metrics.append(train_metrics)
+            
+        # Average training metrics for epoch
+        avg_train_metrics = {}
+        for key in epoch_train_metrics[0].keys():
+            val = np.mean([m[key] for m in epoch_train_metrics])
+            avg_train_metrics[key] = val
+            if key in train_metrics_history:
+                train_metrics_history[key].append(val)
+        
+        # Validation
+        avg_val_metrics = {"f1": 0.0, "iou": 0.0, "accuracy": 0.0, "coverage": 0.0, "reward": 0.0}
+        if val_pairs:
+            avg_val_metrics = validate(
+                policy_net, val_pairs, device,
+                patch_size=patch_size,
+                base_coef=base_coef,
+                continuity_coef=continuity_coef,
+                gradient_coef=gradient_coef,
+                neighbor_coef=neighbor_coef,
+                history_len=history_len,
+                future_len=future_len,
+            )
+            
+            # Compute validation loss
+            policy_net.eval()
+            val_epoch_loss = 0
+            val_c = 0
+            
+            with torch.no_grad():
+                for image, mask in val_pairs:
+                    env = PatchClassificationEnv(image=image,
+                                                 mask=mask,
+                                                 patch_size=patch_size,
+                                                 base_coef=base_coef,
+                                                 continuity_coef=continuity_coef,
+                                                 gradient_coef=gradient_coef,
+                                                 neighbor_coef=neighbor_coef,
+                                                 history_len=history_len,
+                                                 future_len=future_len)
+                    obs, _ = env.reset()
+                    done = False
+                    
+                    while not done:
+                        patch_pixels, prev_patches, future_patches = obs_to_tensor(obs, device)
+                        q = policy_net(patch_pixels, prev_patches, future_patches)
+                        a = q.argmax(dim=-1)
+                        
+                        next_obs, reward, terminated, truncated, info = env.step(a.cpu().numpy())
+                        pixel_rewards = info["pixel_rewards"]
+                        done = terminated or truncated
+                        
+                        # Compute validation loss
+                        next_patch_pixels, next_prev_patches, next_future_patches = obs_to_tensor(next_obs, device)
+                        rew_tensor = torch.tensor(pixel_rewards, dtype=torch.float32, device=device).unsqueeze(0)
+                        done_tensor = torch.tensor([done], dtype=torch.float32, device=device)
+                        
+                        q_s_a = q.unsqueeze(0).gather(dim=-1, index=a.unsqueeze(0).unsqueeze(-1)).squeeze(-1)
+                        q_next = target_net(next_patch_pixels, next_prev_patches, next_future_patches)
+                        q_next_max = q_next.unsqueeze(0).max(dim=-1).values
+                        
+                        not_done = (1.0 - done_tensor).unsqueeze(-1).unsqueeze(-1)
+                        target = rew_tensor + gamma * not_done * q_next_max
+                        
+                        val_loss = F.mse_loss(q_s_a, target)
+                        val_epoch_loss += val_loss.item()
+                        val_c += 1
+                        
+                        obs = next_obs
+            
+            policy_net.train()
+            
+            # Store validation metrics
+            for key in avg_val_metrics.keys():
+                if key in val_metrics_history:
+                    val_metrics_history[key].append(avg_val_metrics[key])
+            
+            val_losses.append(val_epoch_loss / val_c if val_c > 0 else 0)
+            val_returns.append(avg_val_metrics["reward"])
 
-        losses.append(epoch_loss / max(1, c_updates))
+            pred = reconstruct_image(policy_net, 
+                                     val_pairs[0][0], 
+                                     val_pairs[0][1], 
+                                     patch_size=patch_size,
+                                     base_coef=base_coef,
+                                     continuity_coef=continuity_coef,
+                                     gradient_coef=gradient_coef,
+                                     neighbor_coef=neighbor_coef,
+                                     history_len=history_len,
+                                     future_len=future_len,
+                                     device=device)
+            if epoch % 5 == 0:
+                visualize_result(val_pairs[0][0], val_pairs[0][1], pred, f"dqn_patch_based/results/{save_dir}/reconstructions/reconstruction_1st_img_epoch_{epoch+1}.png")
+        
+        train_losses.append(epoch_loss / c if c > 0 else 0)
         dt = time.time() - t0
-        print(f"Epoch {epoch+1}/{num_epochs} | avg loss: {losses[-1]:.3f} | avg return: {np.mean(returns[-len(image_mask_pairs):]):.2f} | eps: {epsilon:.3f} | {dt:.1f}s")
+        torch.save(target_net.state_dict(), f"dqn_patch_based/models/{save_dir}/model_epoch_{epoch}_f1_{avg_val_metrics['f1']:.3f}.pth")
+        
+        # Print epoch summary
+        avg_base = np.mean(base_returns[-len(image_mask_pairs):])
+        avg_cont = np.mean(continuity_returns[-len(image_mask_pairs):])
+        avg_neighbor = np.mean(neighbor_returns[-len(image_mask_pairs):])
+        
+        print(f"\nEpoch {epoch+1}/{num_epochs} | Time: {dt:.1f}s")
+        print(f"  Train - Loss: {train_losses[-1]:.4f} | Avg Return: {np.mean(train_returns[-len(image_mask_pairs):]):.2f} | ε: {epsilon:.3f}")
+        print(f"          IoU: {avg_train_metrics['iou']:.3f} | F1: {avg_train_metrics['f1']:.3f} | Acc: {avg_train_metrics['accuracy']:.3f} | Cov: {avg_train_metrics['coverage']:.3f}")
+        print(f"          Rewards -> Base: {avg_base:.2f} | Cont: {avg_cont:.2f} | Neighbor: {avg_neighbor:.2f}")
+        if val_pairs:
+            print(f"  Val   - Loss: {val_losses[-1]:.4f} | Avg Return: {val_returns[-1]:.2f}")
+            print(f"          IoU: {avg_val_metrics['iou']:.3f} | F1: {avg_val_metrics['f1']:.3f} | Acc: {avg_val_metrics['accuracy']:.3f} | Cov: {avg_val_metrics['coverage']:.3f}")
 
     return {
         "policy_net": policy_net,
         "target_net": target_net,
-        "returns": returns,
+        "returns": train_returns,
+        "base_returns": base_returns,
+        "continuity_returns": continuity_returns,
+        "neighbor_returns": neighbor_returns,
+        "val_returns": val_returns,
         "epsilons": epsilons,
-        "losses": losses,
+        "train_losses": train_losses,
+        "val_losses": val_losses,
+        "train_metrics": train_metrics_history,
+        "val_metrics": val_metrics_history,
+        "conn_info": conn_info_history,
     }
 
 
-def reconstruct_image(policy_net, image, mask, patch_size=16, device=None):
+def reconstruct_image(policy_net, 
+                      image, 
+                      mask, 
+                      patch_size=16,
+                      base_coef=1.0,
+                      continuity_coef=0.1,
+                      gradient_coef=0.0,
+                      neighbor_coef=0.1,
+                      history_len=3,
+                      future_len=3,
+                      device=None):
+    """Reconstruct image using trained policy network."""
+    env = PatchClassificationEnv(image, 
+                                 mask, 
+                                 patch_size=patch_size,
+                                 base_coef=base_coef,
+                                 continuity_coef=continuity_coef, 
+                                 gradient_coef=gradient_coef,
+                                 neighbor_coef=neighbor_coef,
+                                 history_len=history_len,
+                                 future_len=future_len, 
+                                 start_from_bottom_left=True)
     device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-    env = PatchClassificationEnv(image=image, mask=mask, patch_size=patch_size)
     obs, _ = env.reset()
+
     canvas = env.reconstruct_blank()
 
     done = False
-    while not done:
-        xt = obs_to_tensor(obs, device)
-        with torch.no_grad():
-            q = policy_net(xt)  # (2, N, N)
-            a = q.argmax(dim=0).cpu().numpy().astype(np.uint8)  # (N, N)
-        # write into canvas
-        y0, x0 = env._order[env._idx]
-        canvas[y0:y0+env.N, x0:x0+env.N] = a
-        obs, _, terminated, truncated, _ = env.step(a)
-        done = terminated or truncated
-
+    policy_net.eval()
+    with torch.no_grad():
+        while not done:
+            patch_pixels, prev_patches, future_patches = obs_to_tensor(obs, device)
+            q = policy_net(patch_pixels, prev_patches, future_patches)  # (N, N, 2)
+            a = q.argmax(dim=-1).cpu().numpy().astype(np.uint8)  # (N, N)
+            
+            # Write into canvas
+            y0, x0 = env._order[env._idx]
+            canvas[y0:y0+env.N, x0:x0+env.N] = a
+            
+            next_obs, reward, terminated, truncated, info = env.step(a)
+            obs = next_obs
+            done = terminated or truncated
+    
+    policy_net.train()
     return env.crop_to_original(canvas)
 
 
-def visualize_result(img, mask, pred, save_dir: str = None) -> None:
-    fig, axs = plt.subplots(1, 3, figsize=(12, 6))
+def visualize_result(img, mask, pred, save_path: str = None) -> None:
+    fig, axs = plt.subplots(1, 3, figsize=(9, 6))
     axs[0].imshow(img, cmap="gray")
     axs[0].set_title("Original Image")
     axs[0].axis("off")
@@ -182,51 +556,201 @@ def visualize_result(img, mask, pred, save_dir: str = None) -> None:
     axs[2].set_title("Patch-based Reconstruction")
     axs[2].axis("off")
 
-    if save_dir:
-        os.makedirs(save_dir, exist_ok=True)
-        plt.savefig(os.path.join(save_dir, "reconstruction.png"))
-    plt.show()
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        plt.savefig(save_path)
+    plt.close()
 
 
 if __name__ == "__main__":
-    train_data_dir = os.path.join("data", "train")
-    val_data_dir = os.path.join("data", "val")
-    train_imgs, train_masks = [], []
+    parser = argparse.ArgumentParser()
 
-    for file in sorted(os.listdir(train_data_dir)):
-        obj = cv2.imread(os.path.join(train_data_dir, file), cv2.IMREAD_GRAYSCALE)
-        if obj is None:
-            continue
-        if "mask" in file:
-            train_masks.append(obj)
-        else:
-            train_imgs.append(obj)
+    # Data
+    parser.add_argument('--ct_like', action='store_true', help='Use CT-Like dataset')
+    parser.add_argument('--drive', action='store_true', help='Use DRIVE dataset')
+    parser.add_argument('--stare', action='store_true', help='Use STARE dataset')
+    parser.add_argument('--image_size', type=int, nargs=2, default=[384, 384], help='Resize images to this size (H W)')
 
-    pairs = list(zip(train_imgs, train_masks))
-    results = train_dqn_patch(
-        pairs,
-        patch_size=16,
-        num_epochs=5,
-        continuity_coef=0.0,
-        neighbor_coef=0.0,
-        start_epsilon=0.5,
+    # Model
+    parser.add_argument("--epochs", type=int, default=30, help="Number of training epochs")
+    parser.add_argument("--patch_size", type=int, default=16, help="Patch size (N x N)")
+    parser.add_argument("--history_len", type=int, default=3, help="History length")
+    parser.add_argument("--future_len", type=int, default=3, help="Future length")
+
+    # RL env
+    parser.add_argument('--base_coef', type=float, default=1.0, help='Base reward coefficient')
+    parser.add_argument("--cont_coef", type=float, default=0.1, help="Continuity reward coefficient")
+    parser.add_argument("--grad_coef", type=float, default=0.0, help="Gradient-based reward coefficient")
+    parser.add_argument("--neighbor_coef", type=float, default=0.1, help="Neighbor smoothness coefficient")
+    
+    args = parser.parse_args()
+
+    train_imgs = []
+    train_masks = []
+    
+    val_imgs = []
+    val_masks = []
+    
+    train_imgs_paths = []
+    train_masks_paths = []
+    
+    val_imgs_paths = []
+    val_masks_paths = []
+
+    if args.ct_like:
+        update_dataset("../data/ct_like/2d", size=args.image_size)
+        save_dir = "ct_like"
+    elif args.drive and not args.stare:
+        update_dataset("../data/DRIVE", size=args.image_size)
+        save_dir = "drive"
+    elif args.stare and not args.drive:
+        update_dataset("../data/STARE", size=args.image_size)    
+        save_dir = "stare"
+    elif args.drive and args.stare:
+        update_dataset("../data/DRIVE", size=args.image_size)
+        update_dataset("../data/STARE", size=args.image_size)    
+        save_dir = "drive+stare"
+    else:
+        # Default fallback
+        save_dir = "default"
+
+    save_dir = os.path.join(save_dir, f"base_{args.base_coef}_cont_{args.cont_coef}_grad_{args.grad_coef}")
+    os.makedirs(f"dqn_patch_based/results/{save_dir}/reconstructions", exist_ok=True)
+    os.makedirs(f"dqn_patch_based/models/{save_dir}", exist_ok=True)
+                    
+    results = train_dqn_on_images(
+        list(zip(train_imgs, train_masks)),
+        val_pairs=list(zip(val_imgs, val_masks)),
+        num_epochs=args.epochs,
+        patch_size=args.patch_size,
+        start_epsilon=1.0,
         end_epsilon=0.01,
-        epsilon_decay_steps=10000,
-        device = "cpu"
+        epsilon_decay_epochs=15,
+        base_coef=args.base_coef,
+        continuity_coef=args.cont_coef,
+        gradient_coef=args.grad_coef,
+        neighbor_coef=args.neighbor_coef,
+        history_len=args.history_len,
+        future_len=args.future_len,
+        save_dir=save_dir,
+        seed=123,
+        device="cuda" if torch.cuda.is_available() else "cpu"
     )
+    
+    for i, (img_test, mask_test) in enumerate(list(zip(val_imgs, val_masks))):
+        pred = reconstruct_image(results["policy_net"], 
+                                 img_test, 
+                                 mask_test, 
+                                 patch_size=args.patch_size,
+                                 base_coef=args.base_coef,
+                                 continuity_coef=args.cont_coef,
+                                 gradient_coef=args.grad_coef,
+                                 neighbor_coef=args.neighbor_coef,
+                                 history_len=args.history_len,
+                                 future_len=args.future_len)
+        visualize_result(img_test, mask_test, pred, save_path=f"dqn_patch_based/results/{save_dir}/reconstructions/final_image_{i+1}.png")
 
-    img_test = cv2.imread(os.path.join(val_data_dir, "tree_1.png"), cv2.IMREAD_GRAYSCALE)
-    mask_test = cv2.imread(os.path.join(val_data_dir, "tree_1_mask.png"), cv2.IMREAD_GRAYSCALE)
+    # Plot training curves
+    fig, axes = plt.subplots(2, 3, figsize=(20, 10))
+    
+    # Returns (Train vs Val)
+    axes[0, 0].plot(results["returns"], alpha=0.3, color='blue', label='Train (per image)')
+    # Moving average for train returns
+    window = len(train_imgs) if len(train_imgs) > 0 else 1
+    train_returns_ma = [np.mean(results["returns"][max(0, i-window+1):i+1]) 
+                        for i in range(len(results["returns"]))]
+    axes[0, 0].plot(train_returns_ma, color='blue', linewidth=2, label='Train (moving average)')
+    axes[0, 0].set_title("Episode Returns")
+    axes[0, 0].set_xlabel("Episode")
+    axes[0, 0].legend()
+    axes[0, 0].grid(True)
+    
+    # Epsilon
+    axes[0, 1].plot(results["epsilons"], color='orange', linestyle='dashed')
+    axes[0, 1].set_title("Exploration (Epsilon)")
+    axes[0, 1].set_xlabel("Episode")
+    axes[0, 1].grid(True)
+    
+    # Loss (Train vs Val)
+    axes[0, 2].plot(results["train_losses"], color='red', marker='o', label='Train')
+    if results["val_losses"]:
+        axes[0, 2].plot(results["val_losses"], color='darkred', marker='s', label='Val')
+    axes[0, 2].set_title("MSE loss per Epoch")
+    axes[0, 2].set_xlabel("Epoch")
+    axes[0, 2].legend()
+    axes[0, 2].grid(True)
+    
+    # IoU
+    axes[1, 0].plot(results["train_metrics"]["iou"], label="Train", marker='o', markersize=2)
+    if results["val_metrics"]["iou"]:
+        axes[1, 0].plot(results["val_metrics"]["iou"], label="Val", marker='s', markersize=2)
+    axes[1, 0].set_title("IoU")
+    axes[1, 0].set_xlabel("Epoch")
+    axes[1, 0].legend()
+    axes[1, 0].grid(True)
+    
+    # F1 Score
+    axes[1, 1].plot(results["train_metrics"]["f1"], label="Train", marker='o', markersize=2)
+    if results["val_metrics"]["f1"]:
+        axes[1, 1].plot(results["val_metrics"]["f1"], label="Val", marker='s', markersize=2)
+    axes[1, 1].set_title("F1 Score")
+    axes[1, 1].set_xlabel("Epoch")
+    axes[1, 1].legend()
+    axes[1, 1].grid(True)
+    
+    # Coverage
+    axes[1, 2].plot(results["train_metrics"]["coverage"], label="Train", marker='o', markersize=2)
+    if results["val_metrics"]["coverage"]:
+        axes[1, 2].plot(results["val_metrics"]["coverage"], label="Val", marker='s', markersize=2)
+    axes[1, 2].set_title("Coverage")
+    axes[1, 2].set_xlabel("Epoch")
+    axes[1, 2].legend()
+    axes[1, 2].grid(True)
 
-    pred = reconstruct_image(results["policy_net"], img_test, mask_test, patch_size=16, device = "cpu")
+    plt.tight_layout()
+    plt.savefig(f"dqn_patch_based/results/{save_dir}/training_results.png", dpi=300)
+    plt.close()
+    
+    # Plot reward components
+    fig2, axes2 = plt.subplots(1, 2, figsize=(20, 5))
+    
+    # Moving average window
+    window = len(train_imgs) if len(train_imgs) > 0 else 1
 
-    visualize_result(img_test, mask_test, pred, save_dir="dqn_patch_based")
+    # Base reward
+    if len(results["base_returns"]) >= window:
+        axes2[0].plot(np.convolve(results["base_returns"], 
+                                  np.ones(window)/window, 
+                                  mode='valid'), 
+                      label="Base Reward", color='green')
+    axes2[0].set_title("Base Reward (Moving Average)")
+    axes2[0].set_ylabel("Reward")
+    axes2[0].set_xlabel("Episode")
+    axes2[0].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+    axes2[0].grid(True)
 
-    # Training curves
-    plt.figure(figsize=(10,8))
-    plt.subplot(3,1,1); plt.plot(results["returns"]); plt.title("Rewards"); plt.grid(True)
-    plt.subplot(3,1,2); plt.plot(results["epsilons"], color='orange', linestyle='dashed'); plt.title("Epsilon"); plt.grid(True)
-    plt.subplot(3,1,3); plt.plot(results["losses"], color='red'); plt.title("Training loss"); plt.ylabel("MSE loss"); plt.xlabel("Epoch"); plt.grid(True)
-    os.makedirs("dqn_patch_based", exist_ok=True)
-    plt.savefig(os.path.join("dqn_patch_based", "results.png"), dpi=600)
-    plt.show()
+    # Continuity reward
+    if len(results["continuity_returns"]) >= window:
+        axes2[1].plot(np.convolve(results["continuity_returns"], 
+                                  np.ones(window)/window,
+                                  mode='valid'), 
+                      label="Continuity Reward", color='blue')
+    axes2[1].set_title("Continuity Reward (Moving Average)")
+    axes2[1].set_xlabel("Episode")
+    axes2[1].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+    axes2[1].grid(True)
+    
+    # Neighbor reward
+    if len(results["neighbor_returns"]) >= window:
+        axes2[2].plot(np.convolve(results["neighbor_returns"], 
+                                  np.ones(window)/window,
+                                  mode='valid'), 
+                      label="Neighbor Reward", color='orange')
+    axes2[2].set_title("Neighbor Reward (Moving Average)")
+    axes2[2].set_xlabel("Episode")
+    axes2[2].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+    axes2[2].grid(True)
+    
+    plt.tight_layout()
+    plt.savefig(f"dqn_patch_based/results/{save_dir}/reward_components_analysis.png", dpi=300)
+    plt.close()
