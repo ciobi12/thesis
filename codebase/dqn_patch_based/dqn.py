@@ -4,17 +4,17 @@ import torch.nn as nn
 from collections import deque, namedtuple
 import random
 
-Transition = namedtuple("Transition", ("obs", "action", "pixel_rewards", "next_obs", "done"))
+Transition = namedtuple("Transition", ("obs", "action", "reward", "next_obs", "done"))
 
 
 def obs_to_tensor(obs, device):
     """Convert observation dict to tensors on device."""
     patch_pixels = torch.tensor(obs["patch_pixels"], dtype=torch.float32, device=device).permute(2, 0, 1)  # (C, N, N)
-    prev_preds = torch.tensor(obs["prev_preds"], dtype=torch.float32, device=device)  # (history_len, N, N)
-    prev_patches = torch.tensor(obs["prev_patches"], dtype=torch.float32, device=device).permute(0, 3, 1, 2)  # (history_len, C, N, N)
-    future_patches = torch.tensor(obs["future_patches"], dtype=torch.float32, device=device).permute(0, 3, 1, 2)  # (future_len, C, N, N)
-    patch_coords = torch.tensor(obs["patch_coords"], dtype=torch.float32, device=device)  # (2,)
-    return patch_pixels, prev_patches, future_patches
+    below_patches = torch.tensor(obs["below_patches"], dtype=torch.float32, device=device).permute(0, 3, 1, 2)  # (3, C, N, N)
+    above_patches = torch.tensor(obs["above_patches"], dtype=torch.float32, device=device).permute(0, 3, 1, 2)  # (3, C, N, N)
+    left_patch = torch.tensor(obs["left_patch"], dtype=torch.float32, device=device).permute(2, 0, 1)  # (C, N, N)
+    neighbor_masks = torch.tensor(obs["neighbor_masks"], dtype=torch.float32, device=device)  # (4, N, N)
+    return patch_pixels, below_patches, above_patches, left_patch, neighbor_masks
 
 
 def batch_obs_to_tensor(obs_list, device):
@@ -22,19 +22,19 @@ def batch_obs_to_tensor(obs_list, device):
     patch_pixels = torch.tensor(
         np.stack([o["patch_pixels"] for o in obs_list]), dtype=torch.float32, device=device
     ).permute(0, 3, 1, 2)  # (B, C, N, N)
-    prev_preds = torch.tensor(
-        np.stack([o["prev_preds"] for o in obs_list]), dtype=torch.float32, device=device
-    )  # (B, history_len, N, N)
-    prev_patches = torch.tensor(
-        np.stack([o["prev_patches"] for o in obs_list]), dtype=torch.float32, device=device
-    ).permute(0, 1, 4, 2, 3)  # (B, history_len, C, N, N)
-    future_patches = torch.tensor(
-        np.stack([o["future_patches"] for o in obs_list]), dtype=torch.float32, device=device
-    ).permute(0, 1, 4, 2, 3)  # (B, future_len, C, N, N)
-    patch_coords = torch.tensor(
-        np.stack([o["patch_coords"] for o in obs_list]), dtype=torch.float32, device=device
-    )  # (B, 2)
-    return patch_pixels, prev_patches, future_patches
+    below_patches = torch.tensor(
+        np.stack([o["below_patches"] for o in obs_list]), dtype=torch.float32, device=device
+    ).permute(0, 1, 4, 2, 3)  # (B, 3, C, N, N)
+    above_patches = torch.tensor(
+        np.stack([o["above_patches"] for o in obs_list]), dtype=torch.float32, device=device
+    ).permute(0, 1, 4, 2, 3)  # (B, 3, C, N, N)
+    left_patch = torch.tensor(
+        np.stack([o["left_patch"] for o in obs_list]), dtype=torch.float32, device=device
+    ).permute(0, 3, 1, 2)  # (B, C, N, N)
+    neighbor_masks = torch.tensor(
+        np.stack([o["neighbor_masks"] for o in obs_list]), dtype=torch.float32, device=device
+    )  # (B, 4, N, N)
+    return patch_pixels, below_patches, above_patches, left_patch, neighbor_masks
 
 
 class PerPatchCNN(nn.Module):
@@ -61,18 +61,18 @@ class PerPatchCNN(nn.Module):
         return q.squeeze(0)  # (2, N, N) for unbatched case
 
 
-class PerPatchCNNWithHistory(nn.Module):
-    """Enhanced architecture that processes historical and future context for patches.
+class NeighborContextCNN(nn.Module):
+    """Enhanced architecture that uses spatial neighbor context.
     
     The network sees:
     - Current patch pixels
-    - Previous K patches (history_len) image pixels
-    - Future K patches (future_len) image pixels (lookahead)
+    - 3 patches below (bottom-left, directly below, bottom-right)
+    - 3 patches above (top-left, directly above, top-right)
+    - Left neighbor patch
+    - Predicted masks of left + 3 below patches (for continuity awareness)
     """
-    def __init__(self, input_channels, history_len, future_len, patch_size):
+    def __init__(self, input_channels, patch_size):
         super().__init__()
-        self.history_len = history_len
-        self.future_len = future_len
         self.input_channels = input_channels
         self.patch_size = patch_size
         
@@ -84,52 +84,73 @@ class PerPatchCNNWithHistory(nn.Module):
             nn.ReLU(),
         )
         
-        # History encoder (processes previous patch pixels)
-        self.history_encoder = nn.Sequential(
-            nn.Conv2d(history_len * input_channels, 32, kernel_size=5, padding=2),
+        # Below patches encoder (3 patches: bottom-left, below, bottom-right)
+        self.below_encoder = nn.Sequential(
+            nn.Conv2d(3 * input_channels, 48, kernel_size=5, padding=2),
+            nn.ReLU(),
+            nn.Conv2d(48, 48, kernel_size=3, padding=1),
+            nn.ReLU(),
+        )
+        
+        # Above patches encoder (3 patches: top-left, above, top-right)
+        self.above_encoder = nn.Sequential(
+            nn.Conv2d(3 * input_channels, 48, kernel_size=5, padding=2),
+            nn.ReLU(),
+            nn.Conv2d(48, 48, kernel_size=3, padding=1),
+            nn.ReLU(),
+        )
+        
+        # Left patch encoder
+        self.left_encoder = nn.Sequential(
+            nn.Conv2d(input_channels, 32, kernel_size=5, padding=2),
             nn.ReLU(),
             nn.Conv2d(32, 32, kernel_size=3, padding=1),
             nn.ReLU(),
         )
         
-        # Future encoder (processes upcoming patch pixels for lookahead)
-        self.future_encoder = nn.Sequential(
-            nn.Conv2d(future_len * input_channels, 32, kernel_size=5, padding=2),
+        # Neighbor masks encoder (4 masks: left + 3 below)
+        self.mask_encoder = nn.Sequential(
+            nn.Conv2d(4, 32, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.Conv2d(32, 32, kernel_size=3, padding=1),
             nn.ReLU(),
         )
         
-        # Cross-attention between current and temporal context (history + future)
+        # Cross-attention between current patch and all context
+        # 64 (patch) + 48 (below) + 48 (above) + 32 (left) + 32 (masks) = 224
         self.attention = nn.Sequential(
-            nn.Conv2d(64 + 32 + 32, 64, kernel_size=1),
+            nn.Conv2d(224, 64, kernel_size=1),
             nn.ReLU(),
             nn.Conv2d(64, 64, kernel_size=1),
             nn.Sigmoid()
         )
         
-        # Final decision layers (includes history and future features)
+        # Final decision layers
         self.decision = nn.Sequential(
-            nn.Conv2d(64 + 32 + 32, 128, kernel_size=3, padding=1),
+            nn.Conv2d(224, 128, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.Conv2d(128, 64, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.Conv2d(64, 2, kernel_size=1)
         )
     
-    def forward(self, patch_pixels, prev_patches, future_patches):
+    def forward(self, patch_pixels, below_patches, above_patches, left_patch, neighbor_masks):
         """
-        patch_pixels: (batch, C, N, N)
-        prev_patches: (batch, history_len, C, N, N) - previous patch image pixels
-        future_patches: (batch, future_len, C, N, N)
+        patch_pixels: (batch, C, N, N) or (C, N, N)
+        below_patches: (batch, 3, C, N, N) or (3, C, N, N)
+        above_patches: (batch, 3, C, N, N) or (3, C, N, N)
+        left_patch: (batch, C, N, N) or (C, N, N)
+        neighbor_masks: (batch, 4, N, N) or (4, N, N)
         
         Returns: (batch, N, N, 2) Q-values per pixel
         """
         # Handle single observation (no batch dimension)
         if patch_pixels.dim() == 3:
             patch_pixels = patch_pixels.unsqueeze(0)
-            prev_patches = prev_patches.unsqueeze(0)
-            future_patches = future_patches.unsqueeze(0)
+            below_patches = below_patches.unsqueeze(0)
+            above_patches = above_patches.unsqueeze(0)
+            left_patch = left_patch.unsqueeze(0)
+            neighbor_masks = neighbor_masks.unsqueeze(0)
             squeeze_output = True
         else:
             squeeze_output = False
@@ -137,30 +158,41 @@ class PerPatchCNNWithHistory(nn.Module):
         B = patch_pixels.size(0)
         N = patch_pixels.size(-1)
         
-        # Flatten history patches: (B, history_len, C, N, N) -> (B, history_len*C, N, N)
-        x_hist = prev_patches.reshape(B, self.history_len * self.input_channels, N, N)
+        # Flatten below patches: (B, 3, C, N, N) -> (B, 3*C, N, N)
+        x_below = below_patches.reshape(B, 3 * self.input_channels, N, N)
         
-        # Flatten future patches: (B, future_len, C, N, N) -> (B, future_len*C, N, N)
-        x_future = future_patches.reshape(B, self.future_len * self.input_channels, N, N)
+        # Flatten above patches: (B, 3, C, N, N) -> (B, 3*C, N, N)
+        x_above = above_patches.reshape(B, 3 * self.input_channels, N, N)
         
         # Encode current patch
         patch_features = self.patch_encoder(patch_pixels)  # (B, 64, N, N)
         
-        # Encode history (past patch pixels)
-        hist_features = self.history_encoder(x_hist)  # (B, 32, N, N)
+        # Encode below context
+        below_features = self.below_encoder(x_below)  # (B, 48, N, N)
         
-        # Encode future (upcoming patch pixels)
-        future_features = self.future_encoder(x_future)  # (B, 32, N, N)
+        # Encode above context
+        above_features = self.above_encoder(x_above)  # (B, 48, N, N)
         
-        # Combine all for attention
-        combined = torch.cat([patch_features, hist_features, future_features], dim=1)  # (B, 128, N, N)
+        # Encode left patch
+        left_features = self.left_encoder(left_patch)  # (B, 32, N, N)
+        
+        # Encode neighbor masks
+        mask_features = self.mask_encoder(neighbor_masks)  # (B, 32, N, N)
+        
+        # Combine all features
+        combined = torch.cat([
+            patch_features, below_features, above_features, left_features, mask_features
+        ], dim=1)  # (B, 224, N, N)
+        
+        # Apply attention
         attention_weights = self.attention(combined)  # (B, 64, N, N)
-        
-        # Apply attention to patch features
         attended_patch = patch_features * attention_weights  # (B, 64, N, N)
         
-        # Final decision with attended patch, history, and future
-        final_features = torch.cat([attended_patch, hist_features, future_features], dim=1)  # (B, 128, N, N)
+        # Reconstruct combined with attended patch
+        final_features = torch.cat([
+            attended_patch, below_features, above_features, left_features, mask_features
+        ], dim=1)  # (B, 224, N, N)
+        
         q_values = self.decision(final_features)  # (B, 2, N, N)
         
         # Permute to (B, N, N, 2)

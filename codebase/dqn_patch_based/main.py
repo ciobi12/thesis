@@ -7,7 +7,7 @@ import time
 import torch
 import torch.nn.functional as F
 
-from dqn_patch_based.dqn import PerPatchCNNWithHistory, ReplayBuffer, obs_to_tensor, batch_obs_to_tensor, epsilon_greedy_action
+from dqn_patch_based.dqn import NeighborContextCNN, ReplayBuffer, obs_to_tensor, batch_obs_to_tensor, epsilon_greedy_action
 from dqn_patch_based.env import PatchClassificationEnv
 
 from matplotlib import pyplot as plt
@@ -93,11 +93,7 @@ def validate(policy_net,
              device, 
              patch_size=16,
              base_coef=1.0,
-             continuity_coef=0.1,
-             gradient_coef=0.0,
-             neighbor_coef=0.1,
-             history_len=3,
-             future_len=3):
+             continuity_coef=0.1):
     """Run validation and return average metrics, loss, and reward."""
     policy_net.eval()
     all_metrics = []
@@ -112,10 +108,6 @@ def validate(policy_net,
                                      patch_size=patch_size,
                                      base_coef=base_coef,
                                      continuity_coef=continuity_coef,
-                                     gradient_coef=gradient_coef,
-                                     neighbor_coef=neighbor_coef,
-                                     history_len=history_len,
-                                     future_len=future_len,
                                      device=device)
             metrics = compute_metrics(pred, mask)
             all_metrics.append(metrics)
@@ -125,18 +117,14 @@ def validate(policy_net,
                                          mask=mask,
                                          patch_size=patch_size,
                                          base_coef=base_coef,
-                                         continuity_coef=continuity_coef,
-                                         gradient_coef=gradient_coef,
-                                         neighbor_coef=neighbor_coef,
-                                         history_len=history_len,
-                                         future_len=future_len)
+                                         continuity_coef=continuity_coef)
             obs, _ = env.reset()
             done = False
             episode_reward = 0.0
             
             while not done:
-                patch_pixels, prev_patches, future_patches = obs_to_tensor(obs, device)
-                q = policy_net(patch_pixels, prev_patches, future_patches)
+                patch_pixels, below_patches, above_patches, left_patch, neighbor_masks = obs_to_tensor(obs, device)
+                q = policy_net(patch_pixels, below_patches, above_patches, left_patch, neighbor_masks)
                 a = q.argmax(dim=-1).cpu().numpy()  # (N, N)
                 next_obs, reward, terminated, truncated, info = env.step(a)
                 episode_reward += reward
@@ -172,10 +160,6 @@ def train_dqn_on_images(
     epsilon_decay_epochs=15,
     base_coef=1.0,
     continuity_coef=0.1,
-    gradient_coef=0.0,
-    neighbor_coef=0.1,
-    history_len=3,
-    future_len=3,
     save_dir=None,
     seed=42,
     device=None,
@@ -190,9 +174,9 @@ def train_dqn_on_images(
     sample_image, _ = image_mask_pairs[0]
     C = 1 if sample_image.ndim == 2 else sample_image.shape[2]
 
-    # Networks
-    policy_net = PerPatchCNNWithHistory(input_channels=C, history_len=history_len, future_len=future_len, patch_size=patch_size).to(device)
-    target_net = PerPatchCNNWithHistory(input_channels=C, history_len=history_len, future_len=future_len, patch_size=patch_size).to(device)
+    # Networks - use new neighbor context architecture
+    policy_net = NeighborContextCNN(input_channels=C, patch_size=patch_size).to(device)
+    target_net = NeighborContextCNN(input_channels=C, patch_size=patch_size).to(device)
     
     target_net.load_state_dict(policy_net.state_dict())
     target_net.eval()
@@ -212,7 +196,6 @@ def train_dqn_on_images(
     val_returns = []
     base_returns = []
     continuity_returns = []
-    neighbor_returns = []
     
     epsilons = []
     
@@ -224,9 +207,8 @@ def train_dqn_on_images(
                                                    "precision": [], 
                                                    "recall": []} for x in range(2)]
     
-    # Conn_info tracking
-    conn_info_history = {
-        "gradient_rewards": [],
+    # Info tracking
+    info_history = {
         "true_positives": [],
         "false_positives": [],
         "false_negatives": []
@@ -249,11 +231,7 @@ def train_dqn_on_images(
                                          mask=mask, 
                                          patch_size=patch_size,
                                          base_coef=base_coef,
-                                         continuity_coef=continuity_coef, 
-                                         gradient_coef=gradient_coef,
-                                         neighbor_coef=neighbor_coef,
-                                         history_len=history_len,
-                                         future_len=future_len,
+                                         continuity_coef=continuity_coef,
                                          start_from_bottom_left=True)
             obs, _ = env.reset()
 
@@ -261,44 +239,40 @@ def train_dqn_on_images(
             img_return = 0.0
             base_return = 0.0
             continuity_return = 0.0
-            neighbor_return = 0.0
             
-            # Track conn_info for this episode
-            episode_conn_info = {
-                "gradient_rewards": [],
+            # Track info for this episode
+            episode_info = {
                 "true_positives": [],
                 "false_positives": [],
                 "false_negatives": []
             }
 
             while not done:
-                patch_pixels, prev_patches, future_patches = obs_to_tensor(obs, device)
+                patch_pixels, below_patches, above_patches, left_patch, neighbor_masks = obs_to_tensor(obs, device)
                 with torch.no_grad():
-                    q = policy_net(patch_pixels, prev_patches, future_patches)  # (N, N, 2)
+                    q = policy_net(patch_pixels, below_patches, above_patches, left_patch, neighbor_masks)  # (N, N, 2)
                 a = epsilon_greedy_action(q, epsilon)  # (N, N)
 
                 # Keep action on GPU, only convert to numpy when needed for env
                 next_obs, reward, terminated, truncated, info = env.step(a.cpu().numpy())
-                pixel_rewards = info["pixel_rewards"]
-                base_reward = info["base_rewards"].sum()
-                continuity_reward = info["continuity_rewards"].sum()
-                neighbor_reward = info["neighbour_rewards"].sum()
+                base_reward = info["base_reward"]
+                continuity_reward = info["continuity_reward"]
                 
-                # Track conn_info metrics
-                for key in episode_conn_info.keys():
+                # Track info metrics
+                for key in episode_info.keys():
                     if key in info:
-                        episode_conn_info[key].append(info[key] if not isinstance(info[key], np.ndarray) else info[key].sum())
+                        episode_info[key].append(info[key])
                 
                 done = terminated or truncated
                 base_return += base_reward
                 continuity_return += continuity_reward
-                neighbor_return += neighbor_reward
                 img_return += reward
 
+                # Store scalar reward (not pixel rewards)
                 replay.push(
                     obs,
                     a.cpu().numpy(),
-                    pixel_rewards.astype(np.float32),
+                    reward,  # scalar reward
                     next_obs,
                     done
                 )
@@ -306,29 +280,33 @@ def train_dqn_on_images(
                 obs = next_obs
                 global_step += 1
 
-                # Optimize - batched processing
+                # Optimize - batched processing with scalar rewards
                 if len(replay) >= batch_size:
                     batch = replay.sample(batch_size)
 
                     # Batch conversion - single GPU transfer
-                    patch_pixels_batch, prev_patches_batch, future_patches_batch = batch_obs_to_tensor([t.obs for t in batch], device)
+                    patch_pixels_batch, below_patches_batch, above_patches_batch, left_patch_batch, neighbor_masks_batch = batch_obs_to_tensor([t.obs for t in batch], device)
                     act_batch = torch.tensor(np.stack([t.action for t in batch]), dtype=torch.int64, device=device)  # (B, N, N)
-                    rew_batch = torch.tensor(np.stack([t.pixel_rewards for t in batch]), dtype=torch.float32, device=device)  # (B, N, N)
-                    next_patch_pixels_batch, next_prev_patches_batch, next_future_patches_batch = batch_obs_to_tensor([t.next_obs for t in batch], device)
+                    rew_batch = torch.tensor([t.reward for t in batch], dtype=torch.float32, device=device)  # (B,) scalar rewards
+                    next_patch_pixels_batch, next_below_patches_batch, next_above_patches_batch, next_left_patch_batch, next_neighbor_masks_batch = batch_obs_to_tensor([t.next_obs for t in batch], device)
                     done_batch = torch.tensor([t.done for t in batch], dtype=torch.float32, device=device)
 
                     # Batched forward passes
-                    q_s = policy_net(patch_pixels_batch, prev_patches_batch, future_patches_batch)  # (B, N, N, 2)
+                    q_s = policy_net(patch_pixels_batch, below_patches_batch, above_patches_batch, left_patch_batch, neighbor_masks_batch)  # (B, N, N, 2)
                     q_s_a = q_s.gather(dim=-1, index=act_batch.unsqueeze(-1)).squeeze(-1)  # (B, N, N)
+                    
+                    # Aggregate Q-values per patch (mean over pixels)
+                    q_s_a_mean = q_s_a.mean(dim=(1, 2))  # (B,)
 
                     with torch.no_grad():
-                        q_next = target_net(next_patch_pixels_batch, next_prev_patches_batch, next_future_patches_batch)  # (B, N, N, 2)
+                        q_next = target_net(next_patch_pixels_batch, next_below_patches_batch, next_above_patches_batch, next_left_patch_batch, next_neighbor_masks_batch)  # (B, N, N, 2)
                         q_next_max = q_next.max(dim=-1).values  # (B, N, N)
+                        q_next_max_mean = q_next_max.mean(dim=(1, 2))  # (B,)
 
-                    not_done = (1.0 - done_batch).unsqueeze(-1).unsqueeze(-1)  # (B, 1, 1)
-                    target = rew_batch + gamma * not_done * q_next_max  # (B, N, N)
+                    not_done = (1.0 - done_batch)  # (B,)
+                    target = rew_batch + gamma * not_done * q_next_max_mean  # (B,) scalar targets
 
-                    loss = F.mse_loss(q_s_a, target)
+                    loss = F.mse_loss(q_s_a_mean, target)
                     optimizer.zero_grad()
                     loss.backward()
                     torch.nn.utils.clip_grad_norm_(policy_net.parameters(), max_norm=5.0)
@@ -342,16 +320,15 @@ def train_dqn_on_images(
 
             base_returns.append(base_return)
             continuity_returns.append(continuity_return)
-            neighbor_returns.append(neighbor_return)
             train_returns.append(img_return)
             epsilons.append(epsilon)
             
-            # Aggregate conn_info for this episode (average across patches)
-            for key in episode_conn_info.keys():
-                if len(episode_conn_info[key]) > 0:
-                    conn_info_history[key].append(np.mean(episode_conn_info[key]))
+            # Aggregate info for this episode (average across patches)
+            for key in episode_info.keys():
+                if len(episode_info[key]) > 0:
+                    info_history[key].append(np.mean(episode_info[key]))
                 else:
-                    conn_info_history[key].append(0.0)
+                    info_history[key].append(0.0)
             
             # Compute metrics for this training image
             pred_train = reconstruct_image(policy_net, 
@@ -360,10 +337,6 @@ def train_dqn_on_images(
                                            patch_size=patch_size,
                                            base_coef=base_coef,
                                            continuity_coef=continuity_coef,
-                                           gradient_coef=gradient_coef,
-                                           neighbor_coef=neighbor_coef,
-                                           history_len=history_len,
-                                           future_len=future_len,
                                            device=device)
                                            
             train_metrics = compute_metrics(pred_train, mask)
@@ -385,10 +358,6 @@ def train_dqn_on_images(
                 patch_size=patch_size,
                 base_coef=base_coef,
                 continuity_coef=continuity_coef,
-                gradient_coef=gradient_coef,
-                neighbor_coef=neighbor_coef,
-                history_len=history_len,
-                future_len=future_len,
             )
             
             # Compute validation loss
@@ -402,36 +371,34 @@ def train_dqn_on_images(
                                                  mask=mask,
                                                  patch_size=patch_size,
                                                  base_coef=base_coef,
-                                                 continuity_coef=continuity_coef,
-                                                 gradient_coef=gradient_coef,
-                                                 neighbor_coef=neighbor_coef,
-                                                 history_len=history_len,
-                                                 future_len=future_len)
+                                                 continuity_coef=continuity_coef)
                     obs, _ = env.reset()
                     done = False
                     
                     while not done:
-                        patch_pixels, prev_patches, future_patches = obs_to_tensor(obs, device)
-                        q = policy_net(patch_pixels, prev_patches, future_patches)
+                        patch_pixels, below_patches, above_patches, left_patch, neighbor_masks = obs_to_tensor(obs, device)
+                        q = policy_net(patch_pixels, below_patches, above_patches, left_patch, neighbor_masks)
                         a = q.argmax(dim=-1)
                         
                         next_obs, reward, terminated, truncated, info = env.step(a.cpu().numpy())
-                        pixel_rewards = info["pixel_rewards"]
                         done = terminated or truncated
                         
-                        # Compute validation loss
-                        next_patch_pixels, next_prev_patches, next_future_patches = obs_to_tensor(next_obs, device)
-                        rew_tensor = torch.tensor(pixel_rewards, dtype=torch.float32, device=device).unsqueeze(0)
+                        # Compute validation loss with scalar rewards
+                        next_patch_pixels, next_below_patches, next_above_patches, next_left_patch, next_neighbor_masks = obs_to_tensor(next_obs, device)
+                        rew_tensor = torch.tensor([reward], dtype=torch.float32, device=device)
                         done_tensor = torch.tensor([done], dtype=torch.float32, device=device)
                         
                         q_s_a = q.unsqueeze(0).gather(dim=-1, index=a.unsqueeze(0).unsqueeze(-1)).squeeze(-1)
-                        q_next = target_net(next_patch_pixels, next_prev_patches, next_future_patches)
+                        q_s_a_mean = q_s_a.mean(dim=(1, 2))  # (1,)
+                        
+                        q_next = target_net(next_patch_pixels, next_below_patches, next_above_patches, next_left_patch, next_neighbor_masks)
                         q_next_max = q_next.unsqueeze(0).max(dim=-1).values
+                        q_next_max_mean = q_next_max.mean(dim=(1, 2))  # (1,)
                         
-                        not_done = (1.0 - done_tensor).unsqueeze(-1).unsqueeze(-1)
-                        target = rew_tensor + gamma * not_done * q_next_max
+                        not_done = (1.0 - done_tensor)
+                        target = rew_tensor + gamma * not_done * q_next_max_mean
                         
-                        val_loss = F.mse_loss(q_s_a, target)
+                        val_loss = F.mse_loss(q_s_a_mean, target)
                         val_epoch_loss += val_loss.item()
                         val_c += 1
                         
@@ -453,10 +420,6 @@ def train_dqn_on_images(
                                      patch_size=patch_size,
                                      base_coef=base_coef,
                                      continuity_coef=continuity_coef,
-                                     gradient_coef=gradient_coef,
-                                     neighbor_coef=neighbor_coef,
-                                     history_len=history_len,
-                                     future_len=future_len,
                                      device=device)
             if epoch % 5 == 0:
                 visualize_result(val_pairs[0][0], val_pairs[0][1], pred, f"dqn_patch_based/results/{save_dir}/reconstructions/reconstruction_1st_img_epoch_{epoch+1}.png")
@@ -468,12 +431,11 @@ def train_dqn_on_images(
         # Print epoch summary
         avg_base = np.mean(base_returns[-len(image_mask_pairs):])
         avg_cont = np.mean(continuity_returns[-len(image_mask_pairs):])
-        avg_neighbor = np.mean(neighbor_returns[-len(image_mask_pairs):])
         
         print(f"\nEpoch {epoch+1}/{num_epochs} | Time: {dt:.1f}s")
         print(f"  Train - Loss: {train_losses[-1]:.4f} | Avg Return: {np.mean(train_returns[-len(image_mask_pairs):]):.2f} | ε: {epsilon:.3f}")
         print(f"          IoU: {avg_train_metrics['iou']:.3f} | F1: {avg_train_metrics['f1']:.3f} | Acc: {avg_train_metrics['accuracy']:.3f} | Cov: {avg_train_metrics['coverage']:.3f}")
-        print(f"          Rewards -> Base: {avg_base:.2f} | Cont: {avg_cont:.2f} | Neighbor: {avg_neighbor:.2f}")
+        print(f"          Rewards -> Base: {avg_base:.2f} | Cont: {avg_cont:.2f}")
         if val_pairs:
             print(f"  Val   - Loss: {val_losses[-1]:.4f} | Avg Return: {val_returns[-1]:.2f}")
             print(f"          IoU: {avg_val_metrics['iou']:.3f} | F1: {avg_val_metrics['f1']:.3f} | Acc: {avg_val_metrics['accuracy']:.3f} | Cov: {avg_val_metrics['coverage']:.3f}")
@@ -484,14 +446,13 @@ def train_dqn_on_images(
         "returns": train_returns,
         "base_returns": base_returns,
         "continuity_returns": continuity_returns,
-        "neighbor_returns": neighbor_returns,
         "val_returns": val_returns,
         "epsilons": epsilons,
         "train_losses": train_losses,
         "val_losses": val_losses,
         "train_metrics": train_metrics_history,
         "val_metrics": val_metrics_history,
-        "conn_info": conn_info_history,
+        "info_history": info_history,
     }
 
 
@@ -501,21 +462,13 @@ def reconstruct_image(policy_net,
                       patch_size=16,
                       base_coef=1.0,
                       continuity_coef=0.1,
-                      gradient_coef=0.0,
-                      neighbor_coef=0.1,
-                      history_len=3,
-                      future_len=3,
                       device=None):
     """Reconstruct image using trained policy network."""
     env = PatchClassificationEnv(image, 
                                  mask, 
                                  patch_size=patch_size,
                                  base_coef=base_coef,
-                                 continuity_coef=continuity_coef, 
-                                 gradient_coef=gradient_coef,
-                                 neighbor_coef=neighbor_coef,
-                                 history_len=history_len,
-                                 future_len=future_len, 
+                                 continuity_coef=continuity_coef,
                                  start_from_bottom_left=True)
     device = device or ("cuda" if torch.cuda.is_available() else "cpu")
     obs, _ = env.reset()
@@ -526,8 +479,8 @@ def reconstruct_image(policy_net,
     policy_net.eval()
     with torch.no_grad():
         while not done:
-            patch_pixels, prev_patches, future_patches = obs_to_tensor(obs, device)
-            q = policy_net(patch_pixels, prev_patches, future_patches)  # (N, N, 2)
+            patch_pixels, below_patches, above_patches, left_patch, neighbor_masks = obs_to_tensor(obs, device)
+            q = policy_net(patch_pixels, below_patches, above_patches, left_patch, neighbor_masks)  # (N, N, 2)
             a = q.argmax(dim=-1).cpu().numpy().astype(np.uint8)  # (N, N)
             
             # Write into canvas
@@ -574,14 +527,10 @@ if __name__ == "__main__":
     # Model
     parser.add_argument("--epochs", type=int, default=30, help="Number of training epochs")
     parser.add_argument("--patch_size", type=int, default=16, help="Patch size (N x N)")
-    parser.add_argument("--history_len", type=int, default=3, help="History length")
-    parser.add_argument("--future_len", type=int, default=3, help="Future length")
 
     # RL env
     parser.add_argument('--base_coef', type=float, default=1.0, help='Base reward coefficient')
     parser.add_argument("--cont_coef", type=float, default=0.1, help="Continuity reward coefficient")
-    parser.add_argument("--grad_coef", type=float, default=0.0, help="Gradient-based reward coefficient")
-    parser.add_argument("--neighbor_coef", type=float, default=0.1, help="Neighbor smoothness coefficient")
     
     args = parser.parse_args()
 
@@ -614,7 +563,7 @@ if __name__ == "__main__":
         # Default fallback
         save_dir = "default"
 
-    save_dir = os.path.join(save_dir, f"base_{args.base_coef}_cont_{args.cont_coef}_grad_{args.grad_coef}")
+    save_dir = os.path.join(save_dir, f"base_{args.base_coef}_cont_{args.cont_coef}")
     os.makedirs(f"dqn_patch_based/results/{save_dir}/reconstructions", exist_ok=True)
     os.makedirs(f"dqn_patch_based/models/{save_dir}", exist_ok=True)
                     
@@ -628,10 +577,6 @@ if __name__ == "__main__":
         epsilon_decay_epochs=15,
         base_coef=args.base_coef,
         continuity_coef=args.cont_coef,
-        gradient_coef=args.grad_coef,
-        neighbor_coef=args.neighbor_coef,
-        history_len=args.history_len,
-        future_len=args.future_len,
         save_dir=save_dir,
         seed=123,
         device="cuda" if torch.cuda.is_available() else "cpu"
@@ -712,7 +657,7 @@ if __name__ == "__main__":
     plt.close()
     
     # Plot reward components
-    fig2, axes2 = plt.subplots(1, 2, figsize=(20, 5))
+    fig2, axes2 = plt.subplots(1, 2, figsize=(14, 5))
     
     # Moving average window
     window = len(train_imgs) if len(train_imgs) > 0 else 1
@@ -739,17 +684,6 @@ if __name__ == "__main__":
     axes2[1].set_xlabel("Episode")
     axes2[1].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
     axes2[1].grid(True)
-    
-    # Neighbor reward
-    if len(results["neighbor_returns"]) >= window:
-        axes2[2].plot(np.convolve(results["neighbor_returns"], 
-                                  np.ones(window)/window,
-                                  mode='valid'), 
-                      label="Neighbor Reward", color='orange')
-    axes2[2].set_title("Neighbor Reward (Moving Average)")
-    axes2[2].set_xlabel("Episode")
-    axes2[2].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
-    axes2[2].grid(True)
     
     plt.tight_layout()
     plt.savefig(f"dqn_patch_based/results/{save_dir}/reward_components_analysis.png", dpi=300)

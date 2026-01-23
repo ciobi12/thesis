@@ -1,19 +1,21 @@
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
-from collections import deque
 
 class PatchClassificationEnv(gym.Env):
     """
     Patch-wise environment: bottom-left to top-right traversal.
     One step = one patch (N x N). The agent acts with a per-pixel MultiBinary (N*N) decision.
 
-    Reward per pixel combines:
-    - Base accuracy:     -base_coef * |action - gt|
-    - Continuity: penalty for isolated active pixels not connected to previous prediction
-    - Gradient-based: rewards smooth intensity transitions between connected patches
-    - Optional neighbour smoothness (within patch, 4-neighbours on image intensities):
-        -neighbor_coef * sum_{(dx,dy) in {(1,0),(-1,0),(0,1),(0,-1)}} |action(i,j) - image(i+dy, j+dx)|
+    Context for each patch includes:
+    - Current patch pixels
+    - 3 patches below (bottom-left, directly below, bottom-right)
+    - 3 patches above (top-left, directly above, top-right)
+    - Left neighbor patch
+
+    Reward per patch (scalar) combines:
+    - Base accuracy: mean of |action - gt| across all pixels in patch
+    - Continuity: checks similarity with neighbor patches for structural coherence
     """
     metadata = {"render_modes": []}
 
@@ -23,10 +25,6 @@ class PatchClassificationEnv(gym.Env):
                  patch_size=16, 
                  base_coef=1.0,
                  continuity_coef=0.1, 
-                 gradient_coef=0.0,
-                 neighbor_coef=0.1, 
-                 history_len=3,
-                 future_len=3,
                  start_from_bottom_left=True):
         super().__init__()
         assert image.shape[:2] == mask.shape, "Image and mask must have same height and width"
@@ -41,10 +39,6 @@ class PatchClassificationEnv(gym.Env):
         self.N = int(patch_size)
         self.base_coef = float(base_coef)
         self.continuity_coef = float(continuity_coef)
-        self.gradient_coef = float(gradient_coef)
-        self.neighbor_coef = float(neighbor_coef)
-        self.history_len = int(history_len)
-        self.future_len = int(future_len)
         self.start_from_bottom_left = bool(start_from_bottom_left)
 
         # Pad image and mask to multiples of N for fixed-size patches
@@ -74,15 +68,15 @@ class PatchClassificationEnv(gym.Env):
         self.action_space = spaces.MultiBinary(self.N * self.N)
         self.observation_space = spaces.Dict({
             "patch_pixels": spaces.Box(0.0, 1.0, shape=(self.N, self.N, self.C), dtype=np.float32),
-            "prev_preds": spaces.Box(0.0, 1.0, shape=(self.history_len, self.N, self.N), dtype=np.float32),
-            "prev_patches": spaces.Box(0.0, 1.0, shape=(self.history_len, self.N, self.N, self.C), dtype=np.float32),
-            "future_patches": spaces.Box(0.0, 1.0, shape=(self.future_len, self.N, self.N, self.C), dtype=np.float32),
+            "below_patches": spaces.Box(0.0, 1.0, shape=(3, self.N, self.N, self.C), dtype=np.float32),  # bottom-left, below, bottom-right
+            "above_patches": spaces.Box(0.0, 1.0, shape=(3, self.N, self.N, self.C), dtype=np.float32),  # top-left, above, top-right
+            "left_patch": spaces.Box(0.0, 1.0, shape=(self.N, self.N, self.C), dtype=np.float32),
+            "neighbor_masks": spaces.Box(0.0, 1.0, shape=(4, self.N, self.N), dtype=np.float32),  # masks of left + 3 below patches
             "patch_coords": spaces.Box(0.0, 1.0, shape=(2,), dtype=np.float32),  # (row_norm, col_norm)
         })
 
-        # History buffers
-        self.prev_preds_buffer = None
-        self.prev_patches_buffer = None
+        # Store predictions for neighbor mask lookup
+        self.predictions = None
         
         # Episode-level accumulators for metrics
         self.episode_predictions = None
@@ -92,15 +86,8 @@ class PatchClassificationEnv(gym.Env):
         super().reset(seed=seed)
         self._idx = 0
         
-        # Initialize history buffers
-        self.prev_preds_buffer = deque(
-            [np.zeros((self.N, self.N), dtype=np.float32) for _ in range(self.history_len)], 
-            maxlen=self.history_len
-        )
-        self.prev_patches_buffer = deque(
-            [np.zeros((self.N, self.N, self.C), dtype=np.float32) for _ in range(self.history_len)], 
-            maxlen=self.history_len
-        )
+        # Initialize predictions storage (for neighbor mask lookup)
+        self.predictions = np.zeros((self.Hp, self.Wp), dtype=np.float32)
         
         # Initialize episode accumulators
         self.episode_predictions = np.zeros((self.Hp, self.Wp), dtype=np.float32)
@@ -108,31 +95,91 @@ class PatchClassificationEnv(gym.Env):
         
         return self._get_obs(), {}
 
+    def _get_patch_at(self, row, col):
+        """Get patch pixels at grid position (row, col). Returns zeros if out of bounds."""
+        if row < 0 or row >= self.patch_rows or col < 0 or col >= self.patch_cols:
+            return np.zeros((self.N, self.N, self.C), dtype=np.float32)
+        y0 = row * self.N
+        x0 = col * self.N
+        return self.image[y0:y0+self.N, x0:x0+self.N, :].astype(np.float32)
+
+    def _get_pred_mask_at(self, row, col):
+        """Get predicted mask at grid position (row, col). Returns zeros if out of bounds."""
+        if row < 0 or row >= self.patch_rows or col < 0 or col >= self.patch_cols:
+            return np.zeros((self.N, self.N), dtype=np.float32)
+        y0 = row * self.N
+        x0 = col * self.N
+        return self.predictions[y0:y0+self.N, x0:x0+self.N].astype(np.float32)
+
     def _get_obs(self):
         y0, x0 = self._order[self._idx]
         patch = self.image[y0:y0+self.N, x0:x0+self.N, :]  # (N, N, C)
-        pr = y0 // self.N
-        pc = x0 // self.N
+        pr = y0 // self.N  # current patch row
+        pc = x0 // self.N  # current patch col
         coords = np.array([(pr + 1) / self.patch_rows, (pc + 1) / self.patch_cols], dtype=np.float32)
         
-        # Get future patches (lookahead)
-        future_patches = []
-        for i in range(1, self.future_len + 1):
-            future_idx = self._idx + i
-            if future_idx < len(self._order):
-                fy0, fx0 = self._order[future_idx]
-                future_patches.append(self.image[fy0:fy0+self.N, fx0:fx0+self.N, :])
-            else:
-                # Pad with zeros if we're near the end
-                future_patches.append(np.zeros((self.N, self.N, self.C), dtype=np.float32))
+        # For bottom-left to top-right traversal:
+        # - "below" means higher row index (already visited)
+        # - "above" means lower row index (not yet visited)
+        if self.start_from_bottom_left:
+            below_row = pr + 1
+            above_row = pr - 1
+        else:
+            below_row = pr - 1
+            above_row = pr + 1
+        
+        # Get 3 patches below (bottom-left, directly below, bottom-right)
+        below_patches = np.stack([
+            self._get_patch_at(below_row, pc - 1),  # bottom-left
+            self._get_patch_at(below_row, pc),      # directly below
+            self._get_patch_at(below_row, pc + 1),  # bottom-right
+        ], axis=0)  # (3, N, N, C)
+        
+        # Get 3 patches above (top-left, directly above, top-right)
+        above_patches = np.stack([
+            self._get_patch_at(above_row, pc - 1),  # top-left
+            self._get_patch_at(above_row, pc),      # directly above
+            self._get_patch_at(above_row, pc + 1),  # top-right
+        ], axis=0)  # (3, N, N, C)
+        
+        # Get left patch
+        left_patch = self._get_patch_at(pr, pc - 1)  # (N, N, C)
+        
+        # Get predicted masks of neighbor patches (left + 3 below) for continuity reward
+        neighbor_masks = np.stack([
+            self._get_pred_mask_at(pr, pc - 1),       # left
+            self._get_pred_mask_at(below_row, pc - 1),  # bottom-left
+            self._get_pred_mask_at(below_row, pc),      # directly below
+            self._get_pred_mask_at(below_row, pc + 1),  # bottom-right
+        ], axis=0)  # (4, N, N)
         
         return {
             "patch_pixels": patch.astype(np.float32),
-            "prev_preds": np.array(self.prev_preds_buffer, dtype=np.float32),  # (history_len, N, N)
-            "prev_patches": np.array(self.prev_patches_buffer, dtype=np.float32),  # (history_len, N, N, C)
-            "future_patches": np.array(future_patches, dtype=np.float32),  # (future_len, N, N, C)
+            "below_patches": below_patches,  # (3, N, N, C)
+            "above_patches": above_patches,  # (3, N, N, C)
+            "left_patch": left_patch,  # (N, N, C)
+            "neighbor_masks": neighbor_masks,  # (4, N, N)
             "patch_coords": coords,
         }
+
+    def _compute_patch_similarity(self, patch1, patch2):
+        """Compute similarity between two patches based on pixel intensities."""
+        # Use mean intensity correlation
+        p1_flat = patch1.flatten()
+        p2_flat = patch2.flatten()
+        
+        # Normalize to avoid division issues
+        p1_norm = p1_flat - p1_flat.mean()
+        p2_norm = p2_flat - p2_flat.mean()
+        
+        std1 = p1_norm.std()
+        std2 = p2_norm.std()
+        
+        if std1 < 1e-8 or std2 < 1e-8:
+            return 0.0
+        
+        correlation = np.dot(p1_norm, p2_norm) / (len(p1_flat) * std1 * std2)
+        return float(correlation)
 
     def step(self, action):
         # action: (N*N,) or (N,N)
@@ -140,14 +187,17 @@ class PatchClassificationEnv(gym.Env):
             action = action.reshape(self.N, self.N)
         action = action.astype(np.float32)
         y0, x0 = self._order[self._idx]
+        pr = y0 // self.N
+        pc = x0 // self.N
 
         gt_patch = self.mask[y0:y0+self.N, x0:x0+self.N]  # (N,N)
         img_patch = self.image[y0:y0+self.N, x0:x0+self.N, :]  # (N,N,C)
 
-        # ========== ENHANCED REWARD FOR SEGMENTATION ==========
+        # ========== SCALAR REWARD FOR PATCH ==========
         
-        # 1. BASE REWARD: Accuracy against ground truth
-        base_rewards = -self.base_coef * np.abs(action - gt_patch)
+        # 1. BASE REWARD: Mean accuracy against ground truth (scalar)
+        pixel_errors = np.abs(action - gt_patch)  # (N, N)
+        base_reward = -self.base_coef * pixel_errors.mean()  # scalar
         
         # Track per-patch stats
         true_positives = np.sum((action == 1) & (gt_patch == 1))
@@ -155,99 +205,60 @@ class PatchClassificationEnv(gym.Env):
         false_negatives = np.sum((action == 0) & (gt_patch == 1))
         
         # Store prediction for this patch
+        self.predictions[y0:y0+self.N, x0:x0+self.N] = (action > 0.5).astype(np.float32)
         self.episode_predictions[y0:y0+self.N, x0:x0+self.N] = (action > 0.5).astype(np.float32)
 
-        # 2. CONTINUITY REWARD: Penalty for isolated active pixels
-        continuity_rewards = np.zeros((self.N, self.N), dtype=np.float32)
+        # 2. CONTINUITY REWARD: Based on neighbor similarity (scalar)
+        continuity_reward = 0.0
         
-        if len(self.prev_preds_buffer) >= 1:
-            prev_pred = list(self.prev_preds_buffer)[-1]  # (N, N)
+        # Check if current patch has predicted on-path pixels
+        has_on_path_pixels = np.any(action > 0.5)
+        
+        if has_on_path_pixels:
+            # Get neighbor patches (left + 3 below) and their masks
+            if self.start_from_bottom_left:
+                below_row = pr + 1
+            else:
+                below_row = pr - 1
             
-            # For each active pixel, check if it connects to previous prediction
-            curr_active = np.where(action == 1)
-            for i, j in zip(curr_active[0], curr_active[1]):
-                # Check 5-pixel neighborhood in previous prediction
-                i_start = max(0, i - 2)
-                i_end = min(self.N, i + 3)
-                j_start = max(0, j - 2)
-                j_end = min(self.N, j + 3)
+            neighbor_patches = [
+                (self._get_patch_at(pr, pc - 1), self._get_pred_mask_at(pr, pc - 1)),       # left
+                (self._get_patch_at(below_row, pc - 1), self._get_pred_mask_at(below_row, pc - 1)),  # bottom-left
+                (self._get_patch_at(below_row, pc), self._get_pred_mask_at(below_row, pc)),      # directly below
+                (self._get_patch_at(below_row, pc + 1), self._get_pred_mask_at(below_row, pc + 1)),  # bottom-right
+            ]
+            
+            # Calculate similarity scores with each neighbor
+            similarities = []
+            for neighbor_img, neighbor_mask in neighbor_patches:
+                sim = self._compute_patch_similarity(img_patch, neighbor_img)
+                similarities.append((sim, neighbor_mask))
+            
+            # Find patch with highest similarity
+            if len(similarities) > 0:
+                best_sim, best_mask = max(similarities, key=lambda x: x[0])
                 
-                # If connected to previous prediction, don't penalize
-                if np.any(prev_pred[i_start:i_end, j_start:j_end] == 1):
-                    continuity_rewards[i, j] = 0
+                # Check if the most similar patch has on-path pixels
+                if np.any(best_mask > 0.5):
+                    continuity_reward = 0.0  # Connected to a path, no penalty
                 else:
-                    # Penalty for isolated pixels
-                    continuity_rewards[i, j] = -1.0
-            
-            # Don't penalize correctly predicting background
-            inactive_with_inactive_prev = ((action == 0) & (prev_pred == 0))
-            continuity_rewards[inactive_with_inactive_prev] = 0.0
+                    continuity_reward = -1.0  # Isolated, penalize
+        else:
+            # No on-path pixels predicted, no continuity penalty
+            continuity_reward = 0.0
         
-        continuity_rewards *= self.continuity_coef
+        continuity_reward *= self.continuity_coef
 
-        # 3. GRADIENT-BASED REWARD: Encourage smooth intensity transitions
-        gradient_rewards = np.zeros((self.N, self.N), dtype=np.float32)
-        
-        if len(self.prev_patches_buffer) >= 1 and self.gradient_coef > 0:
-            prev_patch_img = list(self.prev_patches_buffer)[-1]  # (N, N, C)
-            prev_pred = list(self.prev_preds_buffer)[-1]
-            
-            prev_active = np.where(prev_pred == 1)
-            curr_active = np.where(action == 1)
-            
-            # Current patch intensity (mean channel)
-            curr_intensity = img_patch.mean(axis=2)  # (N, N)
-            prev_intensity = prev_patch_img.mean(axis=2)  # (N, N)
-            
-            if len(prev_active[0]) > 0 and len(curr_active[0]) > 0:
-                for i, j in zip(curr_active[0], curr_active[1]):
-                    # Find closest active pixel in previous prediction
-                    distances = np.sqrt((prev_active[0] - i)**2 + (prev_active[1] - j)**2)
-                    min_idx = np.argmin(distances)
-                    closest_i, closest_j = prev_active[0][min_idx], prev_active[1][min_idx]
-                    
-                    if distances[min_idx] > 5:
-                        continue  # Skip if too far
-                    
-                    # Calculate intensity difference
-                    intensity_diff = np.abs(curr_intensity[i, j] - prev_intensity[closest_i, closest_j])
-                    
-                    # Reward small intensity differences (smooth transitions)
-                    gradient_rewards[i, j] = -intensity_diff
-        
-        gradient_rewards *= self.gradient_coef
+        # Combine all rewards (scalar)
+        reward = float(base_reward + continuity_reward)
 
-        # 4. NEIGHBOUR SMOOTHNESS: within patch based on image intensities
-        row_vals = img_patch.mean(axis=2)  # (N, N)
-        neighbour_sum = np.zeros((self.N, self.N), dtype=np.float32)
-        # 4-neighbour shifts: up, down, left, right
-        # up
-        neighbour_sum[1:, :] += np.abs(action[1:, :] - row_vals[:-1, :])
-        # down
-        neighbour_sum[:-1, :] += np.abs(action[:-1, :] - row_vals[1:, :])
-        # left
-        neighbour_sum[:, 1:] += np.abs(action[:, 1:] - row_vals[:, :-1])
-        # right
-        neighbour_sum[:, :-1] += np.abs(action[:, :-1] - row_vals[:, 1:])
-        neighbour_rewards = -self.neighbor_coef * neighbour_sum
-
-        # Combine all rewards
-        pixel_rewards = base_rewards + continuity_rewards + gradient_rewards + neighbour_rewards
-        reward = float(pixel_rewards.sum())
-
-        # Update history buffers
-        self.prev_preds_buffer.append(action.copy())
-        self.prev_patches_buffer.append(img_patch.copy())
-        
         self._idx += 1
         terminated = self._idx >= len(self._order)
 
         info = {
-            "pixel_rewards": pixel_rewards.astype(np.float32),
-            "base_rewards": base_rewards.astype(np.float32),
-            "continuity_rewards": continuity_rewards.astype(np.float32),
-            "gradient_rewards": gradient_rewards.astype(np.float32),
-            "neighbour_rewards": neighbour_rewards.astype(np.float32),
+            "reward": reward,
+            "base_reward": float(base_reward),
+            "continuity_reward": float(continuity_reward),
             "patch_origin": (int(y0), int(x0)),
             "true_positives": float(true_positives),
             "false_positives": float(false_positives),
@@ -258,9 +269,10 @@ class PatchClassificationEnv(gym.Env):
     def _terminal_obs(self):
         return {
             "patch_pixels": np.zeros((self.N, self.N, self.C), dtype=np.float32),
-            "prev_preds": np.array(self.prev_preds_buffer, dtype=np.float32),
-            "prev_patches": np.array(self.prev_patches_buffer, dtype=np.float32),
-            "future_patches": np.zeros((self.future_len, self.N, self.N, self.C), dtype=np.float32),
+            "below_patches": np.zeros((3, self.N, self.N, self.C), dtype=np.float32),
+            "above_patches": np.zeros((3, self.N, self.N, self.C), dtype=np.float32),
+            "left_patch": np.zeros((self.N, self.N, self.C), dtype=np.float32),
+            "neighbor_masks": np.zeros((4, self.N, self.N), dtype=np.float32),
             "patch_coords": np.array([1.0, 1.0], dtype=np.float32),
         }
 
