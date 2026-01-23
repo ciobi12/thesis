@@ -563,7 +563,7 @@ if __name__ == "__main__":
         # Default fallback
         save_dir = "default"
 
-    save_dir = os.path.join(save_dir, f"base_{args.base_coef}_cont_{args.cont_coef}")
+    save_dir = os.path.join(save_dir, f"patch_{args.patch_size}_r_base_{args.base_coef}_cont_{args.cont_coef}")
     os.makedirs(f"dqn_patch_based/results/{save_dir}/reconstructions", exist_ok=True)
     os.makedirs(f"dqn_patch_based/models/{save_dir}", exist_ok=True)
                     
@@ -588,10 +588,7 @@ if __name__ == "__main__":
                                  mask_test, 
                                  patch_size=args.patch_size,
                                  base_coef=args.base_coef,
-                                 continuity_coef=args.cont_coef,
-                                 neighbor_coef=args.neighbor_coef,
-                                 history_len=args.history_len,
-                                 future_len=args.future_len)
+                                 continuity_coef=args.cont_coef)
         visualize_result(img_test, mask_test, pred, save_path=f"dqn_patch_based/results/{save_dir}/reconstructions/final_image_{i+1}.png")
 
     # Plot training curves

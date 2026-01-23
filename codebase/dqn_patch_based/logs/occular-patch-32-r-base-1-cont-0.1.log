@@ -1,0 +1,140 @@
+
+Epoch 1/20 | Time: 88.5s
+  Train - Loss: 0.0015 | Avg Return: -72.30 | ε: 1.000
+          IoU: 0.004 | F1: 0.007 | Acc: 0.848 | Cov: 0.029
+          Rewards -> Base: -72.03 | Cont: -0.26
+  Val   - Loss: 0.0175 | Avg Return: -20.15
+          IoU: 0.000 | F1: 0.000 | Acc: 0.860 | Cov: 0.000
+
+Epoch 2/20 | Time: 86.7s
+  Train - Loss: 0.0049 | Avg Return: -60.68 | ε: 0.738
+          IoU: 0.003 | F1: 0.007 | Acc: 0.870 | Cov: 0.004
+          Rewards -> Base: -57.84 | Cont: -2.84
+  Val   - Loss: 0.0162 | Avg Return: -21.70
+          IoU: 0.013 | F1: 0.026 | Acc: 0.857 | Cov: 0.014
+
+Epoch 3/20 | Time: 91.2s
+  Train - Loss: 0.0091 | Avg Return: -49.65 | ε: 0.546
+          IoU: 0.099 | F1: 0.171 | Acc: 0.873 | Cov: 0.113
+          Rewards -> Base: -47.81 | Cont: -1.85
+  Val   - Loss: 0.0331 | Avg Return: -20.07
+          IoU: 0.166 | F1: 0.284 | Acc: 0.869 | Cov: 0.187
+
+Epoch 4/20 | Time: 91.6s
+  Train - Loss: 0.0109 | Avg Return: -40.30 | ε: 0.404
+          IoU: 0.249 | F1: 0.391 | Acc: 0.885 | Cov: 0.299
+          Rewards -> Base: -39.49 | Cont: -0.81
+  Val   - Loss: 0.0326 | Avg Return: -18.18
+          IoU: 0.309 | F1: 0.471 | Acc: 0.877 | Cov: 0.393
+
+Epoch 5/20 | Time: 92.1s
+  Train - Loss: 0.0106 | Avg Return: -33.82 | ε: 0.300
+          IoU: 0.297 | F1: 0.450 | Acc: 0.889 | Cov: 0.370
+          Rewards -> Base: -33.13 | Cont: -0.68
+  Val   - Loss: 0.0282 | Avg Return: -16.67
+          IoU: 0.330 | F1: 0.495 | Acc: 0.889 | Cov: 0.392
+
+Epoch 6/20 | Time: 83.1s
+  Train - Loss: 0.0087 | Avg Return: -28.94 | ε: 0.223
+          IoU: 0.324 | F1: 0.482 | Acc: 0.894 | Cov: 0.400
+          Rewards -> Base: -28.12 | Cont: -0.82
+  Val   - Loss: 0.0228 | Avg Return: -14.95
+          IoU: 0.377 | F1: 0.546 | Acc: 0.902 | Cov: 0.423
+
+Epoch 7/20 | Time: 83.4s
+  Train - Loss: 0.0078 | Avg Return: -25.18 | ε: 0.167
+          IoU: 0.329 | F1: 0.488 | Acc: 0.896 | Cov: 0.400
+          Rewards -> Base: -24.40 | Cont: -0.78
+  Val   - Loss: 0.0229 | Avg Return: -16.72
+          IoU: 0.315 | F1: 0.477 | Acc: 0.888 | Cov: 0.369
+
+Epoch 8/20 | Time: 84.2s
+  Train - Loss: 0.0069 | Avg Return: -22.88 | ε: 0.125
+          IoU: 0.329 | F1: 0.489 | Acc: 0.897 | Cov: 0.397
+          Rewards -> Base: -22.19 | Cont: -0.70
+  Val   - Loss: 0.0167 | Avg Return: -15.47
+          IoU: 0.340 | F1: 0.505 | Acc: 0.897 | Cov: 0.380
+
+Epoch 9/20 | Time: 85.1s
+  Train - Loss: 0.0060 | Avg Return: -20.67 | ε: 0.095
+          IoU: 0.319 | F1: 0.477 | Acc: 0.896 | Cov: 0.383
+          Rewards -> Base: -20.13 | Cont: -0.54
+  Val   - Loss: 0.0255 | Avg Return: -15.34
+          IoU: 0.353 | F1: 0.520 | Acc: 0.897 | Cov: 0.403
+
+Epoch 10/20 | Time: 92.1s
+  Train - Loss: 0.0060 | Avg Return: -19.63 | ε: 0.072
+          IoU: 0.310 | F1: 0.466 | Acc: 0.894 | Cov: 0.375
+          Rewards -> Base: -19.12 | Cont: -0.51
+  Val   - Loss: 0.0290 | Avg Return: -16.69
+          IoU: 0.343 | F1: 0.510 | Acc: 0.889 | Cov: 0.417
+
+Epoch 11/20 | Time: 93.6s
+  Train - Loss: 0.0060 | Avg Return: -18.64 | ε: 0.056
+          IoU: 0.304 | F1: 0.460 | Acc: 0.893 | Cov: 0.366
+          Rewards -> Base: -18.18 | Cont: -0.46
+  Val   - Loss: 0.0266 | Avg Return: -16.60
+          IoU: 0.310 | F1: 0.472 | Acc: 0.889 | Cov: 0.358
+
+Epoch 12/20 | Time: 92.2s
+  Train - Loss: 0.0063 | Avg Return: -18.99 | ε: 0.044
+          IoU: 0.297 | F1: 0.452 | Acc: 0.891 | Cov: 0.364
+          Rewards -> Base: -18.57 | Cont: -0.42
+  Val   - Loss: 0.0290 | Avg Return: -16.43
+          IoU: 0.307 | F1: 0.468 | Acc: 0.890 | Cov: 0.350
+
+Epoch 13/20 | Time: 92.3s
+  Train - Loss: 0.0059 | Avg Return: -18.46 | ε: 0.035
+          IoU: 0.283 | F1: 0.435 | Acc: 0.889 | Cov: 0.344
+          Rewards -> Base: -17.95 | Cont: -0.51
+  Val   - Loss: 0.0426 | Avg Return: -17.85
+          IoU: 0.292 | F1: 0.451 | Acc: 0.880 | Cov: 0.356
+
+Epoch 14/20 | Time: 92.4s
+  Train - Loss: 0.0056 | Avg Return: -18.22 | ε: 0.028
+          IoU: 0.291 | F1: 0.446 | Acc: 0.888 | Cov: 0.363
+          Rewards -> Base: -17.73 | Cont: -0.49
+  Val   - Loss: 0.0412 | Avg Return: -18.03
+          IoU: 0.270 | F1: 0.424 | Acc: 0.879 | Cov: 0.322
+
+Epoch 15/20 | Time: 86.4s
+  Train - Loss: 0.0057 | Avg Return: -18.02 | ε: 0.023
+          IoU: 0.281 | F1: 0.433 | Acc: 0.888 | Cov: 0.342
+          Rewards -> Base: -17.52 | Cont: -0.50
+  Val   - Loss: 0.0351 | Avg Return: -16.89
+          IoU: 0.306 | F1: 0.467 | Acc: 0.886 | Cov: 0.362
+
+Epoch 16/20 | Time: 77.6s
+  Train - Loss: 0.0057 | Avg Return: -17.37 | ε: 0.020
+          IoU: 0.287 | F1: 0.440 | Acc: 0.890 | Cov: 0.351
+          Rewards -> Base: -16.91 | Cont: -0.46
+  Val   - Loss: 0.0370 | Avg Return: -17.39
+          IoU: 0.299 | F1: 0.459 | Acc: 0.882 | Cov: 0.360
+
+Epoch 17/20 | Time: 76.5s
+  Train - Loss: 0.0061 | Avg Return: -17.52 | ε: 0.017
+          IoU: 0.278 | F1: 0.430 | Acc: 0.888 | Cov: 0.339
+          Rewards -> Base: -17.10 | Cont: -0.42
+  Val   - Loss: 0.0418 | Avg Return: -16.20
+          IoU: 0.310 | F1: 0.472 | Acc: 0.891 | Cov: 0.352
+
+Epoch 18/20 | Time: 77.1s
+  Train - Loss: 0.0057 | Avg Return: -17.35 | ε: 0.015
+          IoU: 0.274 | F1: 0.425 | Acc: 0.889 | Cov: 0.331
+          Rewards -> Base: -16.93 | Cont: -0.41
+  Val   - Loss: 0.0382 | Avg Return: -16.81
+          IoU: 0.300 | F1: 0.460 | Acc: 0.889 | Cov: 0.342
+
+Epoch 19/20 | Time: 76.8s
+  Train - Loss: 0.0055 | Avg Return: -17.13 | ε: 0.014
+          IoU: 0.271 | F1: 0.421 | Acc: 0.890 | Cov: 0.322
+          Rewards -> Base: -16.70 | Cont: -0.43
+  Val   - Loss: 0.0388 | Avg Return: -16.90
+          IoU: 0.288 | F1: 0.446 | Acc: 0.886 | Cov: 0.331
+
+Epoch 20/20 | Time: 76.4s
+  Train - Loss: 0.0053 | Avg Return: -17.27 | ε: 0.013
+          IoU: 0.263 | F1: 0.411 | Acc: 0.889 | Cov: 0.310
+          Rewards -> Base: -16.83 | Cont: -0.44
+  Val   - Loss: 0.0415 | Avg Return: -17.09
+          IoU: 0.287 | F1: 0.444 | Acc: 0.885 | Cov: 0.330
