@@ -589,7 +589,6 @@ if __name__ == "__main__":
                                  patch_size=args.patch_size,
                                  base_coef=args.base_coef,
                                  continuity_coef=args.cont_coef,
-                                 gradient_coef=args.grad_coef,
                                  neighbor_coef=args.neighbor_coef,
                                  history_len=args.history_len,
                                  future_len=args.future_len)
