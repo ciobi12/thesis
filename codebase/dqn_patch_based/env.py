@@ -9,13 +9,13 @@ class PatchClassificationEnv(gym.Env):
 
     Context for each patch includes:
     - Current patch pixels
-    - All 8 neighboring patches (left, right, top-left, top, top-right, bottom-left, bottom, bottom-right)
-    - Predicted masks of already-visited neighbor patches
+    - 3 patches below (bottom-left, directly below, bottom-right)
+    - 3 patches above (top-left, directly above, top-right)
+    - Left neighbor patch
 
     Reward per patch (scalar) combines:
     - Base accuracy: mean of |action - gt| across all pixels in patch
-    - Boundary consistency: penalizes edge pixels that don't connect to neighbor predictions
-    - Sparsity bonus: small reward for not over-predicting (reduces false positives at edges)
+    - Continuity: checks similarity with neighbor patches for structural coherence
     """
     metadata = {"render_modes": []}
 
@@ -24,8 +24,7 @@ class PatchClassificationEnv(gym.Env):
                  mask, 
                  patch_size=16, 
                  base_coef=1.0,
-                 boundary_coef=0.2,
-                 sparsity_coef=0.05,
+                 continuity_coef=0.1, 
                  start_from_bottom_left=True):
         super().__init__()
         assert image.shape[:2] == mask.shape, "Image and mask must have same height and width"
@@ -39,8 +38,7 @@ class PatchClassificationEnv(gym.Env):
         self.C = self.image.shape[2]
         self.N = int(patch_size)
         self.base_coef = float(base_coef)
-        self.boundary_coef = float(boundary_coef)
-        self.sparsity_coef = float(sparsity_coef)
+        self.continuity_coef = float(continuity_coef)
         self.start_from_bottom_left = bool(start_from_bottom_left)
 
         # Pad image and mask to multiples of N for fixed-size patches
@@ -68,12 +66,11 @@ class PatchClassificationEnv(gym.Env):
 
         # Spaces: action is MultiBinary over N*N pixels in the patch
         self.action_space = spaces.MultiBinary(self.N * self.N)
-        # 8 neighbor patches + current patch info
         self.observation_space = spaces.Dict({
             "patch_pixels": spaces.Box(0.0, 1.0, shape=(self.N, self.N, self.C), dtype=np.float32),
-            "neighbor_patches": spaces.Box(0.0, 1.0, shape=(8, self.N, self.N, self.C), dtype=np.float32),  # all 8 neighbors
-            "neighbor_masks": spaces.Box(0.0, 1.0, shape=(8, self.N, self.N), dtype=np.float32),  # predicted masks of all 8 neighbors
-            "neighbor_valid": spaces.Box(0.0, 1.0, shape=(8,), dtype=np.float32),  # which neighbors are valid (not out of bounds)
+            "below_patches": spaces.Box(0.0, 1.0, shape=(3, self.N, self.N, self.C), dtype=np.float32),  # bottom-left, below, bottom-right
+            "above_patches": spaces.Box(0.0, 1.0, shape=(3, self.N, self.N, self.C), dtype=np.float32),  # top-left, above, top-right
+            "neighbor_masks": spaces.Box(0.0, 1.0, shape=(4, self.N, self.N), dtype=np.float32),  # masks of left + 3 below patches
             "patch_coords": spaces.Box(0.0, 1.0, shape=(2,), dtype=np.float32),  # (row_norm, col_norm)
         })
 
@@ -97,13 +94,9 @@ class PatchClassificationEnv(gym.Env):
         
         return self._get_obs(), {}
 
-    def _is_valid_patch(self, row, col):
-        """Check if patch position is valid."""
-        return 0 <= row < self.patch_rows and 0 <= col < self.patch_cols
-
     def _get_patch_at(self, row, col):
         """Get patch pixels at grid position (row, col). Returns zeros if out of bounds."""
-        if not self._is_valid_patch(row, col):
+        if row < 0 or row >= self.patch_rows or col < 0 or col >= self.patch_cols:
             return np.zeros((self.N, self.N, self.C), dtype=np.float32)
         y0 = row * self.N
         x0 = col * self.N
@@ -111,28 +104,11 @@ class PatchClassificationEnv(gym.Env):
 
     def _get_pred_mask_at(self, row, col):
         """Get predicted mask at grid position (row, col). Returns zeros if out of bounds."""
-        if not self._is_valid_patch(row, col):
+        if row < 0 or row >= self.patch_rows or col < 0 or col >= self.patch_cols:
             return np.zeros((self.N, self.N), dtype=np.float32)
         y0 = row * self.N
         x0 = col * self.N
         return self.predictions[y0:y0+self.N, x0:x0+self.N].astype(np.float32)
-
-    def _get_neighbor_offsets(self):
-        """
-        Returns offsets for all 8 neighbors in order:
-        [left, right, top-left, top, top-right, bottom-left, bottom, bottom-right]
-        Note: "top" and "bottom" are relative to image coordinates, not traversal order.
-        """
-        return [
-            (0, -1),   # left
-            (0, 1),    # right
-            (-1, -1),  # top-left
-            (-1, 0),   # top
-            (-1, 1),   # top-right
-            (1, -1),   # bottom-left
-            (1, 0),    # bottom
-            (1, 1),    # bottom-right
-        ]
 
     def _get_obs(self):
         y0, x0 = self._order[self._idx]
@@ -141,102 +117,64 @@ class PatchClassificationEnv(gym.Env):
         pc = x0 // self.N  # current patch col
         coords = np.array([(pr + 1) / self.patch_rows, (pc + 1) / self.patch_cols], dtype=np.float32)
         
-        # Get all 8 neighboring patches and their masks
-        offsets = self._get_neighbor_offsets()
-        neighbor_patches = []
-        neighbor_masks = []
-        neighbor_valid = []
+        # For bottom-left to top-right traversal:
+        # - "below" means higher row index (already visited)
+        # - "above" means lower row index (not yet visited)
+        if self.start_from_bottom_left:
+            below_row = pr + 1
+            above_row = pr - 1
+        else:
+            below_row = pr - 1
+            above_row = pr + 1
         
-        for dr, dc in offsets:
-            nr, nc = pr + dr, pc + dc
-            neighbor_patches.append(self._get_patch_at(nr, nc))
-            neighbor_masks.append(self._get_pred_mask_at(nr, nc))
-            neighbor_valid.append(1.0 if self._is_valid_patch(nr, nc) else 0.0)
+        # Get 3 patches below (bottom-left, directly below, bottom-right)
+        below_patches = np.stack([
+            self._get_patch_at(below_row, pc - 1),  # bottom-left
+            self._get_patch_at(below_row, pc),      # directly below
+            self._get_patch_at(below_row, pc + 1),  # bottom-right
+        ], axis=0)  # (3, N, N, C)
+        
+        # Get 3 patches above (top-left, directly above, top-right)
+        above_patches = np.stack([
+            self._get_patch_at(above_row, pc - 1),  # top-left
+            self._get_patch_at(above_row, pc),      # directly above
+            self._get_patch_at(above_row, pc + 1),  # top-right
+        ], axis=0)  # (3, N, N, C)
+        
+        # Get predicted masks of neighbor patches (left + 3 below) for continuity reward
+        neighbor_masks = np.stack([
+            self._get_pred_mask_at(pr, pc - 1),       # left
+            self._get_pred_mask_at(below_row, pc - 1),  # bottom-left
+            self._get_pred_mask_at(below_row, pc),      # directly below
+            self._get_pred_mask_at(below_row, pc + 1),  # bottom-right
+        ], axis=0)  # (4, N, N)
         
         return {
             "patch_pixels": patch.astype(np.float32),
-            "neighbor_patches": np.stack(neighbor_patches, axis=0),  # (8, N, N, C)
-            "neighbor_masks": np.stack(neighbor_masks, axis=0),  # (8, N, N)
-            "neighbor_valid": np.array(neighbor_valid, dtype=np.float32),  # (8,)
+            "below_patches": below_patches,  # (3, N, N, C)
+            "above_patches": above_patches,  # (3, N, N, C)
+            "neighbor_masks": neighbor_masks,  # (4, N, N)
             "patch_coords": coords,
         }
 
-    def _compute_boundary_penalty(self, action, pr, pc):
-        """
-        Compute penalty for predicting edge pixels that don't connect to neighbor predictions.
-        This discourages the grid-like artifact pattern.
+    def _compute_patch_similarity(self, patch1, patch2):
+        """Compute similarity between two patches based on pixel intensities."""
+        # Use mean intensity correlation
+        p1_flat = patch1.flatten()
+        p2_flat = patch2.flatten()
         
-        Returns a penalty (negative value) for disconnected edge predictions.
-        """
-        N = self.N
-        action_binary = (action > 0.5).astype(np.float32)
-        penalty = 0.0
-        edge_violations = 0
-        total_edge_predictions = 0
+        # Normalize to avoid division issues
+        p1_norm = p1_flat - p1_flat.mean()
+        p2_norm = p2_flat - p2_flat.mean()
         
-        # Get neighbor masks
-        # Neighbor order: [left, right, top-left, top, top-right, bottom-left, bottom, bottom-right]
-        left_mask = self._get_pred_mask_at(pr, pc - 1)
-        right_mask = self._get_pred_mask_at(pr, pc + 1)  # Not visited yet in left-to-right traversal
-        top_mask = self._get_pred_mask_at(pr - 1, pc)     # Not visited yet in bottom-to-top
-        bottom_mask = self._get_pred_mask_at(pr + 1, pc)  # Already visited
+        std1 = p1_norm.std()
+        std2 = p2_norm.std()
         
-        # Check LEFT edge (column 0) - should connect to right edge of left neighbor
-        left_edge_preds = action_binary[:, 0]
-        if np.any(left_edge_preds > 0.5):
-            total_edge_predictions += np.sum(left_edge_preds > 0.5)
-            if self._is_valid_patch(pr, pc - 1):
-                # Check if left neighbor's right edge has corresponding predictions
-                left_neighbor_right_edge = left_mask[:, -1]
-                # For each predicted pixel on our left edge, check if there's a nearby prediction on neighbor
-                for i in range(N):
-                    if left_edge_preds[i] > 0.5:
-                        # Check if any pixel in a small window on neighbor's right edge is predicted
-                        start_i = max(0, i - 2)
-                        end_i = min(N, i + 3)
-                        if not np.any(left_neighbor_right_edge[start_i:end_i] > 0.5):
-                            edge_violations += 1
-        
-        # Check BOTTOM edge (row N-1) - should connect to top edge of bottom neighbor
-        bottom_edge_preds = action_binary[-1, :]
-        if np.any(bottom_edge_preds > 0.5):
-            total_edge_predictions += np.sum(bottom_edge_preds > 0.5)
-            if self._is_valid_patch(pr + 1, pc):
-                bottom_neighbor_top_edge = bottom_mask[0, :]
-                for j in range(N):
-                    if bottom_edge_preds[j] > 0.5:
-                        start_j = max(0, j - 2)
-                        end_j = min(N, j + 3)
-                        if not np.any(bottom_neighbor_top_edge[start_j:end_j] > 0.5):
-                            edge_violations += 1
-        
-        # Penalize edge violations proportionally
-        if total_edge_predictions > 0:
-            violation_ratio = edge_violations / (total_edge_predictions + 1e-8)
-            penalty = -violation_ratio
-        
-        return penalty
-
-    def _compute_sparsity_bonus(self, action, gt_patch):
-        """
-        Compute a bonus for not over-predicting.
-        Penalizes false positives more heavily, especially isolated ones.
-        """
-        action_binary = (action > 0.5).astype(np.float32)
-        
-        # Count predictions vs ground truth
-        pred_count = np.sum(action_binary)
-        gt_count = np.sum(gt_patch)
-        
-        if pred_count == 0:
+        if std1 < 1e-8 or std2 < 1e-8:
             return 0.0
         
-        # Penalize over-prediction (predicting more than GT)
-        if pred_count > gt_count * 1.5:  # Allow some tolerance
-            over_prediction_ratio = (pred_count - gt_count) / (self.N * self.N)
-            return -over_prediction_ratio
-        
-        return 0.0
+        correlation = np.dot(p1_norm, p2_norm) / (len(p1_flat) * std1 * std2)
+        return float(correlation)
 
     def step(self, action):
         # action: (N*N,) or (N,N)
@@ -248,6 +186,7 @@ class PatchClassificationEnv(gym.Env):
         pc = x0 // self.N
 
         gt_patch = self.mask[y0:y0+self.N, x0:x0+self.N]  # (N,N)
+        img_patch = self.image[y0:y0+self.N, x0:x0+self.N, :]  # (N,N,C)
 
         # ========== SCALAR REWARD FOR PATCH ==========
         
@@ -256,23 +195,57 @@ class PatchClassificationEnv(gym.Env):
         base_reward = -self.base_coef * pixel_errors.mean()  # scalar
         
         # Track per-patch stats
-        action_binary = (action > 0.5).astype(np.float32)
-        true_positives = np.sum((action_binary == 1) & (gt_patch == 1))
-        false_positives = np.sum((action_binary == 1) & (gt_patch == 0))
-        false_negatives = np.sum((action_binary == 0) & (gt_patch == 1))
+        true_positives = np.sum((action == 1) & (gt_patch == 1))
+        false_positives = np.sum((action == 1) & (gt_patch == 0))
+        false_negatives = np.sum((action == 0) & (gt_patch == 1))
         
         # Store prediction for this patch
-        self.predictions[y0:y0+self.N, x0:x0+self.N] = action_binary
-        self.episode_predictions[y0:y0+self.N, x0:x0+self.N] = action_binary
+        self.predictions[y0:y0+self.N, x0:x0+self.N] = (action > 0.5).astype(np.float32)
+        self.episode_predictions[y0:y0+self.N, x0:x0+self.N] = (action > 0.5).astype(np.float32)
 
-        # 2. BOUNDARY CONSISTENCY REWARD: Penalize disconnected edge predictions
-        boundary_reward = self._compute_boundary_penalty(action, pr, pc) * self.boundary_coef
-
-        # 3. SPARSITY REWARD: Discourage over-prediction
-        sparsity_reward = self._compute_sparsity_bonus(action, gt_patch) * self.sparsity_coef
+        # 2. CONTINUITY REWARD: Based on neighbor similarity (scalar)
+        continuity_reward = 0.0
+        
+        # Check if current patch has predicted on-path pixels
+        has_on_path_pixels = np.any(action > 0.5)
+        
+        if has_on_path_pixels:
+            # Get neighbor patches (left + 3 below) and their masks
+            if self.start_from_bottom_left:
+                below_row = pr + 1
+            else:
+                below_row = pr - 1
+            
+            neighbor_patches = [
+                (self._get_patch_at(pr, pc - 1), self._get_pred_mask_at(pr, pc - 1)),       # left
+                (self._get_patch_at(below_row, pc - 1), self._get_pred_mask_at(below_row, pc - 1)),  # bottom-left
+                (self._get_patch_at(below_row, pc), self._get_pred_mask_at(below_row, pc)),      # directly below
+                (self._get_patch_at(below_row, pc + 1), self._get_pred_mask_at(below_row, pc + 1)),  # bottom-right
+            ]
+            
+            # Calculate similarity scores with each neighbor
+            similarities = []
+            for neighbor_img, neighbor_mask in neighbor_patches:
+                sim = self._compute_patch_similarity(img_patch, neighbor_img)
+                similarities.append((sim, neighbor_mask))
+            
+            # Find patch with highest similarity
+            if len(similarities) > 0:
+                best_sim, best_mask = max(similarities, key=lambda x: x[0])
+                
+                # Check if the most similar patch has on-path pixels
+                if np.any(best_mask > 0.5):
+                    continuity_reward = 0.0  # Connected to a path, no penalty
+                else:
+                    continuity_reward = -1.0  # Isolated, penalize
+        else:
+            # No on-path pixels predicted, no continuity penalty
+            continuity_reward = 0.0
+        
+        continuity_reward *= self.continuity_coef
 
         # Combine all rewards (scalar)
-        reward = float(base_reward + boundary_reward + sparsity_reward)
+        reward = float(base_reward + continuity_reward)
 
         self._idx += 1
         terminated = self._idx >= len(self._order)
@@ -280,8 +253,7 @@ class PatchClassificationEnv(gym.Env):
         info = {
             "reward": reward,
             "base_reward": float(base_reward),
-            "boundary_reward": float(boundary_reward),
-            "sparsity_reward": float(sparsity_reward),
+            "continuity_reward": float(continuity_reward),
             "patch_origin": (int(y0), int(x0)),
             "true_positives": float(true_positives),
             "false_positives": float(false_positives),
@@ -292,9 +264,9 @@ class PatchClassificationEnv(gym.Env):
     def _terminal_obs(self):
         return {
             "patch_pixels": np.zeros((self.N, self.N, self.C), dtype=np.float32),
-            "neighbor_patches": np.zeros((8, self.N, self.N, self.C), dtype=np.float32),
-            "neighbor_masks": np.zeros((8, self.N, self.N), dtype=np.float32),
-            "neighbor_valid": np.zeros((8,), dtype=np.float32),
+            "below_patches": np.zeros((3, self.N, self.N, self.C), dtype=np.float32),
+            "above_patches": np.zeros((3, self.N, self.N, self.C), dtype=np.float32),
+            "neighbor_masks": np.zeros((4, self.N, self.N), dtype=np.float32),
             "patch_coords": np.array([1.0, 1.0], dtype=np.float32),
         }
 

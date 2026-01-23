@@ -93,8 +93,7 @@ def validate(policy_net,
              device, 
              patch_size=16,
              base_coef=1.0,
-             boundary_coef=0.2,
-             sparsity_coef=0.05):
+             continuity_coef=0.1):
     """Run validation and return average metrics, loss, and reward."""
     policy_net.eval()
     all_metrics = []
@@ -108,8 +107,7 @@ def validate(policy_net,
                                      mask,
                                      patch_size=patch_size,
                                      base_coef=base_coef,
-                                     boundary_coef=boundary_coef,
-                                     sparsity_coef=sparsity_coef,
+                                     continuity_coef=continuity_coef,
                                      device=device)
             metrics = compute_metrics(pred, mask)
             all_metrics.append(metrics)
@@ -119,15 +117,14 @@ def validate(policy_net,
                                          mask=mask,
                                          patch_size=patch_size,
                                          base_coef=base_coef,
-                                         boundary_coef=boundary_coef,
-                                         sparsity_coef=sparsity_coef)
+                                         continuity_coef=continuity_coef)
             obs, _ = env.reset()
             done = False
             episode_reward = 0.0
             
             while not done:
-                patch_pixels, neighbor_patches, neighbor_masks, neighbor_valid = obs_to_tensor(obs, device)
-                q = policy_net(patch_pixels, neighbor_patches, neighbor_masks, neighbor_valid)
+                patch_pixels, below_patches, above_patches, neighbor_masks = obs_to_tensor(obs, device)
+                q = policy_net(patch_pixels, below_patches, above_patches, neighbor_masks)
                 a = q.argmax(dim=-1).cpu().numpy()  # (N, N)
                 next_obs, reward, terminated, truncated, info = env.step(a)
                 episode_reward += reward
@@ -162,8 +159,7 @@ def train_dqn_on_images(
     end_epsilon=0.01,
     epsilon_decay_epochs=15,
     base_coef=1.0,
-    boundary_coef=0.2,
-    sparsity_coef=0.05,
+    continuity_coef=0.1,
     save_dir=None,
     seed=42,
     device=None,
@@ -199,8 +195,7 @@ def train_dqn_on_images(
     train_returns = []
     val_returns = []
     base_returns = []
-    boundary_returns = []
-    sparsity_returns = []
+    continuity_returns = []
     
     epsilons = []
     
@@ -236,16 +231,14 @@ def train_dqn_on_images(
                                          mask=mask, 
                                          patch_size=patch_size,
                                          base_coef=base_coef,
-                                         boundary_coef=boundary_coef,
-                                         sparsity_coef=sparsity_coef,
+                                         continuity_coef=continuity_coef,
                                          start_from_bottom_left=True)
             obs, _ = env.reset()
 
             done = False
             img_return = 0.0
             base_return = 0.0
-            boundary_return = 0.0
-            sparsity_return = 0.0
+            continuity_return = 0.0
             
             # Track info for this episode
             episode_info = {
@@ -255,16 +248,15 @@ def train_dqn_on_images(
             }
 
             while not done:
-                patch_pixels, neighbor_patches, neighbor_masks, neighbor_valid = obs_to_tensor(obs, device)
+                patch_pixels, below_patches, above_patches, neighbor_masks = obs_to_tensor(obs, device)
                 with torch.no_grad():
-                    q = policy_net(patch_pixels, neighbor_patches, neighbor_masks, neighbor_valid)  # (N, N, 2)
+                    q = policy_net(patch_pixels, below_patches, above_patches, neighbor_masks)  # (N, N, 2)
                 a = epsilon_greedy_action(q, epsilon)  # (N, N)
 
                 # Keep action on GPU, only convert to numpy when needed for env
                 next_obs, reward, terminated, truncated, info = env.step(a.cpu().numpy())
                 base_reward = info["base_reward"]
-                boundary_reward = info["boundary_reward"]
-                sparsity_reward = info["sparsity_reward"]
+                continuity_reward = info["continuity_reward"]
                 
                 # Track info metrics
                 for key in episode_info.keys():
@@ -273,8 +265,7 @@ def train_dqn_on_images(
                 
                 done = terminated or truncated
                 base_return += base_reward
-                boundary_return += boundary_reward
-                sparsity_return += sparsity_reward
+                continuity_return += continuity_reward
                 img_return += reward
 
                 # Store scalar reward (not pixel rewards)
@@ -294,21 +285,21 @@ def train_dqn_on_images(
                     batch = replay.sample(batch_size)
 
                     # Batch conversion - single GPU transfer
-                    patch_pixels_batch, neighbor_patches_batch, neighbor_masks_batch, neighbor_valid_batch = batch_obs_to_tensor([t.obs for t in batch], device)
+                    patch_pixels_batch, below_patches_batch, above_patches_batch, neighbor_masks_batch = batch_obs_to_tensor([t.obs for t in batch], device)
                     act_batch = torch.tensor(np.stack([t.action for t in batch]), dtype=torch.int64, device=device)  # (B, N, N)
                     rew_batch = torch.tensor([t.reward for t in batch], dtype=torch.float32, device=device)  # (B,) scalar rewards
-                    next_patch_pixels_batch, next_neighbor_patches_batch, next_neighbor_masks_batch, next_neighbor_valid_batch = batch_obs_to_tensor([t.next_obs for t in batch], device)
+                    next_patch_pixels_batch, next_below_patches_batch, next_above_patches_batch, next_neighbor_masks_batch = batch_obs_to_tensor([t.next_obs for t in batch], device)
                     done_batch = torch.tensor([t.done for t in batch], dtype=torch.float32, device=device)
 
                     # Batched forward passes
-                    q_s = policy_net(patch_pixels_batch, neighbor_patches_batch, neighbor_masks_batch, neighbor_valid_batch)  # (B, N, N, 2)
+                    q_s = policy_net(patch_pixels_batch, below_patches_batch, above_patches_batch, neighbor_masks_batch)  # (B, N, N, 2)
                     q_s_a = q_s.gather(dim=-1, index=act_batch.unsqueeze(-1)).squeeze(-1)  # (B, N, N)
                     
                     # Aggregate Q-values per patch (mean over pixels)
                     q_s_a_mean = q_s_a.mean(dim=(1, 2))  # (B,)
 
                     with torch.no_grad():
-                        q_next = target_net(next_patch_pixels_batch, next_neighbor_patches_batch, next_neighbor_masks_batch, next_neighbor_valid_batch)  # (B, N, N, 2)
+                        q_next = target_net(next_patch_pixels_batch, next_below_patches_batch, next_above_patches_batch, next_neighbor_masks_batch)  # (B, N, N, 2)
                         q_next_max = q_next.max(dim=-1).values  # (B, N, N)
                         q_next_max_mean = q_next_max.mean(dim=(1, 2))  # (B,)
 
@@ -328,8 +319,7 @@ def train_dqn_on_images(
                     target_net.load_state_dict(policy_net.state_dict())
 
             base_returns.append(base_return)
-            boundary_returns.append(boundary_return)
-            sparsity_returns.append(sparsity_return)
+            continuity_returns.append(continuity_return)
             train_returns.append(img_return)
             epsilons.append(epsilon)
             
@@ -346,8 +336,7 @@ def train_dqn_on_images(
                                            mask,
                                            patch_size=patch_size,
                                            base_coef=base_coef,
-                                           boundary_coef=boundary_coef,
-                                           sparsity_coef=sparsity_coef,
+                                           continuity_coef=continuity_coef,
                                            device=device)
                                            
             train_metrics = compute_metrics(pred_train, mask)
@@ -368,8 +357,7 @@ def train_dqn_on_images(
                 policy_net, val_pairs, device,
                 patch_size=patch_size,
                 base_coef=base_coef,
-                boundary_coef=boundary_coef,
-                sparsity_coef=sparsity_coef,
+                continuity_coef=continuity_coef,
             )
             
             # Compute validation loss
@@ -383,28 +371,27 @@ def train_dqn_on_images(
                                                  mask=mask,
                                                  patch_size=patch_size,
                                                  base_coef=base_coef,
-                                                 boundary_coef=boundary_coef,
-                                                 sparsity_coef=sparsity_coef)
+                                                 continuity_coef=continuity_coef)
                     obs, _ = env.reset()
                     done = False
                     
                     while not done:
-                        patch_pixels, neighbor_patches, neighbor_masks, neighbor_valid = obs_to_tensor(obs, device)
-                        q = policy_net(patch_pixels, neighbor_patches, neighbor_masks, neighbor_valid)
+                        patch_pixels, below_patches, above_patches, neighbor_masks = obs_to_tensor(obs, device)
+                        q = policy_net(patch_pixels, below_patches, above_patches, neighbor_masks)
                         a = q.argmax(dim=-1)
                         
                         next_obs, reward, terminated, truncated, info = env.step(a.cpu().numpy())
                         done = terminated or truncated
                         
                         # Compute validation loss with scalar rewards
-                        next_patch_pixels, next_neighbor_patches, next_neighbor_masks, next_neighbor_valid = obs_to_tensor(next_obs, device)
+                        next_patch_pixels, next_below_patches, next_above_patches, next_neighbor_masks = obs_to_tensor(next_obs, device)
                         rew_tensor = torch.tensor([reward], dtype=torch.float32, device=device)
                         done_tensor = torch.tensor([done], dtype=torch.float32, device=device)
                         
                         q_s_a = q.unsqueeze(0).gather(dim=-1, index=a.unsqueeze(0).unsqueeze(-1)).squeeze(-1)
                         q_s_a_mean = q_s_a.mean(dim=(1, 2))  # (1,)
                         
-                        q_next = target_net(next_patch_pixels, next_neighbor_patches, next_neighbor_masks, next_neighbor_valid)
+                        q_next = target_net(next_patch_pixels, next_below_patches, next_above_patches, next_neighbor_masks)
                         q_next_max = q_next.unsqueeze(0).max(dim=-1).values
                         q_next_max_mean = q_next_max.mean(dim=(1, 2))  # (1,)
                         
@@ -432,8 +419,7 @@ def train_dqn_on_images(
                                      val_pairs[0][1], 
                                      patch_size=patch_size,
                                      base_coef=base_coef,
-                                     boundary_coef=boundary_coef,
-                                     sparsity_coef=sparsity_coef,
+                                     continuity_coef=continuity_coef,
                                      device=device)
             if epoch % 5 == 0:
                 visualize_result(val_pairs[0][0], val_pairs[0][1], pred, f"dqn_patch_based/results/{save_dir}/reconstructions/reconstruction_1st_img_epoch_{epoch+1}.png")
@@ -444,13 +430,12 @@ def train_dqn_on_images(
         
         # Print epoch summary
         avg_base = np.mean(base_returns[-len(image_mask_pairs):])
-        avg_boundary = np.mean(boundary_returns[-len(image_mask_pairs):])
-        avg_sparsity = np.mean(sparsity_returns[-len(image_mask_pairs):])
+        avg_cont = np.mean(continuity_returns[-len(image_mask_pairs):])
         
         print(f"\nEpoch {epoch+1}/{num_epochs} | Time: {dt:.1f}s")
         print(f"  Train - Loss: {train_losses[-1]:.4f} | Avg Return: {np.mean(train_returns[-len(image_mask_pairs):]):.2f} | ε: {epsilon:.3f}")
         print(f"          IoU: {avg_train_metrics['iou']:.3f} | F1: {avg_train_metrics['f1']:.3f} | Acc: {avg_train_metrics['accuracy']:.3f} | Cov: {avg_train_metrics['coverage']:.3f}")
-        print(f"          Rewards -> Base: {avg_base:.2f} | Boundary: {avg_boundary:.2f} | Sparsity: {avg_sparsity:.2f}")
+        print(f"          Rewards -> Base: {avg_base:.2f} | Cont: {avg_cont:.2f}")
         if val_pairs:
             print(f"  Val   - Loss: {val_losses[-1]:.4f} | Avg Return: {val_returns[-1]:.2f}")
             print(f"          IoU: {avg_val_metrics['iou']:.3f} | F1: {avg_val_metrics['f1']:.3f} | Acc: {avg_val_metrics['accuracy']:.3f} | Cov: {avg_val_metrics['coverage']:.3f}")
@@ -460,8 +445,7 @@ def train_dqn_on_images(
         "target_net": target_net,
         "returns": train_returns,
         "base_returns": base_returns,
-        "boundary_returns": boundary_returns,
-        "sparsity_returns": sparsity_returns,
+        "continuity_returns": continuity_returns,
         "val_returns": val_returns,
         "epsilons": epsilons,
         "train_losses": train_losses,
@@ -477,16 +461,14 @@ def reconstruct_image(policy_net,
                       mask, 
                       patch_size=16,
                       base_coef=1.0,
-                      boundary_coef=0.2,
-                      sparsity_coef=0.05,
+                      continuity_coef=0.1,
                       device=None):
     """Reconstruct image using trained policy network."""
     env = PatchClassificationEnv(image, 
                                  mask, 
                                  patch_size=patch_size,
                                  base_coef=base_coef,
-                                 boundary_coef=boundary_coef,
-                                 sparsity_coef=sparsity_coef,
+                                 continuity_coef=continuity_coef,
                                  start_from_bottom_left=True)
     device = device or ("cuda" if torch.cuda.is_available() else "cpu")
     obs, _ = env.reset()
@@ -497,8 +479,8 @@ def reconstruct_image(policy_net,
     policy_net.eval()
     with torch.no_grad():
         while not done:
-            patch_pixels, neighbor_patches, neighbor_masks, neighbor_valid = obs_to_tensor(obs, device)
-            q = policy_net(patch_pixels, neighbor_patches, neighbor_masks, neighbor_valid)  # (N, N, 2)
+            patch_pixels, below_patches, above_patches, neighbor_masks = obs_to_tensor(obs, device)
+            q = policy_net(patch_pixels, below_patches, above_patches, neighbor_masks)  # (N, N, 2)
             a = q.argmax(dim=-1).cpu().numpy().astype(np.uint8)  # (N, N)
             
             # Write into canvas
@@ -548,8 +530,7 @@ if __name__ == "__main__":
 
     # RL env
     parser.add_argument('--base_coef', type=float, default=1.0, help='Base reward coefficient')
-    parser.add_argument("--boundary_coef", type=float, default=0.2, help="Boundary consistency reward coefficient")
-    parser.add_argument("--sparsity_coef", type=float, default=0.05, help="Sparsity reward coefficient")
+    parser.add_argument("--cont_coef", type=float, default=0.1, help="Continuity reward coefficient")
     
     args = parser.parse_args()
 
@@ -582,7 +563,7 @@ if __name__ == "__main__":
         # Default fallback
         save_dir = "default"
 
-    save_dir = os.path.join(save_dir, f"base_{args.base_coef}_bound_{args.boundary_coef}_sparse_{args.sparsity_coef}")
+    save_dir = os.path.join(save_dir, f"base_{args.base_coef}_cont_{args.cont_coef}")
     os.makedirs(f"dqn_patch_based/results/{save_dir}/reconstructions", exist_ok=True)
     os.makedirs(f"dqn_patch_based/models/{save_dir}", exist_ok=True)
                     
@@ -595,8 +576,7 @@ if __name__ == "__main__":
         end_epsilon=0.01,
         epsilon_decay_epochs=15,
         base_coef=args.base_coef,
-        boundary_coef=args.boundary_coef,
-        sparsity_coef=args.sparsity_coef,
+        continuity_coef=args.cont_coef,
         save_dir=save_dir,
         seed=123,
         device="cuda" if torch.cuda.is_available() else "cpu"
@@ -608,8 +588,10 @@ if __name__ == "__main__":
                                  mask_test, 
                                  patch_size=args.patch_size,
                                  base_coef=args.base_coef,
-                                 boundary_coef=args.boundary_coef,
-                                 sparsity_coef=args.sparsity_coef)
+                                 continuity_coef=args.cont_coef,
+                                 neighbor_coef=args.neighbor_coef,
+                                 history_len=args.history_len,
+                                 future_len=args.future_len)
         visualize_result(img_test, mask_test, pred, save_path=f"dqn_patch_based/results/{save_dir}/reconstructions/final_image_{i+1}.png")
 
     # Plot training curves
@@ -691,21 +673,15 @@ if __name__ == "__main__":
     axes2[0].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
     axes2[0].grid(True)
 
-    # Boundary + Sparsity rewards
-    if len(results["boundary_returns"]) >= window:
-        axes2[1].plot(np.convolve(results["boundary_returns"], 
+    # Continuity reward
+    if len(results["continuity_returns"]) >= window:
+        axes2[1].plot(np.convolve(results["continuity_returns"], 
                                   np.ones(window)/window,
                                   mode='valid'), 
-                      label="Boundary Reward", color='blue')
-    if len(results["sparsity_returns"]) >= window:
-        axes2[1].plot(np.convolve(results["sparsity_returns"], 
-                                  np.ones(window)/window,
-                                  mode='valid'), 
-                      label="Sparsity Reward", color='orange')
-    axes2[1].set_title("Boundary & Sparsity Rewards (Moving Average)")
+                      label="Continuity Reward", color='blue')
+    axes2[1].set_title("Continuity Reward (Moving Average)")
     axes2[1].set_xlabel("Episode")
     axes2[1].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
-    axes2[1].legend()
     axes2[1].grid(True)
     
     plt.tight_layout()

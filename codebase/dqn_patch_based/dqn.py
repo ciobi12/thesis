@@ -10,10 +10,10 @@ Transition = namedtuple("Transition", ("obs", "action", "reward", "next_obs", "d
 def obs_to_tensor(obs, device):
     """Convert observation dict to tensors on device."""
     patch_pixels = torch.tensor(obs["patch_pixels"], dtype=torch.float32, device=device).permute(2, 0, 1)  # (C, N, N)
-    neighbor_patches = torch.tensor(obs["neighbor_patches"], dtype=torch.float32, device=device).permute(0, 3, 1, 2)  # (8, C, N, N)
-    neighbor_masks = torch.tensor(obs["neighbor_masks"], dtype=torch.float32, device=device)  # (8, N, N)
-    neighbor_valid = torch.tensor(obs["neighbor_valid"], dtype=torch.float32, device=device)  # (8,)
-    return patch_pixels, neighbor_patches, neighbor_masks, neighbor_valid
+    below_patches = torch.tensor(obs["below_patches"], dtype=torch.float32, device=device).permute(0, 3, 1, 2)  # (3, C, N, N)
+    above_patches = torch.tensor(obs["above_patches"], dtype=torch.float32, device=device).permute(0, 3, 1, 2)  # (3, C, N, N)
+    neighbor_masks = torch.tensor(obs["neighbor_masks"], dtype=torch.float32, device=device)  # (4, N, N)
+    return patch_pixels, below_patches, above_patches, neighbor_masks
 
 
 def batch_obs_to_tensor(obs_list, device):
@@ -21,16 +21,16 @@ def batch_obs_to_tensor(obs_list, device):
     patch_pixels = torch.tensor(
         np.stack([o["patch_pixels"] for o in obs_list]), dtype=torch.float32, device=device
     ).permute(0, 3, 1, 2)  # (B, C, N, N)
-    neighbor_patches = torch.tensor(
-        np.stack([o["neighbor_patches"] for o in obs_list]), dtype=torch.float32, device=device
-    ).permute(0, 1, 4, 2, 3)  # (B, 8, C, N, N)
+    below_patches = torch.tensor(
+        np.stack([o["below_patches"] for o in obs_list]), dtype=torch.float32, device=device
+    ).permute(0, 1, 4, 2, 3)  # (B, 3, C, N, N)
+    above_patches = torch.tensor(
+        np.stack([o["above_patches"] for o in obs_list]), dtype=torch.float32, device=device
+    ).permute(0, 1, 4, 2, 3)  # (B, 3, C, N, N)
     neighbor_masks = torch.tensor(
         np.stack([o["neighbor_masks"] for o in obs_list]), dtype=torch.float32, device=device
-    )  # (B, 8, N, N)
-    neighbor_valid = torch.tensor(
-        np.stack([o["neighbor_valid"] for o in obs_list]), dtype=torch.float32, device=device
-    )  # (B, 8)
-    return patch_pixels, neighbor_patches, neighbor_masks, neighbor_valid
+    )  # (B, 4, N, N)
+    return patch_pixels, below_patches, above_patches, neighbor_masks
 
 
 class PerPatchCNN(nn.Module):
@@ -58,13 +58,13 @@ class PerPatchCNN(nn.Module):
 
 
 class NeighborContextCNN(nn.Module):
-    """Enhanced architecture that uses all 8 spatial neighbor patches.
+    """Enhanced architecture that uses spatial neighbor context.
     
     The network sees:
     - Current patch pixels
-    - All 8 neighbor patches: [left, right, top-left, top, top-right, bottom-left, bottom, bottom-right]
-    - Predicted masks of all 8 neighbors (for continuity awareness)
-    - Validity mask indicating which neighbors are in bounds
+    - 3 patches below (bottom-left, directly below, bottom-right)
+    - 3 patches above (top-left, directly above, top-right)
+    - Predicted masks of left + 3 below patches (for continuity awareness)
     """
     def __init__(self, input_channels, patch_size):
         super().__init__()
@@ -79,36 +79,34 @@ class NeighborContextCNN(nn.Module):
             nn.ReLU(),
         )
         
-        # All 8 neighbor patches encoder - process them together
-        # 8 neighbors * C channels = 8*C input channels
-        self.neighbor_encoder = nn.Sequential(
-            nn.Conv2d(8 * input_channels, 96, kernel_size=5, padding=2),
-            nn.ReLU(),
-            nn.Conv2d(96, 96, kernel_size=3, padding=1),
-            nn.ReLU(),
-        )
-        
-        # Neighbor masks encoder (8 masks, one for each neighbor)
-        self.mask_encoder = nn.Sequential(
-            nn.Conv2d(8, 48, kernel_size=3, padding=1),
+        # Below patches encoder (3 patches: bottom-left, below, bottom-right)
+        self.below_encoder = nn.Sequential(
+            nn.Conv2d(3 * input_channels, 48, kernel_size=5, padding=2),
             nn.ReLU(),
             nn.Conv2d(48, 48, kernel_size=3, padding=1),
             nn.ReLU(),
         )
         
-        # Edge-aware encoder: special focus on boundary pixels
-        # Input: current patch + attention to edge regions
-        self.edge_encoder = nn.Sequential(
-            nn.Conv2d(input_channels, 32, kernel_size=3, padding=1),
+        # Above patches encoder (3 patches: top-left, above, top-right)
+        self.above_encoder = nn.Sequential(
+            nn.Conv2d(3 * input_channels, 48, kernel_size=5, padding=2),
+            nn.ReLU(),
+            nn.Conv2d(48, 48, kernel_size=3, padding=1),
+            nn.ReLU(),
+        )
+        
+        # Neighbor masks encoder (4 masks: left + 3 below)
+        self.mask_encoder = nn.Sequential(
+            nn.Conv2d(4, 32, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.Conv2d(32, 32, kernel_size=3, padding=1),
             nn.ReLU(),
         )
         
         # Cross-attention between current patch and all context
-        # 64 (patch) + 96 (neighbors) + 48 (masks) + 32 (edge) = 240
+        # 64 (patch) + 48 (below) + 48 (above) + 32 (masks) = 192
         self.attention = nn.Sequential(
-            nn.Conv2d(240, 64, kernel_size=1),
+            nn.Conv2d(192, 64, kernel_size=1),
             nn.ReLU(),
             nn.Conv2d(64, 64, kernel_size=1),
             nn.Sigmoid()
@@ -116,28 +114,28 @@ class NeighborContextCNN(nn.Module):
         
         # Final decision layers
         self.decision = nn.Sequential(
-            nn.Conv2d(240, 128, kernel_size=3, padding=1),
+            nn.Conv2d(192, 128, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.Conv2d(128, 64, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.Conv2d(64, 2, kernel_size=1)
         )
     
-    def forward(self, patch_pixels, neighbor_patches, neighbor_masks, neighbor_valid):
+    def forward(self, patch_pixels, below_patches, above_patches, neighbor_masks):
         """
         patch_pixels: (batch, C, N, N) or (C, N, N)
-        neighbor_patches: (batch, 8, C, N, N) or (8, C, N, N)
-        neighbor_masks: (batch, 8, N, N) or (8, N, N)
-        neighbor_valid: (batch, 8) or (8,) - which neighbors are valid
+        below_patches: (batch, 3, C, N, N) or (3, C, N, N)
+        above_patches: (batch, 3, C, N, N) or (3, C, N, N)
+        neighbor_masks: (batch, 4, N, N) or (4, N, N)
         
         Returns: (batch, N, N, 2) Q-values per pixel
         """
         # Handle single observation (no batch dimension)
         if patch_pixels.dim() == 3:
             patch_pixels = patch_pixels.unsqueeze(0)
-            neighbor_patches = neighbor_patches.unsqueeze(0)
+            below_patches = below_patches.unsqueeze(0)
+            above_patches = above_patches.unsqueeze(0)
             neighbor_masks = neighbor_masks.unsqueeze(0)
-            neighbor_valid = neighbor_valid.unsqueeze(0)
             squeeze_output = True
         else:
             squeeze_output = False
@@ -145,33 +143,28 @@ class NeighborContextCNN(nn.Module):
         B = patch_pixels.size(0)
         N = patch_pixels.size(-1)
         
-        # Mask out invalid neighbors by zeroing them
-        # neighbor_valid: (B, 8) -> (B, 8, 1, 1, 1) for broadcasting
-        validity_mask_patches = neighbor_valid.view(B, 8, 1, 1, 1)
-        validity_mask_masks = neighbor_valid.view(B, 8, 1, 1)
+        # Flatten below patches: (B, 3, C, N, N) -> (B, 3*C, N, N)
+        x_below = below_patches.reshape(B, 3 * self.input_channels, N, N)
         
-        neighbor_patches = neighbor_patches * validity_mask_patches
-        neighbor_masks = neighbor_masks * validity_mask_masks
-        
-        # Flatten neighbor patches: (B, 8, C, N, N) -> (B, 8*C, N, N)
-        x_neighbors = neighbor_patches.reshape(B, 8 * self.input_channels, N, N)
+        # Flatten above patches: (B, 3, C, N, N) -> (B, 3*C, N, N)
+        x_above = above_patches.reshape(B, 3 * self.input_channels, N, N)
         
         # Encode current patch
         patch_features = self.patch_encoder(patch_pixels)  # (B, 64, N, N)
         
-        # Encode all 8 neighbors
-        neighbor_features = self.neighbor_encoder(x_neighbors)  # (B, 96, N, N)
+        # Encode below context
+        below_features = self.below_encoder(x_below)  # (B, 48, N, N)
+        
+        # Encode above context
+        above_features = self.above_encoder(x_above)  # (B, 48, N, N)
         
         # Encode neighbor masks
-        mask_features = self.mask_encoder(neighbor_masks)  # (B, 48, N, N)
-        
-        # Edge-aware features from current patch
-        edge_features = self.edge_encoder(patch_pixels)  # (B, 32, N, N)
+        mask_features = self.mask_encoder(neighbor_masks)  # (B, 32, N, N)
         
         # Combine all features
         combined = torch.cat([
-            patch_features, neighbor_features, mask_features, edge_features
-        ], dim=1)  # (B, 240, N, N)
+            patch_features, below_features, above_features, mask_features
+        ], dim=1)  # (B, 192, N, N)
         
         # Apply attention
         attention_weights = self.attention(combined)  # (B, 64, N, N)
@@ -179,8 +172,8 @@ class NeighborContextCNN(nn.Module):
         
         # Reconstruct combined with attended patch
         final_features = torch.cat([
-            attended_patch, neighbor_features, mask_features, edge_features
-        ], dim=1)  # (B, 240, N, N)
+            attended_patch, below_features, above_features, mask_features
+        ], dim=1)  # (B, 192, N, N)
         
         q_values = self.decision(final_features)  # (B, 2, N, N)
         
