@@ -8,31 +8,32 @@ import os
 from pathlib import Path
 
 class BranchingStructureDataset(Dataset):
-    """Dataset loader for CT-like branching structure images"""
-    def __init__(self, data_dir, transform=None):
-        self.data_dir = Path(data_dir)
-        self.image_files = sorted(list(self.data_dir.glob("*_ct.png")))
+    """Dataset loader for CT-like branching structure images (images/ and segm/ folders)"""
+    def __init__(self, images_dir, masks_dir, transform=None):
+        self.images_dir = Path(images_dir)
+        self.masks_dir = Path(masks_dir)
+        self.image_files = sorted(list(self.images_dir.glob("*.png")))
         self.transform = transform
-        
+
     def __len__(self):
         return len(self.image_files)
-    
+
     def __getitem__(self, idx):
         img_path = self.image_files[idx]
-        mask_path = img_path.parent / img_path.name.replace("_ct.png", "_mask.png")
-        
+        mask_path = self.masks_dir / img_path.name
+
         image = np.array(Image.open(img_path)).astype(np.float32) / 255.0
         mask = np.array(Image.open(mask_path)).astype(np.float32) / 255.0
-        
+
         # Add channel dimension if grayscale
         if len(image.shape) == 2:
             image = image[np.newaxis, ...]
         else:
             image = np.transpose(image, (2, 0, 1))
-            
+
         if len(mask.shape) == 2:
             mask = mask[np.newaxis, ...]
-            
+
         return torch.from_numpy(image), torch.from_numpy(mask)
 
 class UNet(nn.Module):
@@ -157,16 +158,21 @@ def evaluate(model, dataloader, device):
 
 def main():
     # Configuration
-    data_root = "data/ct_like/2d/continuous"
+    data_root = "../../../data/ct_like/2d/continuous"
     batch_size = 8
     num_epochs = 100
     lr = 1e-4
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    # Data loading
-    train_dataset = BranchingStructureDataset(os.path.join(data_root, "train"))
-    val_dataset = BranchingStructureDataset(os.path.join(data_root, "val"))
-    
+    # Data loading (new folder structure)
+    train_images = os.path.join(data_root, "train/images")
+    train_masks = os.path.join(data_root, "train/segm")
+    val_images = os.path.join(data_root, "val/images")
+    val_masks = os.path.join(data_root, "val/segm")
+
+    train_dataset = BranchingStructureDataset(train_images, train_masks)
+    val_dataset = BranchingStructureDataset(val_images, val_masks)
+
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     
@@ -177,20 +183,25 @@ def main():
     
     # Training loop
     best_iou = 0
+    train_losses = []
+    val_ious = []
+    val_dices = []
     for epoch in range(num_epochs):
         train_loss = train_epoch(model, train_loader, optimizer, device)
         val_iou, val_dice = evaluate(model, val_loader, device)
-        
+        train_losses.append(train_loss)
+        val_ious.append(val_iou)
+        val_dices.append(val_dice)
         scheduler.step(val_iou)
-        
         print(f"Epoch {epoch+1}/{num_epochs} - Loss: {train_loss:.4f}, Val IoU: {val_iou:.4f}, Val Dice: {val_dice:.4f}")
-        
         if val_iou > best_iou:
             best_iou = val_iou
             torch.save(model.state_dict(), "classical_segmentation/best_unet.pth")
             print(f"Saved best model with IoU: {best_iou:.4f}")
-
-
+    # Save metrics plot
+    from unet_metrics_plot import plot_metrics
+    plot_metrics(train_losses, val_ious, val_dices, "classical_segmentation/unet_training_metrics.png")
+    print("Saved training metrics plot to classical_segmentation/unet_training_metrics.png")
 
 if __name__ == "__main__":
     main()
