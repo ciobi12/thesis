@@ -20,7 +20,7 @@ class BranchingStructureDataset(Dataset):
 
     def __getitem__(self, idx):
         img_path = self.image_files[idx]
-        mask_path = self.masks_dir / img_path.name
+        mask_path = self.masks_dir / img_path.name.replace("_ct", "_mask")
 
         image = np.array(Image.open(img_path)).astype(np.float32) / 255.0
         mask = np.array(Image.open(mask_path)).astype(np.float32) / 255.0
@@ -33,6 +33,46 @@ class BranchingStructureDataset(Dataset):
 
         if len(mask.shape) == 2:
             mask = mask[np.newaxis, ...]
+
+        return torch.from_numpy(image), torch.from_numpy(mask)
+
+class RetinalStructureDataset(Dataset):
+    """Dataset loader for CT-like retinal structure images (images/ and segm/ folders)"""
+    def __init__(self, drive_root, stare_root, split="train", transform=None):
+        self.drive_images_dir = Path(drive_root) / split / "images"
+        self.drive_masks_dir = Path(drive_root) / split / "segm"
+        self.stare_images_dir = Path(stare_root) / split / "images"
+        self.stare_masks_dir = Path(stare_root) / split / "segm"
+        self.transform = transform
+
+        self.drive_image_files = sorted(list(self.drive_images_dir.glob("*.tif")))
+        self.stare_image_files = sorted(list(self.stare_images_dir.glob("*.ppm")))
+
+        # Combine both datasets
+        self.image_files = self.drive_image_files + self.stare_image_files
+        
+        self.drive_masks_files = sorted(list(self.drive_masks_dir.glob("*.gif")))
+        self.stare_masks_files = sorted(list(self.stare_masks_dir.glob("*.ppm")))
+
+        self.mask_files = self.drive_masks_files + self.stare_masks_files
+
+    def __len__(self):
+        return len(self.image_files)
+
+    def __getitem__(self, idx):
+        img_path = self.image_files[idx]
+        mask_path = self.mask_files[idx]
+
+        # Open and convert to grayscale, resize to 384x384
+        image = Image.open(img_path).convert('L').resize((384, 384), Image.BILINEAR)
+        mask = Image.open(mask_path).convert('L').resize((384, 384), Image.NEAREST)
+
+        image = np.array(image).astype(np.float32) / 255.0
+        mask = np.array(mask).astype(np.float32) / 255.0
+
+        # Add channel dimension (always grayscale)
+        image = image[np.newaxis, ...]
+        mask = mask[np.newaxis, ...]
 
         return torch.from_numpy(image), torch.from_numpy(mask)
 
@@ -136,72 +176,109 @@ def evaluate(model, dataloader, device):
     model.eval()
     total_iou = 0
     total_dice = 0
-    
+    total_loss = 0
     with torch.no_grad():
         for images, masks in dataloader:
             images, masks = images.to(device), masks.to(device)
             outputs = model(images)
             preds = (outputs > 0.5).float()
-            
             # IoU
             intersection = (preds * masks).sum(dim=(2, 3))
             union = (preds + masks).clamp(0, 1).sum(dim=(2, 3))
             iou = (intersection / (union + 1e-6)).mean()
-            
             # Dice
             dice = (2 * intersection) / (preds.sum(dim=(2, 3)) + masks.sum(dim=(2, 3)) + 1e-6)
-            
+            # Loss
+            loss = combined_loss(outputs, masks)
             total_iou += iou.item()
             total_dice += dice.mean().item()
-    
-    return total_iou / len(dataloader), total_dice / len(dataloader)
+            total_loss += loss.item()
+    return total_loss / len(dataloader), total_iou / len(dataloader), total_dice / len(dataloader)
 
 def main():
     # Configuration
-    data_root = "../../../data/ct_like/2d/continuous"
+    data_root = "../../../data/"
     batch_size = 8
     num_epochs = 100
-    lr = 1e-4
+    lr = 1e-3
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    # Data loading (new folder structure)
-    train_images = os.path.join(data_root, "train/images")
-    train_masks = os.path.join(data_root, "train/segm")
-    val_images = os.path.join(data_root, "val/images")
-    val_masks = os.path.join(data_root, "val/segm")
 
-    train_dataset = BranchingStructureDataset(train_images, train_masks)
-    val_dataset = BranchingStructureDataset(val_images, val_masks)
+    # # Data loading (new folder structure)
+    # train_images = os.path.join(data_root, "train/images")
+    # train_masks = os.path.join(data_root, "train/segm")
+    # val_images = os.path.join(data_root, "val/images")
+    # val_masks = os.path.join(data_root, "val/segm")
+
+    # train_dataset = BranchingStructureDataset(train_images, train_masks)
+    # val_dataset = BranchingStructureDataset(val_images, val_masks)
+
+    train_dataset = RetinalStructureDataset(os.path.join(data_root, "DRIVE"), os.path.join(data_root, "STARE"), split="train")
+    val_dataset = RetinalStructureDataset(os.path.join(data_root, "DRIVE"), os.path.join(data_root, "STARE"), split="val")
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-    
+
     # Model setup
     model = UNet(in_channels=1, out_channels=1).to(device)
     optimizer = optim.Adam(model.parameters(), lr=lr)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', patience=10)
-    
+
     # Training loop
     best_iou = 0
     train_losses = []
+    val_losses = []
     val_ious = []
     val_dices = []
     for epoch in range(num_epochs):
         train_loss = train_epoch(model, train_loader, optimizer, device)
-        val_iou, val_dice = evaluate(model, val_loader, device)
+        val_loss, val_iou, val_dice = evaluate(model, val_loader, device)
         train_losses.append(train_loss)
+        val_losses.append(val_loss)
         val_ious.append(val_iou)
         val_dices.append(val_dice)
         scheduler.step(val_iou)
-        print(f"Epoch {epoch+1}/{num_epochs} - Loss: {train_loss:.4f}, Val IoU: {val_iou:.4f}, Val Dice: {val_dice:.4f}")
+        print(f"Epoch {epoch+1}/{num_epochs} - Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, Val IoU: {val_iou:.4f}, Val Dice: {val_dice:.4f}")
         if val_iou > best_iou:
             best_iou = val_iou
-            torch.save(model.state_dict(), "classical_segmentation/best_unet.pth")
+            torch.save(model.state_dict(), "best_unet.pth")
             print(f"Saved best model with IoU: {best_iou:.4f}")
     # Save metrics plot
-    from unet_metrics_plot import plot_metrics
-    plot_metrics(train_losses, val_ious, val_dices, "classical_segmentation/unet_training_metrics.png")
-    print("Saved training metrics plot to classical_segmentation/unet_training_metrics.png")
+    plot_training_metrics(train_losses, val_losses, val_ious, val_dices, "unet_training_metrics.png")
+    print("Saved training metrics plot to unet_training_metrics.png")
+
+def plot_training_metrics(train_losses, val_losses, val_ious, val_dices, save_path):
+    import matplotlib.pyplot as plt
+    epochs = range(1, len(train_losses) + 1)
+    fig, axs = plt.subplots(2, 2, figsize=(12, 10))
+    axs[0, 0].plot(epochs, train_losses, label='Train Loss', color='blue')
+    axs[0, 0].set_title('Train Loss')
+    axs[0, 0].set_xlabel('Epoch')
+    axs[0, 0].set_ylabel('Loss')
+    axs[0, 0].legend()
+
+    axs[0, 1].plot(epochs, val_losses, label='Val Loss', color='orange')
+    axs[0, 1].set_title('Validation Loss')
+    axs[0, 1].set_xlabel('Epoch')
+    axs[0, 1].set_ylabel('Loss')
+    axs[0, 1].legend()
+
+    axs[1, 0].plot(epochs, val_ious, label='Val IoU', color='green')
+    axs[1, 0].set_title('Validation IoU')
+    axs[1, 0].set_xlabel('Epoch')
+    axs[1, 0].set_ylabel('IoU')
+    axs[1, 0].legend()
+
+    axs[1, 1].plot(epochs, val_dices, label='Val Dice', color='red')
+    axs[1, 1].set_title('Validation Dice')
+    axs[1, 1].set_xlabel('Epoch')
+    axs[1, 1].set_ylabel('Dice')
+    axs[1, 1].legend()
+
+    plt.tight_layout()
+    for ax in axs.flat:
+        ax.grid(True)
+    plt.savefig(save_path)
+    plt.close()
 
 if __name__ == "__main__":
     main()

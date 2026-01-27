@@ -95,7 +95,7 @@ def update_dataset(data_dir, size = (256, 256)):
                     # print(f"Train mask: {file_path}")
                     train_masks_paths.append(file_path)
                     # img = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
-                    img = np.array(Image.open(file_path).convert("L").resize(size))
+                    img = np.array(Image.open(file_path).convert("L").resize(size, Image.NEAREST))
                     if img is not None:
                         train_masks.append(img)
                 elif "images" in root:  # Check if in images folder
@@ -111,7 +111,7 @@ def update_dataset(data_dir, size = (256, 256)):
                     val_masks_paths.append(file_path)
                     # print(f"Val mask: {file_path}")
                     # img = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
-                    img = np.array(Image.open(file_path).convert("L").resize(size))
+                    img = np.array(Image.open(file_path).convert("L").resize(size, Image.NEAREST))
                     if img is not None:
                         val_masks.append(img)
                 elif "images" in root:  # Check if in images folder

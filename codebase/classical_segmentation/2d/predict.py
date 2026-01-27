@@ -3,7 +3,7 @@ from PIL import Image
 import torch
 import os
 from pathlib import Path
-from classical_segmentation.unet_baseline import UNet
+from unet_baseline import UNet
 
 def predict_mask(model, image_path, device, threshold=0.5, visualize=False):
     """
@@ -23,7 +23,7 @@ def predict_mask(model, image_path, device, threshold=0.5, visualize=False):
     model.eval()
     
     # Load and preprocess image
-    image = np.array(Image.open(image_path)).astype(np.float32) / 255.0
+    image = np.array(Image.open(image_path).convert('L').resize((384, 384), Image.BILINEAR)).astype(np.float32) / 255.0
     original_img = image.copy()
     
     # Add channel dimension if grayscale
@@ -71,7 +71,7 @@ def predict_and_visualize(model, image_path, mask_path, device, save_path=None):
     # Load ground truth if available
     metrics = {}
     if mask_path and os.path.exists(mask_path):
-        gt_mask = np.array(Image.open(mask_path)).astype(np.float32) / 255.0
+        gt_mask = np.array(Image.open(mask_path).resize((384, 384))).astype(np.float32) / 255.0
         
         # Calculate metrics
         intersection = (pred_mask * gt_mask).sum()
@@ -87,26 +87,28 @@ def predict_and_visualize(model, image_path, mask_path, device, save_path=None):
         gt_mask = None
     
     # Create visualization
-    n_cols = 4 if gt_mask is not None else 3
+    # n_cols = 4 if gt_mask is not None else 3
+    n_cols = 3
     fig, axes = plt.subplots(1, n_cols, figsize=(5*n_cols, 5))
     
     axes[0].imshow(original_img, cmap='gray')
     axes[0].set_title('Original CT Image')
     axes[0].axis('off')
     
-    axes[1].imshow(prob_map, cmap='jet', vmin=0, vmax=1)
-    axes[1].set_title('Probability Map')
+    # axes[1].imshow(prob_map, cmap='jet', vmin=0, vmax=1)
+    # axes[1].set_title('Probability Map')
+    # axes[1].axis('off')
+    
+    axes[1].imshow(pred_mask, cmap='gray')
+    axes[1].set_title('Predicted Mask')
     axes[1].axis('off')
     
-    axes[2].imshow(pred_mask, cmap='gray')
-    axes[2].set_title('Predicted Mask')
-    axes[2].axis('off')
-    
     if gt_mask is not None:
-        axes[3].imshow(gt_mask, cmap='gray')
-        title = f'Ground Truth\nIoU: {metrics["iou"]:.3f} | Dice: {metrics["dice"]:.3f}'
-        axes[3].set_title(title)
-        axes[3].axis('off')
+        axes[2].imshow(gt_mask, cmap='gray')
+        # title = f'Ground Truth\nIoU: {metrics["iou"]:.3f} | Dice: {metrics["dice"]:.3f}'
+        title = "Ground Truth"
+        axes[2].set_title(title)
+        axes[2].axis('off')
     
     plt.tight_layout()
     
@@ -187,19 +189,21 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # Single image prediction
     model = UNet(in_channels=1, out_channels=1)
-    model.load_state_dict(torch.load("classical_segmentation/best_unet.pth"))
+    model.load_state_dict(torch.load("results/drive+stare/best_unet.pth"))
     model.to(device)
     
-    # Just get the mask
-    mask = predict_mask(model, "data/ct_like/2d/continuous/val/taproot_branched_var3_ct.png", device)
+    # # Just get the mask
+    # mask = predict_mask(model, 
+    #                     "results/drive+stare/best_unet.pth", 
+    #                     device)
     
     # Get mask with visualization
     result = predict_and_visualize(
         model, 
-        "data/ct_like/2d/continuous/val/taproot_branched_var3_ct.png",
-        "data/ct_like/2d/continuous/val/taproot_branched_var3_mask.png",
+        "../../../data/DRIVE/val/images/21_training.tif",
+        "../../../data/DRIVE/val/segm/21_manual1.gif",
         device,
-        save_path="classical_segmentation/results/prediction.png"
+        save_path="results/drive+stare/prediction.png"
     )
     print(f"IoU: {result['metrics']['iou']:.3f}")
     
