@@ -187,15 +187,36 @@ class PathReconstructionEnv(gym.Env):
         # ============================================================
         # 2. Continuity AND gradient rewards: smooth transitions between slices
         # ============================================================
-        # continuity_rewards, gradient_rewards = 2*(np.zeros((self.H, self.W), dtype=np.float32),)
         continuity_rewards = np.zeros((self.H, self.W), dtype=np.float32)
+        for i, prev_pred in enumerate(reversed(list(self.prev_preds_buffer))):
+            weight = (self.continuity_decay_factor ** i)
+
+            # Identify active pixels in the current slice
+            active_pixels = np.argwhere(action == 1)
+
+            for pixel in active_pixels:
+                h, w = pixel
+
+                # Define the 3x3 patch around the active pixel
+                h_min, h_max = max(0, h - 1), min(self.H, h + 2)
+                w_min, w_max = max(0, w - 1), min(self.W, w + 2)
+
+                # Check if there are active pixels in the patch in the previous slice
+                patch = prev_pred[h_min:h_max, w_min:w_max]
+                if np.any(patch == 1):
+                    continuity_rewards[h, w] += 0  # Reward 0 if there are active pixels in the patch
+                else:
+                    continuity_rewards[h, w] += -weight * 5  # Negative rewards otherwise
+
+        continuity_rewards *= self.continuity_coef
+
         gradient_rewards = 0.0
         decay_factor = self.continuity_decay_factor
         for i, (prev_pred, prev_slice) in enumerate(zip(reversed(list(self.prev_preds_buffer)), reversed(list(self.prev_slices_buffer)))):
             weight = (decay_factor ** i)
             # if len(self.prev_preds_buffer) > 0:
             #     print(self.volume[slice_idx, :, :][action == 1].sum() - prev_slice[prev_pred == 1].sum())
-            continuity_rewards += -weight * np.abs(action - prev_pred)
+            gradient_rewards += -weight * np.abs(action - prev_pred)
 
             # Assuming the volume has one root channel (grayscale intensity)
             curr_slice_avg_root_intensity = self.volume[slice_idx, :, :][action == 1].mean() if np.any(action == 1) else 0.0

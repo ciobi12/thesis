@@ -224,7 +224,7 @@ def reconstruct_full_volume_from_subvolumes(
     continuity_decay_factor: float = 0.7,
     gradient_coef: float = 0.1,
     dice_coef: float = 1.0,
-    future_len: int = 3
+    future_len: int = 5
 ) -> np.ndarray:
     """
     Reconstruct full volume prediction by running policy on each subvolume
@@ -410,9 +410,10 @@ def train_with_global_dice(
     gradient_coef: float = 0.1,
     dice_coef: float = 1.0,
     manhattan_coef: float = 0.0,
-    future_len: int = 3,
+    future_len: int = 5,
     device: str = None,
     save_dir: str = "models",
+    early_stopping_patience: int = 100,
 ):
     """
     Train DQN with global DICE evaluation every N epochs.
@@ -482,6 +483,11 @@ def train_with_global_dice(
     best_val_pred = None
     best_epoch = 0
     
+    # Early stopping tracking
+    best_val_loss = float('inf')
+    epochs_without_improvement = 0
+    early_stopped = False
+    
     # Per-epoch metrics
     train_metrics_history = {
         "iou": [], "f1": [], "accuracy": [], "coverage": [], "dice": []
@@ -499,6 +505,7 @@ def train_with_global_dice(
     print(f"  - DICE coefficient: {dice_coef}")
     print(f"  - Data augmentation: {'ENABLED' if AUGMENT_PROB > 0 else 'DISABLED'} (prob={AUGMENT_PROB})")
     print("  - Epsilon decay: exponential (smoother)")
+    print(f"  - Early stopping patience: {early_stopping_patience} epochs")
     print(f"{'='*60}\n")
     
     for epoch in range(num_epochs):
@@ -686,10 +693,10 @@ def train_with_global_dice(
             print(f"  Recall:      {global_metrics['recall']:.4f}")
             print(f"  TP: {global_metrics['tp']:,} | FP: {global_metrics['fp']:,} | FN: {global_metrics['fn']:,}")
             
-            # Save model checkpoint
-            checkpoint_path = os.path.join(save_dir, f"model_epoch_{epoch+1}_dice_{global_metrics['dice']:.4f}.pth")
-            torch.save(policy_net.state_dict(), checkpoint_path)
-            print(f"  Saved checkpoint: {checkpoint_path}")
+            # # Save model checkpoint
+            # checkpoint_path = os.path.join(save_dir, f"model_epoch_{epoch+1}_dice_{global_metrics['dice']:.4f}.pth")
+            # torch.save(policy_net.state_dict(), checkpoint_path)
+            # print(f"  Saved checkpoint: {checkpoint_path}")
             
             # Validation on full val volume
             if val_volumes and full_val_mask is not None:
@@ -762,7 +769,22 @@ def train_with_global_dice(
                 print(f"  [VAL] DICE: {val_metrics['dice']:.4f} | IoU: {val_metrics['iou']:.4f}")
                 print(f"  [VAL] Precision: {val_metrics['precision']:.4f} | Recall: {val_metrics['recall']:.4f}")
                 
-                # Track best validation model
+                # Early stopping check based on validation loss
+                if avg_val_loss < best_val_loss:
+                    best_val_loss = avg_val_loss
+                    epochs_without_improvement = 0
+                else:
+                    epochs_without_improvement += 1
+                    print(f"  [EARLY STOPPING] No improvement for {epochs_without_improvement}/{early_stopping_patience} epochs")
+                
+                if epochs_without_improvement >= early_stopping_patience:
+                    print(f"\n{'='*60}")
+                    print(f"EARLY STOPPING: Validation loss hasn't improved for {early_stopping_patience} epochs")
+                    print(f"Best validation loss: {best_val_loss:.6f}")
+                    print(f"{'='*60}")
+                    early_stopped = True
+                
+                # Track best validation model (based on DICE)
                 if val_metrics["dice"] > best_val_dice:
                     best_val_dice = val_metrics["dice"]
                     best_val_pred = val_pred.copy()
@@ -784,6 +806,11 @@ def train_with_global_dice(
         
         # Save latest model
         torch.save(policy_net.state_dict(), os.path.join(save_dir, "model_latest.pth"))
+        
+        # Check for early stopping
+        if early_stopped:
+            print(f"\nTraining stopped early at epoch {epoch + 1}")
+            break
     
     # Final global evaluation
     print("\n" + "="*60)
@@ -818,7 +845,7 @@ def train_with_global_dice(
         "dice_returns": dice_returns,
         "epsilons": epsilons,
         "train_metrics": train_metrics_history,
-        "n_train_vols": len(train_volumes),
+        "n_train_vols": len(train_vols),
         "global_eval_interval": global_eval_interval,  # Pass this for correct plotting
     }
 
@@ -849,165 +876,198 @@ def visualize_result(vol, mask, pred, save_dir: str = None, slice_idx: int = 32)
 
 
 def plot_training_results(results: dict, save_dir: str = "results"):
-    """Plot comprehensive training results with train/val comparison."""
+    """Plot comprehensive training results with train/val comparison.
+    
+    Generates two figures matching dqn_row_based style:
+    1. General training results (2x3): Returns, Epsilon, Loss, IoU, F1/DICE, Coverage
+    2. Reward components (1x3): Base, Continuity, Gradient rewards separately
+    """
     os.makedirs(save_dir, exist_ok=True)
     
     n_train_vols = results.get("n_train_vols", 1)
     # Get actual global_eval_interval from results (default to 5 for backward compatibility)
     global_eval_interval = results.get("global_eval_interval", 5)
     
-    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
-    
-    # ========================================
-    # Plot 1: Episode Returns
-    # ========================================
-    axes[0, 0].plot(results["train_returns"], alpha=0.3, color='blue', label='Train (per volume)')
-    # Moving average
+    # Moving average window
     window = n_train_vols
+    
+    # ========================================================================
+    # FIGURE 1: General Training Results (2x3 layout like dqn_row_based)
+    # ========================================================================
+    fig, axes = plt.subplots(2, 3, figsize=(20, 10))
+    
+    # ----------------------------------------
+    # Plot [0,0]: Episode Returns (Train vs Val)
+    # ----------------------------------------
+    axes[0, 0].plot(results["train_returns"], alpha=0.3, color='blue', label='Train (per volume)')
+    # Moving average for train returns
     if len(results["train_returns"]) >= window:
         train_returns_ma = [np.mean(results["train_returns"][max(0, i-window+1):i+1]) 
                            for i in range(len(results["train_returns"]))]
-        axes[0, 0].plot(train_returns_ma, color='blue', linewidth=2, label='Train (epoch avg)')
+        axes[0, 0].plot(train_returns_ma, color='blue', linewidth=2, label='Train (moving average)')
     axes[0, 0].set_title("Episode Returns")
-    axes[0, 0].set_ylabel("Return")
     axes[0, 0].set_xlabel("Episode")
     axes[0, 0].legend()
     axes[0, 0].grid(True)
-
-    # ========================================
-    # Plot 2: Reward Components (Moving Average)
-    # ========================================
-    if results["base_returns"] and len(results["base_returns"]) >= window:
-        base_ma = np.convolve(results["base_returns"], 
-                              np.ones(window)/window, 
-                              mode='valid')
-        axes[0, 1].plot(base_ma, label="Base Reward", color='green')
-    else:
-        axes[0, 1].plot(results["base_returns"], label="Base Reward", color='green', alpha=0.5)
-
-    if results["continuity_returns"] and len(results["continuity_returns"]) >= window:
-        cont_ma = np.convolve(results["continuity_returns"], 
-                              np.ones(window)/window, 
-                              mode='valid')
-        axes[0, 1].plot(cont_ma, label="Continuity Reward", color='orange')
-    else:
-        axes[0, 1].plot(results["continuity_returns"], label="Continuity Reward", color='orange', alpha=0.5)    
-
-    # Gradient reward plotting
-    if results.get("gradient_returns"):
-        if len(results["gradient_returns"]) >= window:
-            grad_ma = np.convolve(results["gradient_returns"],
-                                  np.ones(window)/window,
-                                  mode='valid')
-            axes[0, 1].plot(grad_ma, label="Gradient Reward", color='purple')
-        else:
-            axes[0, 1].plot(results["gradient_returns"], label="Gradient Reward", color='purple', alpha=0.5)
-
-    # Manhattan distance reward plotting
-    if results.get("manhattan_returns"):
-        if len(results["manhattan_returns"]) >= window:
-            manh_ma = np.convolve(results["manhattan_returns"],
-                                  np.ones(window)/window,
-                                  mode='valid')
-            axes[0, 1].plot(manh_ma, label="Manhattan Reward", color='red')
-        else:
-            axes[0, 1].plot(results["manhattan_returns"], label="Manhattan Reward", color='red', alpha=0.5)
-
-    axes[0, 1].set_title("Reward Components (Moving Average)")
-    axes[0, 1].set_ylabel("Reward")
+    
+    # ----------------------------------------
+    # Plot [0,1]: Epsilon (Exploration)
+    # ----------------------------------------
+    axes[0, 1].plot(results["epsilons"], color='orange', linestyle='dashed')
+    axes[0, 1].set_title("Exploration (Epsilon)")
     axes[0, 1].set_xlabel("Episode")
-    axes[0, 1].legend()
     axes[0, 1].grid(True)
-
-    # ========================================
-    # Plot 3: DICE Score (Train vs Val)
-    # ========================================
-    if results["global_dice_history"]:
-        epochs = list(range(global_eval_interval, 
-                           len(results["global_dice_history"]) * global_eval_interval + 1, 
-                           global_eval_interval))
-        axes[0, 2].plot(epochs, results["global_dice_history"], 'b-o', linewidth=2, 
-                        markersize=6, label='Train DICE')
-        
-        # Plot validation DICE if available
-        if results.get("val_global_dice_history"):
-            val_epochs = epochs[:len(results["val_global_dice_history"])]
-            axes[0, 2].plot(val_epochs, results["val_global_dice_history"], 'r-s', 
-                           linewidth=2, markersize=2, label='Val DICE')
-            # # Mark best validation
-            # if results.get("best_epoch"):
-            #     best_idx = results["val_global_dice_history"].index(results["best_val_dice"]) if results["best_val_dice"] in results["val_global_dice_history"] else -1
-            #     if best_idx >= 0:
-            #         axes[0, 2].scatter([val_epochs[best_idx]], [results["best_val_dice"]], 
-            #                           color='red', s=150, zorder=5, marker='*')
-            #         axes[0, 2].annotate(f'Best: {results["best_val_dice"]:.4f}', 
-            #                            xy=(val_epochs[best_idx], results["best_val_dice"]),
-            #                            xytext=(val_epochs[best_idx] + 3, results["best_val_dice"] - 0.05),
-            #                            fontsize=10, color='red')
-    axes[0, 2].set_title("DICE Score (Train vs Val)")
-    axes[0, 2].set_ylabel("DICE")
+    
+    # ----------------------------------------
+    # Plot [0,2]: Loss (Train vs Val)
+    # ----------------------------------------
+    axes[0, 2].plot(results["losses"], color='red', marker='o', markersize=4, label='Train')
+    if results.get("val_losses") and len(results["val_losses"]) > 0:
+        axes[0, 2].plot(results["val_losses"], color='darkred', marker='s', markersize=2, label='Val')
+    axes[0, 2].set_title("MSE Loss per Epoch")
     axes[0, 2].set_xlabel("Epoch")
     axes[0, 2].legend()
     axes[0, 2].grid(True)
     
-    # ========================================
-    # Plot 4: Epsilon (Exponential Decay)
-    # ========================================
-    axes[1, 0].plot(results["epsilons"], color='orange', linewidth=2)
-    axes[1, 0].set_title("Exploration (Epsilon - Exponential Decay)")
-    axes[1, 0].set_ylabel("ε")
-    axes[1, 0].set_xlabel("Epoch")
-    axes[1, 0].grid(True)
-    
-    # ========================================
-    # Plot 5: Training & Validation Loss
-    # ========================================
-    axes[1, 1].plot(results["losses"], color='blue', marker='o', markersize=4, label='Train Loss')
-    
-    # Plot validation loss if available (computed at global_eval_interval epochs)
-    if results.get("val_losses") and len(results["val_losses"]) > 0:
-        val_loss_epochs = list(range(global_eval_interval, 
-                                     len(results["val_losses"]) * global_eval_interval + 1, 
-                                     global_eval_interval))
-        # Adjust epochs to be 0-indexed for plotting alignment
-        val_loss_epochs_adj = [e - 1 for e in val_loss_epochs]  # Convert to 0-indexed
-        axes[1, 1].plot(val_loss_epochs_adj, results["val_losses"], color='red', 
-                       marker='s', markersize=2, linewidth=2, label='Val Loss')
-    
-    axes[1, 1].set_title("Training & Validation Loss")
-    axes[1, 1].set_ylabel("MSE Loss")
-    axes[1, 1].set_xlabel("Epoch")
-    axes[1, 1].legend()
-    axes[1, 1].grid(True)
-    
-    # ========================================
-    # Plot 6: IoU Score (Train vs Val)
-    # ========================================
+    # ----------------------------------------
+    # Plot [1,0]: IoU Score (Train vs Val)
+    # ----------------------------------------
     if results["global_metrics_history"]:
         epochs = list(range(global_eval_interval, 
                            len(results["global_metrics_history"]) * global_eval_interval + 1, 
                            global_eval_interval))
         train_iou = [m["iou"] for m in results["global_metrics_history"]]
-        axes[1, 2].plot(epochs, train_iou, 'b-o', linewidth=2, markersize=6, label='Train IoU')
+        axes[1, 0].plot(epochs, train_iou, label="Train", marker='o', markersize=2)
         
-        # Plot validation IoU if available
         if results.get("val_global_metrics_history"):
             val_iou = [m["iou"] for m in results["val_global_metrics_history"]]
             val_epochs = epochs[:len(val_iou)]
-            axes[1, 2].plot(val_epochs, val_iou, 'r-s', linewidth=2, markersize=2, label='Val IoU')
-    axes[1, 2].set_title("IoU Score (Train vs Val)")
-    axes[1, 2].set_ylabel("IoU")
+            axes[1, 0].plot(val_epochs, val_iou, label="Val", marker='s', markersize=2)
+    axes[1, 0].set_title("IoU")
+    axes[1, 0].set_xlabel("Epoch")
+    axes[1, 0].legend()
+    axes[1, 0].grid(True)
+    
+    # ----------------------------------------
+    # Plot [1,1]: DICE Score (Train vs Val)
+    # ----------------------------------------
+    if results["global_dice_history"]:
+        epochs = list(range(global_eval_interval, 
+                           len(results["global_dice_history"]) * global_eval_interval + 1, 
+                           global_eval_interval))
+        axes[1, 1].plot(epochs, results["global_dice_history"], label="Train", marker='o', markersize=2)
+        
+        if results.get("val_global_dice_history"):
+            val_epochs = epochs[:len(results["val_global_dice_history"])]
+            axes[1, 1].plot(val_epochs, results["val_global_dice_history"], label="Val", marker='s', markersize=2)
+    axes[1, 1].set_title("DICE Score")
+    axes[1, 1].set_xlabel("Epoch")
+    axes[1, 1].legend()
+    axes[1, 1].grid(True)
+    
+    # ----------------------------------------
+    # Plot [1,2]: Coverage/Recall (Train vs Val)
+    # ----------------------------------------
+    if results["global_metrics_history"]:
+        epochs = list(range(global_eval_interval, 
+                           len(results["global_metrics_history"]) * global_eval_interval + 1, 
+                           global_eval_interval))
+        train_recall = [m["recall"] for m in results["global_metrics_history"]]
+        axes[1, 2].plot(epochs, train_recall, label="Train", marker='o', markersize=2)
+        
+        if results.get("val_global_metrics_history"):
+            val_recall = [m["recall"] for m in results["val_global_metrics_history"]]
+            val_epochs = epochs[:len(val_recall)]
+            axes[1, 2].plot(val_epochs, val_recall, label="Val", marker='s', markersize=2)
+    axes[1, 2].set_title("Coverage (Recall)")
     axes[1, 2].set_xlabel("Epoch")
     axes[1, 2].legend()
     axes[1, 2].grid(True)
-    
-    # plt.tight_layout()
+
+    plt.tight_layout()
     plt.savefig(os.path.join(save_dir, "training_results.png"), dpi=300)
     plt.show()
     
-    # Additional plot: Detailed Train vs Val metrics comparison
+    # ========================================================================
+    # FIGURE 2: Reward Components (2x2 layout for 4 reward terms)
+    # ========================================================================
+    fig2, axes2 = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # ----------------------------------------
+    # Plot [0,0]: Base Reward
+    # ----------------------------------------
+    if results.get("base_returns") and len(results["base_returns"]) >= window:
+        base_ma = np.convolve(results["base_returns"], 
+                              np.ones(window)/window, 
+                              mode='valid')
+        axes2[0, 0].plot(base_ma, label="Base Reward", color='green')
+    else:
+        axes2[0, 0].plot(results.get("base_returns", []), label="Base Reward", color='green', alpha=0.5)
+    axes2[0, 0].set_title("Base Reward (Moving Average)")
+    axes2[0, 0].set_ylabel("Reward")
+    axes2[0, 0].set_xlabel("Episode")
+    axes2[0, 0].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+    axes2[0, 0].grid(True)
+    
+    # ----------------------------------------
+    # Plot [0,1]: Continuity Reward
+    # ----------------------------------------
+    if results.get("continuity_returns") and len(results["continuity_returns"]) >= window:
+        cont_ma = np.convolve(results["continuity_returns"], 
+                              np.ones(window)/window, 
+                              mode='valid')
+        axes2[0, 1].plot(cont_ma, label="Continuity Reward", color='blue')
+    else:
+        axes2[0, 1].plot(results.get("continuity_returns", []), label="Continuity Reward", color='blue', alpha=0.5)
+    axes2[0, 1].set_title("Continuity Reward (Moving Average)")
+    axes2[0, 1].set_ylabel("Reward")
+    axes2[0, 1].set_xlabel("Episode")
+    axes2[0, 1].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+    axes2[0, 1].grid(True)
+    
+    # ----------------------------------------
+    # Plot [1,0]: Gradient Reward
+    # ----------------------------------------
+    if results.get("gradient_returns") and len(results["gradient_returns"]) >= window:
+        gradient_returns = np.array(results.get("gradient_returns", []))
+        if gradient_returns.ndim > 1:
+            gradient_returns = gradient_returns.flatten()
+
+        if len(gradient_returns) >= window:
+            grad_ma = np.convolve(gradient_returns, np.ones(window)/window, mode='valid')
+            axes2[1, 0].plot(grad_ma, label="Gradient Reward", color='orange')
+        else:
+            axes2[1, 0].plot(gradient_returns, label="Gradient Reward", color='orange', alpha=0.5)
+    axes2[1, 0].set_title("Gradient Reward (Moving Average)")
+    axes2[1, 0].set_ylabel("Reward")
+    axes2[1, 0].set_xlabel("Episode")
+    axes2[1, 0].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+    axes2[1, 0].grid(True)
+    
+    # ----------------------------------------
+    # Plot [1,1]: Manhattan Reward
+    # ----------------------------------------
+    if results.get("manhattan_returns") and len(results["manhattan_returns"]) >= window:
+        manh_ma = np.convolve(results["manhattan_returns"],
+                              np.ones(window)/window,
+                              mode='valid')
+        axes2[1, 1].plot(manh_ma, label="Manhattan Reward", color='red')
+    else:
+        axes2[1, 1].plot(results.get("manhattan_returns", []), label="Manhattan Reward", color='red', alpha=0.5)
+    axes2[1, 1].set_title("Manhattan Reward (Moving Average)")
+    axes2[1, 1].set_ylabel("Reward")
+    axes2[1, 1].set_xlabel("Episode")
+    axes2[1, 1].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+    axes2[1, 1].grid(True)
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_dir, "reward_components_analysis.png"), dpi=300)
+    plt.show()
+    
+    # ========================================================================
+    # FIGURE 3 (Optional): Detailed Train vs Val metrics comparison
+    # ========================================================================
     if results["global_metrics_history"] and results.get("val_global_metrics_history"):
-        fig2, axes2 = plt.subplots(2, 2, figsize=(14, 10))
+        fig3, axes3 = plt.subplots(2, 2, figsize=(14, 10))
         
         epochs = list(range(global_eval_interval, 
                            len(results["global_metrics_history"]) * global_eval_interval + 1, 
@@ -1015,51 +1075,49 @@ def plot_training_results(results: dict, save_dir: str = "results"):
         val_epochs = epochs[:len(results["val_global_metrics_history"])]
         
         # DICE
-        axes2[0, 0].plot(epochs, results["global_dice_history"], 'b-o', label='Train', linewidth=2)
-        axes2[0, 0].plot(val_epochs, results["val_global_dice_history"], 'r-s', label='Val', linewidth=2)
-        axes2[0, 0].set_title("DICE Score")
-        axes2[0, 0].set_ylabel("DICE")
-        axes2[0, 0].set_xlabel("Epoch")
-        axes2[0, 0].legend()
-        axes2[0, 0].grid(True)
+        axes3[0, 0].plot(epochs, results["global_dice_history"], 'b-o', label='Train', linewidth=2)
+        axes3[0, 0].plot(val_epochs, results["val_global_dice_history"], 'r-s', label='Val', linewidth=2)
+        axes3[0, 0].set_title("DICE Score")
+        axes3[0, 0].set_ylabel("DICE")
+        axes3[0, 0].set_xlabel("Epoch")
+        axes3[0, 0].legend()
+        axes3[0, 0].grid(True)
         
         # IoU
         train_iou = [m["iou"] for m in results["global_metrics_history"]]
         val_iou = [m["iou"] for m in results["val_global_metrics_history"]]
-        axes2[0, 1].plot(epochs, train_iou, 'b-o', label='Train', linewidth=2)
-        axes2[0, 1].plot(val_epochs, val_iou, 'r-s', label='Val', linewidth=2)
-        axes2[0, 1].set_title("IoU Score")
-        axes2[0, 1].set_ylabel("IoU")
-        axes2[0, 1].set_xlabel("Epoch")
-        axes2[0, 1].legend()
-        axes2[0, 1].grid(True)
+        axes3[0, 1].plot(epochs, train_iou, 'b-o', label='Train', linewidth=2)
+        axes3[0, 1].plot(val_epochs, val_iou, 'r-s', label='Val', linewidth=2)
+        axes3[0, 1].set_title("IoU Score")
+        axes3[0, 1].set_ylabel("IoU")
+        axes3[0, 1].set_xlabel("Epoch")
+        axes3[0, 1].legend()
+        axes3[0, 1].grid(True)
         
         # Precision
         train_precision = [m["precision"] for m in results["global_metrics_history"]]
         val_precision = [m["precision"] for m in results["val_global_metrics_history"]]
-        axes2[1, 0].plot(epochs, train_precision, 'b-o', label='Train', linewidth=2)
-        axes2[1, 0].plot(val_epochs, val_precision, 'r-s', label='Val', linewidth=2)
-        axes2[1, 0].set_title("Precision")
-        axes2[1, 0].set_ylabel("Precision")
-        axes2[1, 0].set_xlabel("Epoch")
-        axes2[1, 0].legend()
-        axes2[1, 0].grid(True)
+        axes3[1, 0].plot(epochs, train_precision, 'b-o', label='Train', linewidth=2)
+        axes3[1, 0].plot(val_epochs, val_precision, 'r-s', label='Val', linewidth=2)
+        axes3[1, 0].set_title("Precision")
+        axes3[1, 0].set_ylabel("Precision")
+        axes3[1, 0].set_xlabel("Epoch")
+        axes3[1, 0].legend()
+        axes3[1, 0].grid(True)
         
         # Recall
         train_recall = [m["recall"] for m in results["global_metrics_history"]]
         val_recall = [m["recall"] for m in results["val_global_metrics_history"]]
-        axes2[1, 1].plot(epochs, train_recall, 'b-o', label='Train', linewidth=2)
-        axes2[1, 1].plot(val_epochs, val_recall, 'r-s', label='Val', linewidth=2)
-        axes2[1, 1].set_title("Recall")
-        axes2[1, 1].set_ylabel("Recall")
-        axes2[1, 1].set_xlabel("Epoch")
-        axes2[1, 1].legend()
-        axes2[1, 1].grid(True)
+        axes3[1, 1].plot(epochs, train_recall, 'b-o', label='Train', linewidth=2)
+        axes3[1, 1].plot(val_epochs, val_recall, 'r-s', label='Val', linewidth=2)
+        axes3[1, 1].set_title("Recall")
+        axes3[1, 1].set_ylabel("Recall")
+        axes3[1, 1].set_xlabel("Epoch")
+        axes3[1, 1].legend()
+        axes3[1, 1].grid(True)
         
         plt.suptitle("Train vs Validation Metrics", fontsize=14, fontweight='bold')
         plt.tight_layout()
-        # plt.savefig(os.path.join(save_dir, "train_val_metrics.png"), dpi=300)
-        # plt.show()
         plt.savefig(os.path.join(save_dir, "global_metrics.png"), dpi=300)
         plt.show()
 
@@ -1070,7 +1128,7 @@ def plot_training_results(results: dict, save_dir: str = "results"):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Deep Q-network training script for long-range connected structures segmentation.")
-    parser.add_argument("--data_dir", type=str, default="../../data/rapids-p/subvolumes_new", help="Directory containing subvolumes and masks")
+    parser.add_argument("--data_dir", type=str, default="../../data/rapids-p/32x32x32", help="Directory containing subvolumes and masks")
     parser.add_argument("--min_fg_ratio", type=float, default=0.0001, help="Minimum foreground ratio to include subvolume (filter out empty subvolumes)")
     parser.add_argument("--aug_prob", type=float, default=0.0, help="Probability of applying data augmentation")
     parser.add_argument("--epochs", type=int, default=50, help="Number of training epochs")
@@ -1078,14 +1136,13 @@ if __name__ == "__main__":
     parser.add_argument("--grad", type=float, default=0.1, help="Gradient reward coefficient")
     parser.add_argument("--manhattan", type=float, default=0.1, help="Manhattan distance reward coefficient")
     parser.add_argument("--dice", type=float, default=1.0, help="DICE reward coefficient")
-    parser.add_argument("--save_dir", type=str, default="models", help="Directory to save trained models")
     args = parser.parse_args()
 
     # Update global config from args
     AUGMENT_PROB = args.aug_prob
-
     data_dir = args.data_dir
-    
+    SUBVOL_SHAPE = tuple(map(int, args.data_dir.split("/")[-1].split("x")))
+
     # Minimum foreground ratio to include subvolume (filter out empty subvolumes)
     MIN_FG_RATIO = args.min_fg_ratio  # 0.01% minimum foreground
     
@@ -1133,9 +1190,9 @@ if __name__ == "__main__":
     full_val_mask = (full_val_mask.get_fdata() > 0).astype(np.uint8)
     full_val_mask = full_val_mask[:crop_d, :crop_h, :crop_w]
 
-    # Ensure output directory exists
-    os.makedirs("models", exist_ok=True)
-    os.makedirs("results", exist_ok=True)
+    save_dir = os.path.join(f"results/rapids-p/subvolumes/{args.data_dir.split('/')[-1]}", 
+                            f"cont_{args.cont}_grad_{args.grad}_manh_{args.manhattan}")
+    os.makedirs(save_dir, exist_ok=True)
     
     # Train with global DICE evaluation
     results = train_with_global_dice(
@@ -1160,12 +1217,12 @@ if __name__ == "__main__":
         dice_coef=args.dice,  
         gradient_coef=args.grad,
         manhattan_coef = args.manhattan,
-        future_len = 3,
-        save_dir = args.save_dir
+        future_len = 5,
+        save_dir = save_dir
     )
     
     # Plot comprehensive training results
-    plot_training_results(results, save_dir="results/rapids-p/subvolumes/32x32x32")
+    plot_training_results(results, save_dir = save_dir)
     
     # Save best validation prediction as NIfTI file
     if results.get("best_val_pred") is not None:
@@ -1189,7 +1246,7 @@ if __name__ == "__main__":
             best_pred = full_pred_padded
         
         pred_nii = nib.Nifti1Image(best_pred.astype(np.uint8), affine, header)
-        pred_save_path = "results/best_val_prediction.nii.gz"
+        pred_save_path = os.path.join(save_dir, "best_val_prediction.nii.gz")
         nib.save(pred_nii, pred_save_path)
         print(f"Saved best validation prediction to: {pred_save_path}")
         print(f"  Shape: {best_pred.shape}")
@@ -1197,42 +1254,42 @@ if __name__ == "__main__":
     else:
         print("\nNo best validation prediction available to save.")
     
-    # Visualize sample reconstruction
-    if train_vols:
-        vol_test = train_vols[0]
-        mask_test = train_masks[0]
+    # # Visualize sample reconstruction
+    # if train_vols:
+    #     vol_test = train_vols[0]
+    #     mask_test = train_masks[0]
         
-        # Reconstruct single subvolume for visualization
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+    #     # Reconstruct single subvolume for visualization
+    #     device = "cuda" if torch.cuda.is_available() else "cpu"
         
-        env = PathReconstructionEnv(
-            vol_test, mask_test,
-            continuity_coef=0.0,
-            continuity_decay_factor=0.5,
-            gradient_coef = 0.0,
-            dice_coef=1.0,
-            manhattan_coef=0.0,
-            history_len=5,
-            future_len=3
-        )
+    #     env = PathReconstructionEnv(
+    #         vol_test, mask_test,
+    #         continuity_coef=0.0,
+    #         continuity_decay_factor=0.5,
+    #         gradient_coef = 0.0,
+    #         dice_coef=1.0,
+    #         manhattan_coef=0.0,
+    #         history_len=5,
+    #         future_len=3
+    #     )
         
-        results["policy_net"].eval()
-        obs, _ = env.reset()
-        pred = np.zeros(vol_test.shape, dtype=np.uint8)
-        done = False
+    #     results["policy_net"].eval()
+    #     obs, _ = env.reset()
+    #     pred = np.zeros(vol_test.shape, dtype=np.uint8)
+    #     done = False
         
-        with torch.no_grad():
-            while not done:
-                slice_pixels, prev_slices, future_slices = obs_to_tensor(obs, device)
-                q = results["policy_net"](slice_pixels, prev_slices, future_slices)
-                a = q.argmax(dim=-1).cpu().numpy()[0]
-                next_obs, _, terminated, truncated, info = env.step(a.flatten())
-                slice_idx = info.get("slice_index", None)
-                if slice_idx is not None:
-                    pred[slice_idx] = a.astype(np.uint8)
-                obs = next_obs
-                done = terminated or truncated
+    #     with torch.no_grad():
+    #         while not done:
+    #             slice_pixels, prev_slices, future_slices = obs_to_tensor(obs, device)
+    #             q = results["policy_net"](slice_pixels, prev_slices, future_slices)
+    #             a = q.argmax(dim=-1).cpu().numpy()[0]
+    #             next_obs, _, terminated, truncated, info = env.step(a.flatten())
+    #             slice_idx = info.get("slice_index", None)
+    #             if slice_idx is not None:
+    #                 pred[slice_idx] = a.astype(np.uint8)
+    #             obs = next_obs
+    #             done = terminated or truncated
         
-        # visualize_result(vol_test, mask_test, pred, 
-        #                 save_dir="results/rapids-p/subvolumes/32x32x32", 
-        #                 slice_idx=vol_test.shape[0] // 2)
+    #     visualize_result(vol_test, mask_test, pred, 
+    #                     save_dir=save_dir, 
+    #                     slice_idx=vol_test.shape[0] // 2)

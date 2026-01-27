@@ -3,6 +3,7 @@
 .thesis/*
 
 data/rapids-p/*
+codebase/dqn_slice_based/backup/*
 
 *.err
 *.out

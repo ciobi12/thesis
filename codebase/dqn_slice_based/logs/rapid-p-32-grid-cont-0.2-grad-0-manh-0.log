@@ -1,0 +1,784 @@
+Loading training subvolumes with grid positions...
+Loaded: week2_d00_h00_w08.npy at position (0, 0, 8) (fg=0.0580%)
+Loaded: week2_d01_h00_w08.npy at position (1, 0, 8) (fg=0.1831%)
+Loaded: week2_d02_h00_w08.npy at position (2, 0, 8) (fg=0.2319%)
+Loaded: week2_d03_h00_w08.npy at position (3, 0, 8) (fg=0.3387%)
+Loaded: week2_d03_h01_w08.npy at position (3, 1, 8) (fg=0.0153%)
+Loaded: week2_d04_h01_w08.npy at position (4, 1, 8) (fg=0.2838%)
+Loaded: week2_d04_h01_w09.npy at position (4, 1, 9) (fg=0.1923%)
+Loaded: week2_d05_h01_w09.npy at position (5, 1, 9) (fg=0.4364%)
+Loaded: week2_d06_h01_w09.npy at position (6, 1, 9) (fg=0.2289%)
+Loaded: week2_d06_h02_w09.npy at position (6, 2, 9) (fg=0.5066%)
+Loaded: week2_d06_h09_w01.npy at position (6, 9, 1) (fg=0.3632%)
+Loaded: week2_d07_h02_w09.npy at position (7, 2, 9) (fg=0.8331%)
+Loaded: week2_d07_h03_w08.npy at position (7, 3, 8) (fg=0.0641%)
+Loaded: week2_d07_h03_w09.npy at position (7, 3, 9) (fg=0.1953%)
+Loaded: week2_d07_h08_w01.npy at position (7, 8, 1) (fg=0.2960%)
+Loaded: week2_d07_h09_w01.npy at position (7, 9, 1) (fg=0.3479%)
+Loaded: week2_d08_h03_w08.npy at position (8, 3, 8) (fg=0.5493%)
+Loaded: week2_d08_h03_w09.npy at position (8, 3, 9) (fg=0.8881%)
+Loaded: week2_d08_h07_w13.npy at position (8, 7, 13) (fg=0.1038%)
+Loaded: week2_d08_h08_w00.npy at position (8, 8, 0) (fg=0.1160%)
+Loaded: week2_d08_h08_w01.npy at position (8, 8, 1) (fg=0.5676%)
+Loaded: week2_d08_h08_w13.npy at position (8, 8, 13) (fg=0.1617%)
+Loaded: week2_d09_h03_w09.npy at position (9, 3, 9) (fg=0.7416%)
+Loaded: week2_d09_h04_w08.npy at position (9, 4, 8) (fg=0.4700%)
+Loaded: week2_d09_h04_w09.npy at position (9, 4, 9) (fg=0.5890%)
+Loaded: week2_d09_h07_w02.npy at position (9, 7, 2) (fg=0.2075%)
+Loaded: week2_d09_h07_w03.npy at position (9, 7, 3) (fg=0.5310%)
+Loaded: week2_d09_h07_w06.npy at position (9, 7, 6) (fg=0.4669%)
+Loaded: week2_d09_h07_w07.npy at position (9, 7, 7) (fg=0.7843%)
+Loaded: week2_d09_h07_w08.npy at position (9, 7, 8) (fg=0.0824%)
+Loaded: week2_d09_h08_w01.npy at position (9, 8, 1) (fg=0.1099%)
+Loaded: week2_d09_h08_w02.npy at position (9, 8, 2) (fg=0.2563%)
+Loaded: week2_d09_h08_w07.npy at position (9, 8, 7) (fg=0.2319%)
+Loaded: week2_d09_h08_w13.npy at position (9, 8, 13) (fg=0.5371%)
+Loaded: week2_d10_h04_w08.npy at position (10, 4, 8) (fg=0.4639%)
+Loaded: week2_d10_h05_w07.npy at position (10, 5, 7) (fg=0.0366%)
+Loaded: week2_d10_h05_w08.npy at position (10, 5, 8) (fg=1.2939%)
+Loaded: week2_d10_h06_w07.npy at position (10, 6, 7) (fg=0.6989%)
+Loaded: week2_d10_h06_w08.npy at position (10, 6, 8) (fg=1.4313%)
+Loaded: week2_d10_h07_w03.npy at position (10, 7, 3) (fg=0.1495%)
+Loaded: week2_d10_h07_w04.npy at position (10, 7, 4) (fg=0.7599%)
+Loaded: week2_d10_h07_w05.npy at position (10, 7, 5) (fg=0.4974%)
+Loaded: week2_d10_h07_w06.npy at position (10, 7, 6) (fg=0.9735%)
+Loaded: week2_d10_h07_w07.npy at position (10, 7, 7) (fg=0.9674%)
+Loaded: week2_d10_h07_w08.npy at position (10, 7, 8) (fg=0.6683%)
+Loaded: week2_d10_h08_w05.npy at position (10, 8, 5) (fg=0.1770%)
+Loaded: week2_d10_h08_w07.npy at position (10, 8, 7) (fg=0.1068%)
+Loaded: week2_d10_h08_w08.npy at position (10, 8, 8) (fg=0.5554%)
+Loaded: week2_d10_h08_w09.npy at position (10, 8, 9) (fg=0.4181%)
+Loaded: week2_d10_h08_w10.npy at position (10, 8, 10) (fg=0.4547%)
+Loaded: week2_d10_h08_w13.npy at position (10, 8, 13) (fg=0.0610%)
+Loaded: week2_d10_h09_w13.npy at position (10, 9, 13) (fg=1.0712%)
+Loaded: week2_d11_h05_w05.npy at position (11, 5, 5) (fg=0.1373%)
+Loaded: week2_d11_h06_w05.npy at position (11, 6, 5) (fg=0.7843%)
+Loaded: week2_d11_h06_w07.npy at position (11, 6, 7) (fg=0.1740%)
+Loaded: week2_d11_h07_w05.npy at position (11, 7, 5) (fg=0.2869%)
+Loaded: week2_d11_h07_w06.npy at position (11, 7, 6) (fg=1.5472%)
+Loaded: week2_d11_h07_w07.npy at position (11, 7, 7) (fg=2.1423%)
+Loaded: week2_d11_h07_w08.npy at position (11, 7, 8) (fg=1.7303%)
+Loaded: week2_d11_h08_w07.npy at position (11, 8, 7) (fg=0.1862%)
+Loaded: week2_d11_h08_w09.npy at position (11, 8, 9) (fg=0.1465%)
+Loaded: week2_d11_h08_w10.npy at position (11, 8, 10) (fg=0.0885%)
+Loaded: week2_d11_h08_w11.npy at position (11, 8, 11) (fg=0.4211%)
+Loaded: week2_d11_h08_w12.npy at position (11, 8, 12) (fg=0.3387%)
+Loaded: week2_d11_h08_w13.npy at position (11, 8, 13) (fg=0.0397%)
+Loaded: week2_d11_h09_w12.npy at position (11, 9, 12) (fg=0.2960%)
+Loaded: week2_d11_h09_w13.npy at position (11, 9, 13) (fg=0.9247%)
+Loaded: week2_d11_h10_w11.npy at position (11, 10, 11) (fg=0.4059%)
+Loaded: week2_d11_h10_w12.npy at position (11, 10, 12) (fg=0.4944%)
+Loaded: week2_d12_h05_w05.npy at position (12, 5, 5) (fg=0.1251%)
+Loaded: week2_d12_h06_w07.npy at position (12, 6, 7) (fg=0.3540%)
+Loaded: week2_d12_h06_w08.npy at position (12, 6, 8) (fg=0.0610%)
+Loaded: week2_d12_h07_w06.npy at position (12, 7, 6) (fg=1.0864%)
+Loaded: week2_d12_h07_w07.npy at position (12, 7, 7) (fg=0.3693%)
+Loaded: week2_d12_h07_w08.npy at position (12, 7, 8) (fg=0.8179%)
+Loaded: week2_d12_h08_w06.npy at position (12, 8, 6) (fg=0.1038%)
+Loaded: week2_d12_h08_w07.npy at position (12, 8, 7) (fg=0.7568%)
+Loaded: week2_d12_h10_w07.npy at position (12, 10, 7) (fg=0.6836%)
+Loaded: week2_d12_h10_w08.npy at position (12, 10, 8) (fg=0.8484%)
+Loaded: week2_d12_h10_w09.npy at position (12, 10, 9) (fg=0.9399%)
+Loaded: week2_d12_h10_w10.npy at position (12, 10, 10) (fg=0.8240%)
+Loaded: week2_d12_h10_w11.npy at position (12, 10, 11) (fg=0.4547%)
+Loaded: week2_d12_h11_w06.npy at position (12, 11, 6) (fg=0.4547%)
+Loaded: week2_d12_h11_w07.npy at position (12, 11, 7) (fg=0.2014%)
+Loaded: week2_d12_h12_w10.npy at position (12, 12, 10) (fg=0.7111%)
+Loaded: week2_d13_h06_w07.npy at position (13, 6, 7) (fg=0.9125%)
+Loaded: week2_d13_h07_w06.npy at position (13, 7, 6) (fg=1.8982%)
+Loaded: week2_d13_h07_w07.npy at position (13, 7, 7) (fg=0.2441%)
+Loaded: week2_d13_h07_w08.npy at position (13, 7, 8) (fg=0.6683%)
+Loaded: week2_d13_h08_w07.npy at position (13, 8, 7) (fg=0.1740%)
+Loaded: week2_d13_h11_w03.npy at position (13, 11, 3) (fg=0.5096%)
+Loaded: week2_d13_h11_w04.npy at position (13, 11, 4) (fg=0.5127%)
+Loaded: week2_d13_h11_w05.npy at position (13, 11, 5) (fg=0.7385%)
+Loaded: week2_d13_h11_w06.npy at position (13, 11, 6) (fg=0.4211%)
+Loaded: week2_d13_h12_w10.npy at position (13, 12, 10) (fg=0.6134%)
+Loaded: week2_d13_h12_w11.npy at position (13, 12, 11) (fg=0.2289%)
+Loaded: week2_d14_h06_w06.npy at position (14, 6, 6) (fg=0.2777%)
+Loaded: week2_d14_h06_w07.npy at position (14, 6, 7) (fg=1.0162%)
+Loaded: week2_d14_h07_w06.npy at position (14, 7, 6) (fg=0.6744%)
+Loaded: week2_d14_h07_w08.npy at position (14, 7, 8) (fg=0.6012%)
+Loaded: week2_d14_h08_w06.npy at position (14, 8, 6) (fg=0.4150%)
+Loaded: week2_d14_h08_w07.npy at position (14, 8, 7) (fg=0.3693%)
+Loaded: week2_d14_h10_w02.npy at position (14, 10, 2) (fg=0.3479%)
+Loaded: week2_d14_h10_w03.npy at position (14, 10, 3) (fg=0.0214%)
+Loaded: week2_d14_h11_w03.npy at position (14, 11, 3) (fg=0.1068%)
+Loaded: week2_d14_h12_w11.npy at position (14, 12, 11) (fg=0.6866%)
+Loaded: week2_d15_h06_w06.npy at position (15, 6, 6) (fg=0.8087%)
+Loaded: week2_d15_h06_w07.npy at position (15, 6, 7) (fg=1.2695%)
+Loaded: week2_d15_h07_w07.npy at position (15, 7, 7) (fg=0.1556%)
+Loaded: week2_d15_h07_w08.npy at position (15, 7, 8) (fg=0.5859%)
+Loaded: week2_d15_h08_w07.npy at position (15, 8, 7) (fg=0.8270%)
+Loaded: week2_d15_h10_w02.npy at position (15, 10, 2) (fg=0.2563%)
+Loaded: week2_d15_h12_w11.npy at position (15, 12, 11) (fg=0.6195%)
+Loaded: week2_d16_h05_w06.npy at position (16, 5, 6) (fg=0.0732%)
+Loaded: week2_d16_h06_w06.npy at position (16, 6, 6) (fg=0.8240%)
+Loaded: week2_d16_h06_w07.npy at position (16, 6, 7) (fg=0.7477%)
+Loaded: week2_d16_h07_w07.npy at position (16, 7, 7) (fg=1.0681%)
+Loaded: week2_d16_h07_w08.npy at position (16, 7, 8) (fg=0.5249%)
+Loaded: week2_d16_h10_w01.npy at position (16, 10, 1) (fg=0.2411%)
+Loaded: week2_d16_h10_w02.npy at position (16, 10, 2) (fg=0.0336%)
+Loaded: week2_d16_h11_w11.npy at position (16, 11, 11) (fg=0.8087%)
+Loaded: week2_d16_h12_w11.npy at position (16, 12, 11) (fg=0.1587%)
+Loaded: week2_d17_h05_w06.npy at position (17, 5, 6) (fg=0.5463%)
+Loaded: week2_d17_h05_w07.npy at position (17, 5, 7) (fg=0.1251%)
+Loaded: week2_d17_h06_w06.npy at position (17, 6, 6) (fg=0.0275%)
+Loaded: week2_d17_h06_w07.npy at position (17, 6, 7) (fg=0.4059%)
+Loaded: week2_d17_h07_w07.npy at position (17, 7, 7) (fg=0.8301%)
+Loaded: week2_d17_h07_w08.npy at position (17, 7, 8) (fg=0.5371%)
+Loaded: week2_d17_h09_w01.npy at position (17, 9, 1) (fg=0.4913%)
+Loaded: week2_d17_h10_w01.npy at position (17, 10, 1) (fg=0.2777%)
+Loaded: week2_d17_h11_w11.npy at position (17, 11, 11) (fg=0.0488%)
+Loaded: week2_d17_h11_w12.npy at position (17, 11, 12) (fg=0.6592%)
+Loaded: week2_d18_h05_w07.npy at position (18, 5, 7) (fg=0.4974%)
+Loaded: week2_d18_h06_w06.npy at position (18, 6, 6) (fg=0.0397%)
+Loaded: week2_d18_h06_w07.npy at position (18, 6, 7) (fg=0.6836%)
+Loaded: week2_d18_h07_w07.npy at position (18, 7, 7) (fg=0.8575%)
+Loaded: week2_d18_h07_w08.npy at position (18, 7, 8) (fg=0.6317%)
+Loaded: week2_d18_h08_w02.npy at position (18, 8, 2) (fg=0.7690%)
+Loaded: week2_d18_h08_w03.npy at position (18, 8, 3) (fg=0.2991%)
+Loaded: week2_d18_h09_w01.npy at position (18, 9, 1) (fg=0.3693%)
+Loaded: week2_d18_h09_w02.npy at position (18, 9, 2) (fg=0.0519%)
+Loaded: week2_d18_h10_w12.npy at position (18, 10, 12) (fg=0.4700%)
+Loaded: week2_d18_h11_w12.npy at position (18, 11, 12) (fg=0.5127%)
+Loaded: week2_d19_h05_w07.npy at position (19, 5, 7) (fg=0.4242%)
+Loaded: week2_d19_h06_w06.npy at position (19, 6, 6) (fg=0.1434%)
+Loaded: week2_d19_h06_w07.npy at position (19, 6, 7) (fg=0.9399%)
+Loaded: week2_d19_h06_w08.npy at position (19, 6, 8) (fg=0.1312%)
+Loaded: week2_d19_h07_w04.npy at position (19, 7, 4) (fg=0.3693%)
+Loaded: week2_d19_h07_w07.npy at position (19, 7, 7) (fg=0.8636%)
+Loaded: week2_d19_h07_w08.npy at position (19, 7, 8) (fg=0.5554%)
+Loaded: week2_d19_h08_w03.npy at position (19, 8, 3) (fg=0.4150%)
+Loaded: week2_d19_h08_w04.npy at position (19, 8, 4) (fg=0.3326%)
+Loaded: week2_d19_h09_w11.npy at position (19, 9, 11) (fg=0.5280%)
+Loaded: week2_d19_h09_w12.npy at position (19, 9, 12) (fg=0.2991%)
+Loaded: week2_d19_h10_w12.npy at position (19, 10, 12) (fg=0.9186%)
+Loaded: week2_d20_h05_w07.npy at position (20, 5, 7) (fg=0.5005%)
+Loaded: week2_d20_h06_w05.npy at position (20, 6, 5) (fg=0.1404%)
+Loaded: week2_d20_h06_w07.npy at position (20, 6, 7) (fg=0.5371%)
+Loaded: week2_d20_h06_w08.npy at position (20, 6, 8) (fg=1.0162%)
+Loaded: week2_d20_h07_w04.npy at position (20, 7, 4) (fg=0.1190%)
+Loaded: week2_d20_h07_w05.npy at position (20, 7, 5) (fg=1.3092%)
+Loaded: week2_d20_h07_w07.npy at position (20, 7, 7) (fg=0.0183%)
+Loaded: week2_d20_h07_w08.npy at position (20, 7, 8) (fg=0.0519%)
+Loaded: week2_d20_h07_w09.npy at position (20, 7, 9) (fg=0.0977%)
+Loaded: week2_d20_h08_w09.npy at position (20, 8, 9) (fg=0.7874%)
+Loaded: week2_d20_h08_w10.npy at position (20, 8, 10) (fg=0.5951%)
+Loaded: week2_d20_h09_w10.npy at position (20, 9, 10) (fg=0.3693%)
+Loaded: week2_d20_h09_w11.npy at position (20, 9, 11) (fg=0.5646%)
+Loaded: week2_d21_h05_w07.npy at position (21, 5, 7) (fg=0.0763%)
+Loaded: week2_d21_h06_w05.npy at position (21, 6, 5) (fg=0.1129%)
+Loaded: week2_d21_h06_w06.npy at position (21, 6, 6) (fg=0.7050%)
+Loaded: week2_d21_h06_w07.npy at position (21, 6, 7) (fg=0.5798%)
+Loaded: week2_d21_h06_w08.npy at position (21, 6, 8) (fg=1.8738%)
+Loaded: week2_d21_h07_w08.npy at position (21, 7, 8) (fg=1.0590%)
+Loaded: week2_d21_h07_w09.npy at position (21, 7, 9) (fg=0.1587%)
+Loaded: week2_d21_h08_w09.npy at position (21, 8, 9) (fg=0.0275%)
+Loaded: week2_d22_h03_w08.npy at position (22, 3, 8) (fg=1.0071%)
+Loaded: week2_d22_h03_w09.npy at position (22, 3, 9) (fg=0.0336%)
+Loaded: week2_d22_h04_w08.npy at position (22, 4, 8) (fg=1.2268%)
+Loaded: week2_d22_h05_w08.npy at position (22, 5, 8) (fg=0.8606%)
+Loaded: week2_d22_h06_w06.npy at position (22, 6, 6) (fg=0.1740%)
+Loaded: week2_d22_h06_w07.npy at position (22, 6, 7) (fg=7.1564%)
+Loaded: week2_d22_h06_w08.npy at position (22, 6, 8) (fg=2.4902%)
+Loaded: week2_d22_h07_w06.npy at position (22, 7, 6) (fg=0.3418%)
+Loaded: week2_d22_h07_w07.npy at position (22, 7, 7) (fg=5.6061%)
+Loaded: week2_d22_h08_w06.npy at position (22, 8, 6) (fg=0.0610%)
+Loaded: week2_d22_h08_w07.npy at position (22, 8, 7) (fg=0.0153%)
+Loaded: week2_d23_h06_w07.npy at position (23, 6, 7) (fg=0.5798%)
+Loaded: week2_d23_h07_w06.npy at position (23, 7, 6) (fg=0.4822%)
+Loaded: week2_d23_h07_w07.npy at position (23, 7, 7) (fg=0.5890%)
+Loaded: week2_d23_h08_w06.npy at position (23, 8, 6) (fg=4.2389%)
+Loaded: week2_d23_h08_w07.npy at position (23, 8, 7) (fg=0.0183%)
+Loaded: week2_d24_h08_w06.npy at position (24, 8, 6) (fg=3.3875%)
+
+Summary: Loaded 193 subvolumes
+  Skipped 4707 (fg_ratio < 0.01%)
+Loaded 193 training subvolumes
+
+Loading validation subvolumes...
+Loaded: week3_d00_h00_w08.npy at position (0, 0, 8) (fg=0.1251%)
+Loaded: week3_d00_h04_w11.npy at position (0, 4, 11) (fg=0.4120%)
+Loaded: week3_d00_h13_w05.npy at position (0, 13, 5) (fg=0.1648%)
+Loaded: week3_d00_h13_w06.npy at position (0, 13, 6) (fg=0.0824%)
+Loaded: week3_d00_h13_w07.npy at position (0, 13, 7) (fg=0.8667%)
+Loaded: week3_d00_h13_w08.npy at position (0, 13, 8) (fg=0.0885%)
+Loaded: week3_d01_h00_w08.npy at position (1, 0, 8) (fg=0.5615%)
+Loaded: week3_d01_h02_w11.npy at position (1, 2, 11) (fg=0.1648%)
+Loaded: week3_d01_h02_w12.npy at position (1, 2, 12) (fg=0.3906%)
+Loaded: week3_d01_h03_w12.npy at position (1, 3, 12) (fg=0.0397%)
+Loaded: week3_d01_h04_w11.npy at position (1, 4, 11) (fg=2.0081%)
+Loaded: week3_d01_h12_w05.npy at position (1, 12, 5) (fg=0.0397%)
+Loaded: week3_d01_h13_w05.npy at position (1, 13, 5) (fg=1.0620%)
+Loaded: week3_d01_h13_w06.npy at position (1, 13, 6) (fg=0.8698%)
+Loaded: week3_d02_h00_w08.npy at position (2, 0, 8) (fg=0.7019%)
+Loaded: week3_d02_h03_w12.npy at position (2, 3, 12) (fg=0.7202%)
+Loaded: week3_d02_h04_w11.npy at position (2, 4, 11) (fg=1.2848%)
+Loaded: week3_d02_h04_w12.npy at position (2, 4, 12) (fg=0.8270%)
+Loaded: week3_d02_h12_w04.npy at position (2, 12, 4) (fg=0.5524%)
+Loaded: week3_d02_h12_w05.npy at position (2, 12, 5) (fg=0.1068%)
+Loaded: week3_d02_h13_w04.npy at position (2, 13, 4) (fg=0.0671%)
+Loaded: week3_d02_h13_w05.npy at position (2, 13, 5) (fg=0.2625%)
+Loaded: week3_d02_h13_w06.npy at position (2, 13, 6) (fg=0.6775%)
+Loaded: week3_d03_h00_w08.npy at position (3, 0, 8) (fg=0.4913%)
+Loaded: week3_d03_h03_w12.npy at position (3, 3, 12) (fg=0.3143%)
+Loaded: week3_d03_h04_w12.npy at position (3, 4, 12) (fg=2.1454%)
+Loaded: week3_d03_h04_w13.npy at position (3, 4, 13) (fg=0.6317%)
+Loaded: week3_d03_h10_w09.npy at position (3, 10, 9) (fg=0.6744%)
+Loaded: week3_d03_h11_w02.npy at position (3, 11, 2) (fg=0.2197%)
+Loaded: week3_d03_h11_w03.npy at position (3, 11, 3) (fg=0.1587%)
+Loaded: week3_d03_h11_w09.npy at position (3, 11, 9) (fg=0.0946%)
+Loaded: week3_d03_h12_w03.npy at position (3, 12, 3) (fg=0.7477%)
+Loaded: week3_d03_h12_w04.npy at position (3, 12, 4) (fg=0.4639%)
+Loaded: week3_d03_h13_w06.npy at position (3, 13, 6) (fg=0.6226%)
+Loaded: week3_d04_h00_w08.npy at position (4, 0, 8) (fg=0.0671%)
+Loaded: week3_d04_h01_w08.npy at position (4, 1, 8) (fg=0.3418%)
+Loaded: week3_d04_h01_w09.npy at position (4, 1, 9) (fg=0.1404%)
+Loaded: week3_d04_h04_w13.npy at position (4, 4, 13) (fg=2.6764%)
+Loaded: week3_d04_h10_w01.npy at position (4, 10, 1) (fg=0.0793%)
+Loaded: week3_d04_h10_w02.npy at position (4, 10, 2) (fg=0.1984%)
+Loaded: week3_d04_h10_w09.npy at position (4, 10, 9) (fg=0.3082%)
+Loaded: week3_d04_h11_w02.npy at position (4, 11, 2) (fg=0.3632%)
+Loaded: week3_d04_h11_w09.npy at position (4, 11, 9) (fg=0.9949%)
+Loaded: week3_d04_h13_w06.npy at position (4, 13, 6) (fg=0.4608%)
+Loaded: week3_d04_h13_w07.npy at position (4, 13, 7) (fg=0.2899%)
+Loaded: week3_d05_h01_w09.npy at position (5, 1, 9) (fg=0.4852%)
+Loaded: week3_d05_h04_w12.npy at position (5, 4, 12) (fg=0.2838%)
+Loaded: week3_d05_h04_w13.npy at position (5, 4, 13) (fg=2.3163%)
+Loaded: week3_d05_h05_w13.npy at position (5, 5, 13) (fg=0.3357%)
+Loaded: week3_d05_h09_w01.npy at position (5, 9, 1) (fg=0.3235%)
+Loaded: week3_d05_h10_w01.npy at position (5, 10, 1) (fg=0.6104%)
+Loaded: week3_d05_h11_w09.npy at position (5, 11, 9) (fg=1.6754%)
+Loaded: week3_d05_h13_w06.npy at position (5, 13, 6) (fg=0.3815%)
+Loaded: week3_d05_h13_w07.npy at position (5, 13, 7) (fg=0.3204%)
+Loaded: week3_d06_h01_w09.npy at position (6, 1, 9) (fg=0.3326%)
+Loaded: week3_d06_h02_w08.npy at position (6, 2, 8) (fg=0.1007%)
+Loaded: week3_d06_h02_w09.npy at position (6, 2, 9) (fg=0.2960%)
+Loaded: week3_d06_h04_w12.npy at position (6, 4, 12) (fg=0.2899%)
+Loaded: week3_d06_h04_w13.npy at position (6, 4, 13) (fg=1.7120%)
+Loaded: week3_d06_h05_w13.npy at position (6, 5, 13) (fg=0.4761%)
+Loaded: week3_d06_h06_w13.npy at position (6, 6, 13) (fg=0.4425%)
+Loaded: week3_d06_h09_w01.npy at position (6, 9, 1) (fg=0.4944%)
+Loaded: week3_d06_h11_w09.npy at position (6, 11, 9) (fg=1.2787%)
+Loaded: week3_d06_h13_w07.npy at position (6, 13, 7) (fg=0.5859%)
+Loaded: week3_d07_h02_w08.npy at position (7, 2, 8) (fg=0.1556%)
+Loaded: week3_d07_h02_w09.npy at position (7, 2, 9) (fg=0.6470%)
+Loaded: week3_d07_h03_w08.npy at position (7, 3, 8) (fg=0.1190%)
+Loaded: week3_d07_h03_w09.npy at position (7, 3, 9) (fg=0.0458%)
+Loaded: week3_d07_h04_w12.npy at position (7, 4, 12) (fg=0.4242%)
+Loaded: week3_d07_h04_w13.npy at position (7, 4, 13) (fg=1.4282%)
+Loaded: week3_d07_h06_w08.npy at position (7, 6, 8) (fg=0.3326%)
+Loaded: week3_d07_h06_w09.npy at position (7, 6, 9) (fg=0.2411%)
+Loaded: week3_d07_h06_w13.npy at position (7, 6, 13) (fg=0.4211%)
+Loaded: week3_d07_h07_w09.npy at position (7, 7, 9) (fg=1.0712%)
+Loaded: week3_d07_h07_w10.npy at position (7, 7, 10) (fg=0.0214%)
+Loaded: week3_d07_h07_w13.npy at position (7, 7, 13) (fg=0.3418%)
+Loaded: week3_d07_h08_w00.npy at position (7, 8, 0) (fg=0.1251%)
+Loaded: week3_d07_h08_w01.npy at position (7, 8, 1) (fg=0.1556%)
+Loaded: week3_d07_h09_w01.npy at position (7, 9, 1) (fg=0.2991%)
+Loaded: week3_d07_h11_w09.npy at position (7, 11, 9) (fg=0.4517%)
+Loaded: week3_d07_h11_w10.npy at position (7, 11, 10) (fg=0.9399%)
+Loaded: week3_d07_h13_w07.npy at position (7, 13, 7) (fg=0.4883%)
+Loaded: week3_d08_h03_w08.npy at position (8, 3, 8) (fg=0.8606%)
+Loaded: week3_d08_h03_w09.npy at position (8, 3, 9) (fg=0.4333%)
+Loaded: week3_d08_h03_w12.npy at position (8, 3, 12) (fg=0.3754%)
+Loaded: week3_d08_h03_w13.npy at position (8, 3, 13) (fg=0.1556%)
+Loaded: week3_d08_h04_w12.npy at position (8, 4, 12) (fg=0.7568%)
+Loaded: week3_d08_h04_w13.npy at position (8, 4, 13) (fg=0.4974%)
+Loaded: week3_d08_h06_w07.npy at position (8, 6, 7) (fg=0.0793%)
+Loaded: week3_d08_h07_w01.npy at position (8, 7, 1) (fg=0.0183%)
+Loaded: week3_d08_h07_w07.npy at position (8, 7, 7) (fg=0.0854%)
+Loaded: week3_d08_h07_w10.npy at position (8, 7, 10) (fg=0.7324%)
+Loaded: week3_d08_h07_w11.npy at position (8, 7, 11) (fg=0.3784%)
+Loaded: week3_d08_h07_w13.npy at position (8, 7, 13) (fg=0.4120%)
+Loaded: week3_d08_h08_w00.npy at position (8, 8, 0) (fg=0.2991%)
+Loaded: week3_d08_h08_w01.npy at position (8, 8, 1) (fg=0.3723%)
+Loaded: week3_d08_h08_w11.npy at position (8, 8, 11) (fg=0.0183%)
+Loaded: week3_d08_h08_w13.npy at position (8, 8, 13) (fg=0.3876%)
+Loaded: week3_d08_h11_w10.npy at position (8, 11, 10) (fg=1.0315%)
+Loaded: week3_d08_h13_w07.npy at position (8, 13, 7) (fg=0.3723%)
+Loaded: week3_d08_h13_w08.npy at position (8, 13, 8) (fg=0.5676%)
+Loaded: week3_d09_h00_w07.npy at position (9, 0, 7) (fg=0.3601%)
+Loaded: week3_d09_h00_w08.npy at position (9, 0, 8) (fg=0.5981%)
+Loaded: week3_d09_h00_w09.npy at position (9, 0, 9) (fg=0.4456%)
+Loaded: week3_d09_h01_w09.npy at position (9, 1, 9) (fg=0.1404%)
+Loaded: week3_d09_h01_w10.npy at position (9, 1, 10) (fg=0.7141%)
+Loaded: week3_d09_h01_w11.npy at position (9, 1, 11) (fg=0.2960%)
+Loaded: week3_d09_h02_w11.npy at position (9, 2, 11) (fg=0.4608%)
+Loaded: week3_d09_h02_w12.npy at position (9, 2, 12) (fg=0.3052%)
+Loaded: week3_d09_h03_w01.npy at position (9, 3, 1) (fg=0.4730%)
+Loaded: week3_d09_h03_w09.npy at position (9, 3, 9) (fg=0.7812%)
+Loaded: week3_d09_h03_w12.npy at position (9, 3, 12) (fg=0.1862%)
+Loaded: week3_d09_h03_w13.npy at position (9, 3, 13) (fg=0.0214%)
+Loaded: week3_d09_h04_w01.npy at position (9, 4, 1) (fg=0.2319%)
+Loaded: week3_d09_h04_w08.npy at position (9, 4, 8) (fg=0.4395%)
+Loaded: week3_d09_h04_w09.npy at position (9, 4, 9) (fg=0.3601%)
+Loaded: week3_d09_h04_w12.npy at position (9, 4, 12) (fg=0.6805%)
+Loaded: week3_d09_h04_w13.npy at position (9, 4, 13) (fg=1.0437%)
+Loaded: week3_d09_h06_w06.npy at position (9, 6, 6) (fg=0.1190%)
+Loaded: week3_d09_h07_w01.npy at position (9, 7, 1) (fg=0.0244%)
+Loaded: week3_d09_h07_w02.npy at position (9, 7, 2) (fg=0.2808%)
+Loaded: week3_d09_h07_w03.npy at position (9, 7, 3) (fg=0.4822%)
+Loaded: week3_d09_h07_w06.npy at position (9, 7, 6) (fg=0.5524%)
+Loaded: week3_d09_h07_w07.npy at position (9, 7, 7) (fg=1.2146%)
+Loaded: week3_d09_h07_w08.npy at position (9, 7, 8) (fg=0.6165%)
+Loaded: week3_d09_h07_w09.npy at position (9, 7, 9) (fg=0.6165%)
+Loaded: week3_d09_h07_w10.npy at position (9, 7, 10) (fg=0.5676%)
+Loaded: week3_d09_h07_w11.npy at position (9, 7, 11) (fg=0.2655%)
+Loaded: week3_d09_h08_w01.npy at position (9, 8, 1) (fg=0.1373%)
+Loaded: week3_d09_h08_w02.npy at position (9, 8, 2) (fg=0.1434%)
+Loaded: week3_d09_h08_w07.npy at position (9, 8, 7) (fg=0.1465%)
+Loaded: week3_d09_h08_w11.npy at position (9, 8, 11) (fg=0.5615%)
+Loaded: week3_d09_h08_w12.npy at position (9, 8, 12) (fg=0.0214%)
+Loaded: week3_d09_h08_w13.npy at position (9, 8, 13) (fg=0.3845%)
+Loaded: week3_d09_h11_w10.npy at position (9, 11, 10) (fg=1.1688%)
+Loaded: week3_d09_h12_w10.npy at position (9, 12, 10) (fg=0.0977%)
+Loaded: week3_d09_h13_w08.npy at position (9, 13, 8) (fg=0.5920%)
+Loaded: week3_d10_h00_w04.npy at position (10, 0, 4) (fg=0.0885%)
+Loaded: week3_d10_h00_w05.npy at position (10, 0, 5) (fg=0.8636%)
+Loaded: week3_d10_h00_w06.npy at position (10, 0, 6) (fg=0.9186%)
+Loaded: week3_d10_h00_w07.npy at position (10, 0, 7) (fg=0.2625%)
+Loaded: week3_d10_h01_w03.npy at position (10, 1, 3) (fg=0.8148%)
+Loaded: week3_d10_h01_w04.npy at position (10, 1, 4) (fg=0.5981%)
+Loaded: week3_d10_h02_w02.npy at position (10, 2, 2) (fg=1.1078%)
+Loaded: week3_d10_h02_w03.npy at position (10, 2, 3) (fg=0.1617%)
+Loaded: week3_d10_h03_w01.npy at position (10, 3, 1) (fg=0.5341%)
+Loaded: week3_d10_h03_w02.npy at position (10, 3, 2) (fg=0.2045%)
+Loaded: week3_d10_h03_w12.npy at position (10, 3, 12) (fg=1.1169%)
+Loaded: week3_d10_h03_w13.npy at position (10, 3, 13) (fg=0.0427%)
+Loaded: week3_d10_h04_w01.npy at position (10, 4, 1) (fg=0.3479%)
+Loaded: week3_d10_h04_w08.npy at position (10, 4, 8) (fg=0.5280%)
+Loaded: week3_d10_h04_w12.npy at position (10, 4, 12) (fg=0.3693%)
+Loaded: week3_d10_h04_w13.npy at position (10, 4, 13) (fg=0.9308%)
+Loaded: week3_d10_h05_w00.npy at position (10, 5, 0) (fg=0.3326%)
+Loaded: week3_d10_h05_w01.npy at position (10, 5, 1) (fg=0.0549%)
+Loaded: week3_d10_h05_w07.npy at position (10, 5, 7) (fg=0.4639%)
+Loaded: week3_d10_h05_w08.npy at position (10, 5, 8) (fg=1.6235%)
+Loaded: week3_d10_h05_w13.npy at position (10, 5, 13) (fg=0.5371%)
+Loaded: week3_d10_h06_w06.npy at position (10, 6, 6) (fg=0.1099%)
+Loaded: week3_d10_h06_w07.npy at position (10, 6, 7) (fg=0.6165%)
+Loaded: week3_d10_h06_w08.npy at position (10, 6, 8) (fg=1.4008%)
+Loaded: week3_d10_h06_w13.npy at position (10, 6, 13) (fg=0.7996%)
+Loaded: week3_d10_h07_w03.npy at position (10, 7, 3) (fg=0.1740%)
+Loaded: week3_d10_h07_w04.npy at position (10, 7, 4) (fg=0.8453%)
+Loaded: week3_d10_h07_w05.npy at position (10, 7, 5) (fg=0.6714%)
+Loaded: week3_d10_h07_w06.npy at position (10, 7, 6) (fg=1.1292%)
+Loaded: week3_d10_h07_w07.npy at position (10, 7, 7) (fg=1.3580%)
+Loaded: week3_d10_h07_w08.npy at position (10, 7, 8) (fg=0.4150%)
+Loaded: week3_d10_h07_w11.npy at position (10, 7, 11) (fg=0.4395%)
+Loaded: week3_d10_h07_w12.npy at position (10, 7, 12) (fg=0.0366%)
+Loaded: week3_d10_h07_w13.npy at position (10, 7, 13) (fg=0.4791%)
+Loaded: week3_d10_h08_w02.npy at position (10, 8, 2) (fg=0.0488%)
+Loaded: week3_d10_h08_w07.npy at position (10, 8, 7) (fg=0.0275%)
+Loaded: week3_d10_h08_w08.npy at position (10, 8, 8) (fg=0.4822%)
+Loaded: week3_d10_h08_w09.npy at position (10, 8, 9) (fg=0.4395%)
+Loaded: week3_d10_h08_w10.npy at position (10, 8, 10) (fg=0.4272%)
+Loaded: week3_d10_h08_w12.npy at position (10, 8, 12) (fg=0.5707%)
+Loaded: week3_d10_h08_w13.npy at position (10, 8, 13) (fg=0.7935%)
+Loaded: week3_d10_h09_w13.npy at position (10, 9, 13) (fg=0.6287%)
+Loaded: week3_d10_h12_w10.npy at position (10, 12, 10) (fg=1.1230%)
+Loaded: week3_d10_h13_w08.npy at position (10, 13, 8) (fg=0.2869%)
+Loaded: week3_d10_h13_w09.npy at position (10, 13, 9) (fg=0.4486%)
+Loaded: week3_d11_h00_w04.npy at position (11, 0, 4) (fg=0.0641%)
+Loaded: week3_d11_h00_w06.npy at position (11, 0, 6) (fg=0.0793%)
+Loaded: week3_d11_h00_w07.npy at position (11, 0, 7) (fg=0.2808%)
+Loaded: week3_d11_h00_w08.npy at position (11, 0, 8) (fg=0.2777%)
+Loaded: week3_d11_h01_w03.npy at position (11, 1, 3) (fg=0.1862%)
+Loaded: week3_d11_h01_w04.npy at position (11, 1, 4) (fg=0.3845%)
+Loaded: week3_d11_h03_w12.npy at position (11, 3, 12) (fg=2.3590%)
+Loaded: week3_d11_h04_w13.npy at position (11, 4, 13) (fg=0.1099%)
+Loaded: week3_d11_h05_w00.npy at position (11, 5, 0) (fg=0.0122%)
+Loaded: week3_d11_h05_w13.npy at position (11, 5, 13) (fg=0.5524%)
+Loaded: week3_d11_h06_w00.npy at position (11, 6, 0) (fg=0.3845%)
+Loaded: week3_d11_h06_w07.npy at position (11, 6, 7) (fg=0.2167%)
+Loaded: week3_d11_h06_w08.npy at position (11, 6, 8) (fg=0.0275%)
+Loaded: week3_d11_h06_w13.npy at position (11, 6, 13) (fg=0.2747%)
+Loaded: week3_d11_h07_w00.npy at position (11, 7, 0) (fg=0.3265%)
+Loaded: week3_d11_h07_w06.npy at position (11, 7, 6) (fg=1.1719%)
+Loaded: week3_d11_h07_w07.npy at position (11, 7, 7) (fg=2.2034%)
+Loaded: week3_d11_h07_w08.npy at position (11, 7, 8) (fg=1.0193%)
+Loaded: week3_d11_h07_w13.npy at position (11, 7, 13) (fg=0.4852%)
+Loaded: week3_d11_h08_w00.npy at position (11, 8, 0) (fg=0.2594%)
+Loaded: week3_d11_h08_w01.npy at position (11, 8, 1) (fg=0.3296%)
+Loaded: week3_d11_h08_w02.npy at position (11, 8, 2) (fg=0.0122%)
+Loaded: week3_d11_h08_w06.npy at position (11, 8, 6) (fg=0.0854%)
+Loaded: week3_d11_h08_w07.npy at position (11, 8, 7) (fg=0.4944%)
+Loaded: week3_d11_h08_w08.npy at position (11, 8, 8) (fg=0.3479%)
+Loaded: week3_d11_h08_w09.npy at position (11, 8, 9) (fg=0.1831%)
+Loaded: week3_d11_h08_w10.npy at position (11, 8, 10) (fg=0.1068%)
+Loaded: week3_d11_h08_w11.npy at position (11, 8, 11) (fg=0.4486%)
+Loaded: week3_d11_h08_w12.npy at position (11, 8, 12) (fg=0.3143%)
+Loaded: week3_d11_h08_w13.npy at position (11, 8, 13) (fg=0.2441%)
+Loaded: week3_d11_h09_w08.npy at position (11, 9, 8) (fg=0.3082%)
+Loaded: week3_d11_h09_w09.npy at position (11, 9, 9) (fg=0.3601%)
+Loaded: week3_d11_h09_w12.npy at position (11, 9, 12) (fg=0.3479%)
+Loaded: week3_d11_h09_w13.npy at position (11, 9, 13) (fg=0.5280%)
+Loaded: week3_d11_h10_w09.npy at position (11, 10, 9) (fg=0.1923%)
+Loaded: week3_d11_h10_w10.npy at position (11, 10, 10) (fg=0.3448%)
+Loaded: week3_d11_h10_w11.npy at position (11, 10, 11) (fg=0.3601%)
+Loaded: week3_d11_h10_w12.npy at position (11, 10, 12) (fg=0.3845%)
+Loaded: week3_d11_h11_w10.npy at position (11, 11, 10) (fg=0.1465%)
+Loaded: week3_d11_h11_w11.npy at position (11, 11, 11) (fg=0.5249%)
+Loaded: week3_d11_h12_w09.npy at position (11, 12, 9) (fg=0.3479%)
+Loaded: week3_d11_h12_w10.npy at position (11, 12, 10) (fg=1.2207%)
+Loaded: week3_d11_h13_w09.npy at position (11, 13, 9) (fg=0.3510%)
+Loaded: week3_d12_h03_w12.npy at position (12, 3, 12) (fg=2.1667%)
+Loaded: week3_d12_h03_w13.npy at position (12, 3, 13) (fg=0.0153%)
+Loaded: week3_d12_h04_w12.npy at position (12, 4, 12) (fg=0.0183%)
+Loaded: week3_d12_h06_w07.npy at position (12, 6, 7) (fg=0.3357%)
+Loaded: week3_d12_h06_w08.npy at position (12, 6, 8) (fg=0.0549%)
+Loaded: week3_d12_h07_w06.npy at position (12, 7, 6) (fg=1.0498%)
+Loaded: week3_d12_h07_w07.npy at position (12, 7, 7) (fg=0.7233%)
+Loaded: week3_d12_h07_w08.npy at position (12, 7, 8) (fg=0.4883%)
+Loaded: week3_d12_h08_w06.npy at position (12, 8, 6) (fg=0.0458%)
+Loaded: week3_d12_h08_w07.npy at position (12, 8, 7) (fg=0.4547%)
+Loaded: week3_d12_h10_w07.npy at position (12, 10, 7) (fg=0.2106%)
+Loaded: week3_d12_h10_w08.npy at position (12, 10, 8) (fg=0.4425%)
+Loaded: week3_d12_h10_w09.npy at position (12, 10, 9) (fg=0.6805%)
+Loaded: week3_d12_h10_w10.npy at position (12, 10, 10) (fg=0.6134%)
+Loaded: week3_d12_h10_w11.npy at position (12, 10, 11) (fg=0.4242%)
+Loaded: week3_d12_h10_w12.npy at position (12, 10, 12) (fg=0.0153%)
+Loaded: week3_d12_h11_w06.npy at position (12, 11, 6) (fg=0.3632%)
+Loaded: week3_d12_h11_w07.npy at position (12, 11, 7) (fg=0.0702%)
+Loaded: week3_d12_h11_w11.npy at position (12, 11, 11) (fg=0.1801%)
+Loaded: week3_d12_h11_w12.npy at position (12, 11, 12) (fg=0.2350%)
+Loaded: week3_d12_h12_w09.npy at position (12, 12, 9) (fg=0.2960%)
+Loaded: week3_d12_h12_w10.npy at position (12, 12, 10) (fg=1.0895%)
+Loaded: week3_d12_h12_w11.npy at position (12, 12, 11) (fg=0.4791%)
+Loaded: week3_d12_h13_w05.npy at position (12, 13, 5) (fg=0.6561%)
+Loaded: week3_d12_h13_w08.npy at position (12, 13, 8) (fg=0.2197%)
+Loaded: week3_d12_h13_w09.npy at position (12, 13, 9) (fg=0.0275%)
+Loaded: week3_d13_h03_w12.npy at position (13, 3, 12) (fg=0.1709%)
+Loaded: week3_d13_h03_w13.npy at position (13, 3, 13) (fg=0.0244%)
+Loaded: week3_d13_h04_w12.npy at position (13, 4, 12) (fg=0.3937%)
+Loaded: week3_d13_h04_w13.npy at position (13, 4, 13) (fg=1.8616%)
+Loaded: week3_d13_h06_w07.npy at position (13, 6, 7) (fg=0.7874%)
+Loaded: week3_d13_h07_w06.npy at position (13, 7, 6) (fg=1.5900%)
+Loaded: week3_d13_h07_w07.npy at position (13, 7, 7) (fg=0.2136%)
+Loaded: week3_d13_h07_w08.npy at position (13, 7, 8) (fg=0.4608%)
+Loaded: week3_d13_h08_w07.npy at position (13, 8, 7) (fg=0.2777%)
+Loaded: week3_d13_h08_w08.npy at position (13, 8, 8) (fg=0.0793%)
+Loaded: week3_d13_h09_w08.npy at position (13, 9, 8) (fg=0.4333%)
+Loaded: week3_d13_h10_w02.npy at position (13, 10, 2) (fg=0.0885%)
+Loaded: week3_d13_h10_w08.npy at position (13, 10, 8) (fg=0.3296%)
+Loaded: week3_d13_h11_w02.npy at position (13, 11, 2) (fg=0.7996%)
+Loaded: week3_d13_h11_w03.npy at position (13, 11, 3) (fg=0.6226%)
+Loaded: week3_d13_h11_w04.npy at position (13, 11, 4) (fg=0.5859%)
+Loaded: week3_d13_h11_w05.npy at position (13, 11, 5) (fg=0.6714%)
+Loaded: week3_d13_h11_w06.npy at position (13, 11, 6) (fg=0.3082%)
+Loaded: week3_d13_h11_w08.npy at position (13, 11, 8) (fg=0.3082%)
+Loaded: week3_d13_h12_w08.npy at position (13, 12, 8) (fg=0.0549%)
+Loaded: week3_d13_h12_w09.npy at position (13, 12, 9) (fg=0.3723%)
+Loaded: week3_d13_h12_w10.npy at position (13, 12, 10) (fg=0.8057%)
+Loaded: week3_d13_h12_w11.npy at position (13, 12, 11) (fg=1.0712%)
+Loaded: week3_d13_h13_w05.npy at position (13, 13, 5) (fg=1.6327%)
+Loaded: week3_d13_h13_w09.npy at position (13, 13, 9) (fg=0.2747%)
+Loaded: week3_d14_h04_w12.npy at position (14, 4, 12) (fg=0.0122%)
+Loaded: week3_d14_h04_w13.npy at position (14, 4, 13) (fg=2.2400%)
+Loaded: week3_d14_h06_w06.npy at position (14, 6, 6) (fg=0.1709%)
+Loaded: week3_d14_h06_w07.npy at position (14, 6, 7) (fg=0.9125%)
+Loaded: week3_d14_h07_w06.npy at position (14, 7, 6) (fg=0.5157%)
+Loaded: week3_d14_h07_w08.npy at position (14, 7, 8) (fg=0.3632%)
+Loaded: week3_d14_h08_w06.npy at position (14, 8, 6) (fg=0.3815%)
+Loaded: week3_d14_h08_w07.npy at position (14, 8, 7) (fg=0.3143%)
+Loaded: week3_d14_h10_w02.npy at position (14, 10, 2) (fg=0.3265%)
+Loaded: week3_d14_h10_w03.npy at position (14, 10, 3) (fg=0.0305%)
+Loaded: week3_d14_h11_w02.npy at position (14, 11, 2) (fg=1.4526%)
+Loaded: week3_d14_h11_w03.npy at position (14, 11, 3) (fg=0.1099%)
+Loaded: week3_d14_h12_w11.npy at position (14, 12, 11) (fg=1.7731%)
+Loaded: week3_d14_h13_w05.npy at position (14, 13, 5) (fg=1.3702%)
+Loaded: week3_d15_h04_w11.npy at position (15, 4, 11) (fg=1.3855%)
+Loaded: week3_d15_h04_w12.npy at position (15, 4, 12) (fg=1.2787%)
+Loaded: week3_d15_h04_w13.npy at position (15, 4, 13) (fg=0.3418%)
+Loaded: week3_d15_h05_w11.npy at position (15, 5, 11) (fg=0.8423%)
+Loaded: week3_d15_h06_w06.npy at position (15, 6, 6) (fg=0.5280%)
+Loaded: week3_d15_h06_w07.npy at position (15, 6, 7) (fg=1.0986%)
+Loaded: week3_d15_h07_w07.npy at position (15, 7, 7) (fg=0.1465%)
+Loaded: week3_d15_h07_w08.npy at position (15, 7, 8) (fg=0.4669%)
+Loaded: week3_d15_h08_w07.npy at position (15, 8, 7) (fg=0.5798%)
+Loaded: week3_d15_h10_w02.npy at position (15, 10, 2) (fg=1.1139%)
+Loaded: week3_d15_h10_w03.npy at position (15, 10, 3) (fg=0.0183%)
+Loaded: week3_d15_h11_w02.npy at position (15, 11, 2) (fg=0.9033%)
+Loaded: week3_d15_h11_w11.npy at position (15, 11, 11) (fg=1.2054%)
+Loaded: week3_d15_h12_w04.npy at position (15, 12, 4) (fg=0.0244%)
+Loaded: week3_d15_h12_w05.npy at position (15, 12, 5) (fg=0.1160%)
+Loaded: week3_d15_h12_w11.npy at position (15, 12, 11) (fg=0.9064%)
+Loaded: week3_d15_h13_w04.npy at position (15, 13, 4) (fg=0.0244%)
+Loaded: week3_d15_h13_w05.npy at position (15, 13, 5) (fg=1.3123%)
+Loaded: week3_d16_h05_w06.npy at position (16, 5, 6) (fg=0.0610%)
+Loaded: week3_d16_h05_w10.npy at position (16, 5, 10) (fg=2.7313%)
+Loaded: week3_d16_h05_w11.npy at position (16, 5, 11) (fg=1.1047%)
+Loaded: week3_d16_h06_w06.npy at position (16, 6, 6) (fg=0.4669%)
+Loaded: week3_d16_h06_w07.npy at position (16, 6, 7) (fg=0.4669%)
+Loaded: week3_d16_h07_w07.npy at position (16, 7, 7) (fg=0.7721%)
+Loaded: week3_d16_h07_w08.npy at position (16, 7, 8) (fg=0.3906%)
+Loaded: week3_d16_h09_w03.npy at position (16, 9, 3) (fg=1.4404%)
+Loaded: week3_d16_h10_w01.npy at position (16, 10, 1) (fg=0.2380%)
+Loaded: week3_d16_h10_w02.npy at position (16, 10, 2) (fg=0.2869%)
+Loaded: week3_d16_h10_w03.npy at position (16, 10, 3) (fg=1.5106%)
+Loaded: week3_d16_h11_w11.npy at position (16, 11, 11) (fg=1.1932%)
+Loaded: week3_d16_h11_w12.npy at position (16, 11, 12) (fg=0.7050%)
+Loaded: week3_d16_h12_w04.npy at position (16, 12, 4) (fg=1.3672%)
+Loaded: week3_d16_h12_w05.npy at position (16, 12, 5) (fg=0.1007%)
+Loaded: week3_d16_h12_w11.npy at position (16, 12, 11) (fg=0.1984%)
+Loaded: week3_d16_h13_w04.npy at position (16, 13, 4) (fg=0.0854%)
+Loaded: week3_d16_h13_w05.npy at position (16, 13, 5) (fg=0.0519%)
+Loaded: week3_d17_h05_w06.npy at position (17, 5, 6) (fg=0.3815%)
+Loaded: week3_d17_h05_w07.npy at position (17, 5, 7) (fg=0.1038%)
+Loaded: week3_d17_h05_w10.npy at position (17, 5, 10) (fg=1.0315%)
+Loaded: week3_d17_h06_w06.npy at position (17, 6, 6) (fg=0.0122%)
+Loaded: week3_d17_h06_w07.npy at position (17, 6, 7) (fg=0.3815%)
+Loaded: week3_d17_h06_w09.npy at position (17, 6, 9) (fg=0.0366%)
+Loaded: week3_d17_h06_w10.npy at position (17, 6, 10) (fg=1.5930%)
+Loaded: week3_d17_h07_w07.npy at position (17, 7, 7) (fg=0.5798%)
+Loaded: week3_d17_h07_w08.npy at position (17, 7, 8) (fg=0.3021%)
+Loaded: week3_d17_h08_w04.npy at position (17, 8, 4) (fg=0.0275%)
+Loaded: week3_d17_h09_w01.npy at position (17, 9, 1) (fg=0.2777%)
+Loaded: week3_d17_h09_w03.npy at position (17, 9, 3) (fg=0.2350%)
+Loaded: week3_d17_h09_w04.npy at position (17, 9, 4) (fg=2.4384%)
+Loaded: week3_d17_h10_w01.npy at position (17, 10, 1) (fg=0.2075%)
+Loaded: week3_d17_h10_w12.npy at position (17, 10, 12) (fg=1.1841%)
+Loaded: week3_d17_h11_w11.npy at position (17, 11, 11) (fg=0.0580%)
+Loaded: week3_d17_h11_w12.npy at position (17, 11, 12) (fg=0.7568%)
+Loaded: week3_d17_h12_w04.npy at position (17, 12, 4) (fg=1.1902%)
+Loaded: week3_d18_h05_w07.npy at position (18, 5, 7) (fg=0.3418%)
+Loaded: week3_d18_h06_w07.npy at position (18, 6, 7) (fg=0.5737%)
+Loaded: week3_d18_h06_w09.npy at position (18, 6, 9) (fg=2.0813%)
+Loaded: week3_d18_h06_w10.npy at position (18, 6, 10) (fg=0.2838%)
+Loaded: week3_d18_h07_w07.npy at position (18, 7, 7) (fg=0.5920%)
+Loaded: week3_d18_h07_w08.npy at position (18, 7, 8) (fg=0.4974%)
+Loaded: week3_d18_h08_w02.npy at position (18, 8, 2) (fg=0.6470%)
+Loaded: week3_d18_h08_w03.npy at position (18, 8, 3) (fg=0.2563%)
+Loaded: week3_d18_h08_w04.npy at position (18, 8, 4) (fg=0.5707%)
+Loaded: week3_d18_h08_w05.npy at position (18, 8, 5) (fg=1.8188%)
+Loaded: week3_d18_h08_w13.npy at position (18, 8, 13) (fg=0.7599%)
+Loaded: week3_d18_h09_w01.npy at position (18, 9, 1) (fg=0.3693%)
+Loaded: week3_d18_h09_w02.npy at position (18, 9, 2) (fg=0.0641%)
+Loaded: week3_d18_h09_w04.npy at position (18, 9, 4) (fg=0.1862%)
+Loaded: week3_d18_h09_w12.npy at position (18, 9, 12) (fg=0.0610%)
+Loaded: week3_d18_h09_w13.npy at position (18, 9, 13) (fg=1.0559%)
+Loaded: week3_d18_h10_w12.npy at position (18, 10, 12) (fg=0.5829%)
+Loaded: week3_d18_h11_w12.npy at position (18, 11, 12) (fg=0.4578%)
+Loaded: week3_d18_h12_w04.npy at position (18, 12, 4) (fg=1.4740%)
+Loaded: week3_d19_h05_w07.npy at position (19, 5, 7) (fg=0.3143%)
+Loaded: week3_d19_h06_w07.npy at position (19, 6, 7) (fg=0.6561%)
+Loaded: week3_d19_h06_w08.npy at position (19, 6, 8) (fg=0.4852%)
+Loaded: week3_d19_h06_w09.npy at position (19, 6, 9) (fg=2.1240%)
+Loaded: week3_d19_h06_w13.npy at position (19, 6, 13) (fg=0.1282%)
+Loaded: week3_d19_h07_w04.npy at position (19, 7, 4) (fg=0.3693%)
+Loaded: week3_d19_h07_w05.npy at position (19, 7, 5) (fg=0.1862%)
+Loaded: week3_d19_h07_w07.npy at position (19, 7, 7) (fg=0.5707%)
+Loaded: week3_d19_h07_w08.npy at position (19, 7, 8) (fg=0.4120%)
+Loaded: week3_d19_h07_w13.npy at position (19, 7, 13) (fg=1.1261%)
+Loaded: week3_d19_h08_w03.npy at position (19, 8, 3) (fg=0.3906%)
+Loaded: week3_d19_h08_w04.npy at position (19, 8, 4) (fg=0.3204%)
+Loaded: week3_d19_h08_w05.npy at position (19, 8, 5) (fg=1.9043%)
+Loaded: week3_d19_h08_w13.npy at position (19, 8, 13) (fg=0.3418%)
+Loaded: week3_d19_h09_w11.npy at position (19, 9, 11) (fg=0.4700%)
+Loaded: week3_d19_h09_w12.npy at position (19, 9, 12) (fg=0.3387%)
+Loaded: week3_d19_h10_w12.npy at position (19, 10, 12) (fg=0.9338%)
+Loaded: week3_d19_h11_w04.npy at position (19, 11, 4) (fg=0.1251%)
+Loaded: week3_d19_h11_w05.npy at position (19, 11, 5) (fg=0.8392%)
+Loaded: week3_d19_h12_w04.npy at position (19, 12, 4) (fg=1.4587%)
+Loaded: week3_d20_h05_w07.npy at position (20, 5, 7) (fg=0.4211%)
+Loaded: week3_d20_h06_w05.npy at position (20, 6, 5) (fg=0.2533%)
+Loaded: week3_d20_h06_w06.npy at position (20, 6, 6) (fg=0.3082%)
+Loaded: week3_d20_h06_w07.npy at position (20, 6, 7) (fg=0.4669%)
+Loaded: week3_d20_h06_w08.npy at position (20, 6, 8) (fg=3.2104%)
+Loaded: week3_d20_h06_w13.npy at position (20, 6, 13) (fg=0.8698%)
+Loaded: week3_d20_h07_w04.npy at position (20, 7, 4) (fg=0.1007%)
+Loaded: week3_d20_h07_w05.npy at position (20, 7, 5) (fg=1.2665%)
+Loaded: week3_d20_h07_w06.npy at position (20, 7, 6) (fg=1.1017%)
+Loaded: week3_d20_h07_w08.npy at position (20, 7, 8) (fg=0.0336%)
+Loaded: week3_d20_h07_w09.npy at position (20, 7, 9) (fg=0.0702%)
+Loaded: week3_d20_h08_w05.npy at position (20, 8, 5) (fg=0.1190%)
+Loaded: week3_d20_h08_w06.npy at position (20, 8, 6) (fg=0.7446%)
+Loaded: week3_d20_h08_w09.npy at position (20, 8, 9) (fg=0.6927%)
+Loaded: week3_d20_h08_w10.npy at position (20, 8, 10) (fg=0.5280%)
+Loaded: week3_d20_h09_w06.npy at position (20, 9, 6) (fg=0.0458%)
+Loaded: week3_d20_h09_w10.npy at position (20, 9, 10) (fg=0.3540%)
+Loaded: week3_d20_h09_w11.npy at position (20, 9, 11) (fg=0.4700%)
+Loaded: week3_d20_h10_w05.npy at position (20, 10, 5) (fg=1.8280%)
+Loaded: week3_d20_h10_w06.npy at position (20, 10, 6) (fg=0.0580%)
+Loaded: week3_d20_h11_w05.npy at position (20, 11, 5) (fg=0.8148%)
+Loaded: week3_d21_h03_w12.npy at position (21, 3, 12) (fg=0.4852%)
+Loaded: week3_d21_h03_w13.npy at position (21, 3, 13) (fg=0.0458%)
+Loaded: week3_d21_h04_w12.npy at position (21, 4, 12) (fg=0.0153%)
+Loaded: week3_d21_h04_w13.npy at position (21, 4, 13) (fg=0.9064%)
+Loaded: week3_d21_h05_w07.npy at position (21, 5, 7) (fg=0.0793%)
+Loaded: week3_d21_h05_w13.npy at position (21, 5, 13) (fg=0.8942%)
+Loaded: week3_d21_h06_w06.npy at position (21, 6, 6) (fg=0.4578%)
+Loaded: week3_d21_h06_w07.npy at position (21, 6, 7) (fg=0.8087%)
+Loaded: week3_d21_h06_w08.npy at position (21, 6, 8) (fg=3.5461%)
+Loaded: week3_d21_h06_w13.npy at position (21, 6, 13) (fg=0.3571%)
+Loaded: week3_d21_h07_w06.npy at position (21, 7, 6) (fg=1.7426%)
+Loaded: week3_d21_h07_w08.npy at position (21, 7, 8) (fg=1.0101%)
+Loaded: week3_d21_h07_w09.npy at position (21, 7, 9) (fg=0.1251%)
+Loaded: week3_d21_h08_w06.npy at position (21, 8, 6) (fg=1.5564%)
+Loaded: week3_d21_h08_w07.npy at position (21, 8, 7) (fg=0.4059%)
+Loaded: week3_d21_h09_w06.npy at position (21, 9, 6) (fg=2.0203%)
+Loaded: week3_d21_h10_w05.npy at position (21, 10, 5) (fg=0.0610%)
+Loaded: week3_d21_h10_w06.npy at position (21, 10, 6) (fg=0.1160%)
+Loaded: week3_d22_h01_w08.npy at position (22, 1, 8) (fg=0.2899%)
+Loaded: week3_d22_h02_w08.npy at position (22, 2, 8) (fg=0.9521%)
+Loaded: week3_d22_h02_w11.npy at position (22, 2, 11) (fg=0.7904%)
+Loaded: week3_d22_h02_w12.npy at position (22, 2, 12) (fg=0.5859%)
+Loaded: week3_d22_h03_w08.npy at position (22, 3, 8) (fg=0.9338%)
+Loaded: week3_d22_h03_w12.npy at position (22, 3, 12) (fg=0.6531%)
+Loaded: week3_d22_h04_w08.npy at position (22, 4, 8) (fg=1.0895%)
+Loaded: week3_d22_h05_w08.npy at position (22, 5, 8) (fg=0.9186%)
+Loaded: week3_d22_h06_w07.npy at position (22, 6, 7) (fg=8.7463%)
+Loaded: week3_d22_h06_w08.npy at position (22, 6, 8) (fg=2.4109%)
+Loaded: week3_d22_h07_w06.npy at position (22, 7, 6) (fg=0.6317%)
+Loaded: week3_d22_h07_w07.npy at position (22, 7, 7) (fg=10.3912%)
+Loaded: week3_d22_h08_w06.npy at position (22, 8, 6) (fg=0.0122%)
+Loaded: week3_d22_h08_w07.npy at position (22, 8, 7) (fg=0.6989%)
+Loaded: week3_d23_h00_w08.npy at position (23, 0, 8) (fg=0.0427%)
+Loaded: week3_d23_h00_w09.npy at position (23, 0, 9) (fg=0.6470%)
+Loaded: week3_d23_h01_w08.npy at position (23, 1, 8) (fg=0.2380%)
+Loaded: week3_d23_h01_w09.npy at position (23, 1, 9) (fg=0.1831%)
+Loaded: week3_d23_h01_w10.npy at position (23, 1, 10) (fg=0.9399%)
+Loaded: week3_d23_h01_w11.npy at position (23, 1, 11) (fg=0.5310%)
+Loaded: week3_d23_h02_w11.npy at position (23, 2, 11) (fg=0.1862%)
+Loaded: week3_d23_h06_w07.npy at position (23, 6, 7) (fg=0.8240%)
+Loaded: week3_d23_h07_w06.npy at position (23, 7, 6) (fg=0.6500%)
+Loaded: week3_d23_h07_w07.npy at position (23, 7, 7) (fg=1.2299%)
+Loaded: week3_d23_h08_w06.npy at position (23, 8, 6) (fg=4.4189%)
+Loaded: week3_d23_h08_w07.npy at position (23, 8, 7) (fg=0.0732%)
+Loaded: week3_d24_h08_w06.npy at position (24, 8, 6) (fg=4.0985%)
+
+Summary: Loaded 449 subvolumes
+  Skipped 4451 (fg_ratio < 0.01%)
+Loaded 449 validation subvolumes
+
+Loading full ground truth mask from ../../data/rapids-p/week2-joint-root-class.nii.gz...
+Full mask shape (original): (800, 466, 471)
+Full mask shape (cropped): (800, 448, 448)
+Full mask foreground: 0.0237%
+Training on device: cuda
+Input size: 32x32 -> Using small network architecture
+Network parameters: 74,274
+
+============================================================
+Starting training with global DICE evaluation
+  - Training subvolumes: 193
+  - Epochs: 20
+  - Global eval every: 1 epochs
+  - Full volume shape: (800, 448, 448)
+  - Continuity coef: 0.2 (decay: 0.5)
+  - Gradient coef: 0.0
+  - Manhattan coef: 0.0
+  - DICE coefficient: 1.0
+  - Data augmentation: DISABLED (prob=0.0)
+  - Epsilon decay: exponential (smoother)
+  - Early stopping patience: 5 epochs
+============================================================
+
+Epoch 1/20:   0%|          | 0/193 [00:00<?, ?it/s]Epoch 1/20:   1%|          | 1/193 [00:00<00:48,  3.98it/s]Epoch 1/20:   1%|          | 2/193 [00:00<00:48,  3.94it/s]Epoch 1/20:   2%|▏         | 3/193 [00:00<00:53,  3.56it/s]Epoch 1/20:   2%|▏         | 4/193 [00:01<00:58,  3.24it/s]Epoch 1/20:   3%|▎         | 5/193 [00:01<01:01,  3.05it/s]Epoch 1/20:   3%|▎         | 6/193 [00:02<01:11,  2.60it/s]Epoch 1/20:   4%|▎         | 7/193 [00:02<01:07,  2.76it/s]Epoch 1/20:   4%|▍         | 8/193 [00:02<01:01,  3.02it/s]Epoch 1/20:   5%|▍         | 9/193 [00:02<00:57,  3.23it/s]Epoch 1/20:   5%|▌         | 10/193 [00:03<00:54,  3.38it/s]Epoch 1/20:   6%|▌         | 11/193 [00:03<00:52,  3.48it/s]Epoch 1/20:   6%|▌         | 12/193 [00:03<00:50,  3.55it/s]Epoch 1/20:   7%|▋         | 13/193 [00:03<00:49,  3.60it/s]Epoch 1/20:   7%|▋         | 14/193 [00:04<00:49,  3.64it/s]Epoch 1/20:   8%|▊         | 15/193 [00:04<00:48,  3.67it/s]Epoch 1/20:   8%|▊         | 16/193 [00:04<00:48,  3.67it/s]Epoch 1/20:   9%|▉         | 17/193 [00:05<00:47,  3.69it/s]Epoch 1/20:   9%|▉         | 18/193 [00:05<00:47,  3.69it/s]Epoch 1/20:  10%|▉         | 19/193 [00:05<00:47,  3.69it/s]Epoch 1/20:  10%|█         | 20/193 [00:05<00:46,  3.68it/s]Epoch 1/20:  11%|█         | 21/193 [00:06<00:46,  3.69it/s]Epoch 1/20:  11%|█▏        | 22/193 [00:06<00:46,  3.69it/s]Epoch 1/20:  12%|█▏        | 23/193 [00:06<00:45,  3.71it/s]Epoch 1/20:  12%|█▏        | 24/193 [00:06<00:45,  3.70it/s]Epoch 1/20:  13%|█▎        | 25/193 [00:07<00:45,  3.68it/s]Epoch 1/20:  13%|█▎        | 26/193 [00:07<00:47,  3.51it/s]Epoch 1/20:  14%|█▍        | 27/193 [00:07<00:46,  3.55it/s]Epoch 1/20:  15%|█▍        | 28/193 [00:08<00:46,  3.58it/s]Epoch 1/20:  15%|█▌        | 29/193 [00:08<00:45,  3.60it/s]Epoch 1/20:  16%|█▌        | 30/193 [00:08<00:44,  3.64it/s]Epoch 1/20:  16%|█▌        | 31/193 [00:09<00:51,  3.12it/s]Epoch 1/20:  17%|█▋        | 32/193 [00:09<01:00,  2.67it/s]Epoch 1/20:  17%|█▋        | 33/193 [00:09<00:58,  2.72it/s]Epoch 1/20:  18%|█▊        | 34/193 [00:10<00:58,  2.71it/s]Epoch 1/20:  18%|█▊        | 35/193 [00:10<01:04,  2.43it/s]Epoch 1/20:  19%|█▊        | 36/193 [00:11<01:02,  2.51it/s]Epoch 1/20:  19%|█▉        | 37/193 [00:11<01:02,  2.51it/s]Epoch 1/20:  20%|█▉        | 38/193 [00:12<01:06,  2.34it/s]Epoch 1/20:  20%|██        | 39/193 [00:12<01:05,  2.36it/s]Epoch 1/20:  21%|██        | 40/193 [00:12<01:02,  2.43it/s]Epoch 1/20:  21%|██        | 41/193 [00:13<00:57,  2.67it/s]Epoch 1/20:  22%|██▏       | 42/193 [00:13<00:52,  2.89it/s]Epoch 1/20:  22%|██▏       | 43/193 [00:13<00:55,  2.70it/s]Epoch 1/20:  23%|██▎       | 44/193 [00:14<01:00,  2.46it/s]Epoch 1/20:  23%|██▎       | 45/193 [00:14<01:02,  2.37it/s]Epoch 1/20:  24%|██▍       | 46/193 [00:15<00:59,  2.47it/s]Epoch 1/20:  24%|██▍       | 47/193 [00:15<00:53,  2.74it/s]Epoch 1/20:  25%|██▍       | 48/193 [00:15<00:48,  2.96it/s]Epoch 1/20:  25%|██▌       | 49/193 [00:15<00:45,  3.14it/s]Epoch 1/20:  26%|██▌       | 50/193 [00:16<00:43,  3.28it/s]Epoch 1/20:  26%|██▋       | 51/193 [00:16<00:41,  3.39it/s]Epoch 1/20:  27%|██▋       | 52/193 [00:16<00:40,  3.47it/s]Epoch 1/20:  27%|██▋       | 53/193 [00:17<00:40,  3.50it/s]Epoch 1/20:  28%|██▊       | 54/193 [00:17<00:39,  3.55it/s]Epoch 1/20:  28%|██▊       | 55/193 [00:17<00:38,  3.57it/s]Epoch 1/20:  29%|██▉       | 56/193 [00:17<00:37,  3.61it/s]Epoch 1/20:  30%|██▉       | 57/193 [00:18<00:41,  3.27it/s]Epoch 1/20:  30%|███       | 58/193 [00:18<00:41,  3.27it/s]Epoch 1/20:  31%|███       | 59/193 [00:18<00:46,  2.86it/s]Epoch 1/20:  31%|███       | 60/193 [00:19<00:51,  2.60it/s]Epoch 1/20:  32%|███▏      | 61/193 [00:19<00:53,  2.47it/s]Epoch 1/20:  32%|███▏      | 62/193 [00:20<00:51,  2.57it/s]Epoch 1/20:  33%|███▎      | 63/193 [00:20<00:49,  2.61it/s]Epoch 1/20:  33%|███▎      | 64/193 [00:20<00:45,  2.85it/s]Epoch 1/20:  34%|███▎      | 65/193 [00:21<00:42,  3.03it/s]Epoch 1/20:  34%|███▍      | 66/193 [00:21<00:39,  3.18it/s]Epoch 1/20:  35%|███▍      | 67/193 [00:21<00:38,  3.31it/s]Epoch 1/20:  35%|███▌      | 68/193 [00:22<00:36,  3.41it/s]Epoch 1/20:  36%|███▌      | 69/193 [00:22<00:35,  3.48it/s]Epoch 1/20:  36%|███▋      | 70/193 [00:22<00:39,  3.09it/s]Epoch 1/20:  37%|███▋      | 71/193 [00:23<00:45,  2.69it/s]Epoch 1/20:  37%|███▋      | 72/193 [00:23<00:49,  2.43it/s]Epoch 1/20:  38%|███▊      | 73/193 [00:24<00:50,  2.39it/s]Epoch 1/20:  38%|███▊      | 74/193 [00:24<00:44,  2.67it/s]Epoch 1/20:  39%|███▉      | 75/193 [00:24<00:40,  2.91it/s]Epoch 1/20:  39%|███▉      | 76/193 [00:24<00:37,  3.10it/s]Epoch 1/20:  40%|███▉      | 77/193 [00:25<00:37,  3.13it/s]Epoch 1/20:  40%|████      | 78/193 [00:25<00:35,  3.28it/s]Epoch 1/20:  41%|████      | 79/193 [00:25<00:33,  3.39it/s]Epoch 1/20:  41%|████▏     | 80/193 [00:26<00:32,  3.47it/s]Epoch 1/20:  42%|████▏     | 81/193 [00:26<00:31,  3.53it/s]Epoch 1/20:  42%|████▏     | 82/193 [00:26<00:31,  3.54it/s]Epoch 1/20:  43%|████▎     | 83/193 [00:26<00:30,  3.58it/s]Epoch 1/20:  44%|████▎     | 84/193 [00:27<00:30,  3.61it/s]Epoch 1/20:  44%|████▍     | 85/193 [00:27<00:29,  3.64it/s]Epoch 1/20:  45%|████▍     | 86/193 [00:27<00:29,  3.63it/s]Epoch 1/20:  45%|████▌     | 87/193 [00:27<00:29,  3.65it/s]Epoch 1/20:  46%|████▌     | 88/193 [00:28<00:31,  3.35it/s]Epoch 1/20:  46%|████▌     | 89/193 [00:28<00:33,  3.15it/s]Epoch 1/20:  47%|████▋     | 90/193 [00:29<00:38,  2.66it/s]Epoch 1/20:  47%|████▋     | 91/193 [00:29<00:39,  2.55it/s]Epoch 1/20:  48%|████▊     | 92/193 [00:29<00:36,  2.76it/s]Epoch 1/20:  48%|████▊     | 93/193 [00:30<00:34,  2.87it/s]Epoch 1/20:  49%|████▊     | 94/193 [00:30<00:32,  3.07it/s]Epoch 1/20:  49%|████▉     | 95/193 [00:30<00:30,  3.23it/s]Epoch 1/20:  50%|████▉     | 96/193 [00:31<00:28,  3.35it/s]Epoch 1/20:  50%|█████     | 97/193 [00:31<00:27,  3.44it/s]Epoch 1/20:  51%|█████     | 98/193 [00:31<00:27,  3.51it/s]Epoch 1/20:  51%|█████▏    | 99/193 [00:31<00:26,  3.56it/s]Epoch 1/20:  52%|█████▏    | 100/193 [00:32<00:26,  3.45it/s]Epoch 1/20:  52%|█████▏    | 101/193 [00:32<00:26,  3.52it/s]Epoch 1/20:  53%|█████▎    | 102/193 [00:32<00:25,  3.57it/s]Epoch 1/20:  53%|█████▎    | 103/193 [00:33<00:25,  3.58it/s]Epoch 1/20:  54%|█████▍    | 104/193 [00:33<00:24,  3.61it/s]Epoch 1/20:  54%|█████▍    | 105/193 [00:33<00:24,  3.62it/s]Epoch 1/20:  55%|█████▍    | 106/193 [00:33<00:23,  3.64it/s]Epoch 1/20:  55%|█████▌    | 107/193 [00:34<00:23,  3.62it/s]Epoch 1/20:  56%|█████▌    | 108/193 [00:34<00:23,  3.59it/s]Epoch 1/20:  56%|█████▋    | 109/193 [00:34<00:23,  3.57it/s]Epoch 1/20:  57%|█████▋    | 110/193 [00:34<00:23,  3.51it/s]Epoch 1/20:  58%|█████▊    | 111/193 [00:35<00:23,  3.55it/s]Epoch 1/20:  58%|█████▊    | 112/193 [00:35<00:22,  3.56it/s]Epoch 1/20:  59%|█████▊    | 113/193 [00:35<00:22,  3.53it/s]Epoch 1/20:  59%|█████▉    | 114/193 [00:36<00:22,  3.56it/s]Epoch 1/20:  60%|█████▉    | 115/193 [00:36<00:21,  3.59it/s]Epoch 1/20:  60%|██████    | 116/193 [00:36<00:21,  3.60it/s]Epoch 1/20:  61%|██████    | 117/193 [00:36<00:21,  3.59it/s]Epoch 1/20:  61%|██████    | 118/193 [00:37<00:20,  3.62it/s]Epoch 1/20:  62%|██████▏   | 119/193 [00:37<00:21,  3.40it/s]Epoch 1/20:  62%|██████▏   | 120/193 [00:37<00:24,  3.02it/s]Epoch 1/20:  63%|██████▎   | 121/193 [00:38<00:27,  2.59it/s]Epoch 1/20:  63%|██████▎   | 122/193 [00:38<00:28,  2.54it/s]Epoch 1/20:  64%|██████▎   | 123/193 [00:39<00:25,  2.79it/s]Epoch 1/20:  64%|██████▍   | 124/193 [00:39<00:22,  3.01it/s]Epoch 1/20:  65%|██████▍   | 125/193 [00:39<00:21,  3.13it/s]Epoch 1/20:  65%|██████▌   | 126/193 [00:39<00:20,  3.28it/s]Epoch 1/20:  66%|██████▌   | 127/193 [00:40<00:19,  3.38it/s]Epoch 1/20:  66%|██████▋   | 128/193 [00:40<00:18,  3.47it/s]Epoch 1/20:  67%|██████▋   | 129/193 [00:40<00:18,  3.53it/s]Epoch 1/20:  67%|██████▋   | 130/193 [00:41<00:17,  3.57it/s]Epoch 1/20:  68%|██████▊   | 131/193 [00:41<00:17,  3.59it/s]Epoch 1/20:  68%|██████▊   | 132/193 [00:41<00:17,  3.59it/s]Epoch 1/20:  69%|██████▉   | 133/193 [00:41<00:16,  3.60it/s]Epoch 1/20:  69%|██████▉   | 134/193 [00:42<00:16,  3.61it/s]Epoch 1/20:  70%|██████▉   | 135/193 [00:42<00:15,  3.63it/s]Epoch 1/20:  70%|███████   | 136/193 [00:42<00:15,  3.64it/s]Epoch 1/20:  71%|███████   | 137/193 [00:42<00:15,  3.64it/s]Epoch 1/20:  72%|███████▏  | 138/193 [00:43<00:15,  3.61it/s]Epoch 1/20:  72%|███████▏  | 139/193 [00:43<00:15,  3.60it/s]Epoch 1/20:  73%|███████▎  | 140/193 [00:43<00:14,  3.55it/s]Epoch 1/20:  73%|███████▎  | 141/193 [00:44<00:15,  3.37it/s]Epoch 1/20:  74%|███████▎  | 142/193 [00:44<00:15,  3.33it/s]Epoch 1/20:  74%|███████▍  | 143/193 [00:44<00:14,  3.42it/s]Epoch 1/20:  75%|███████▍  | 144/193 [00:45<00:16,  2.97it/s]Epoch 1/20:  75%|███████▌  | 145/193 [00:45<00:16,  2.86it/s]Epoch 1/20:  76%|███████▌  | 146/193 [00:46<00:18,  2.56it/s]Epoch 1/20:  76%|███████▌  | 147/193 [00:46<00:18,  2.47it/s]Epoch 1/20:  77%|███████▋  | 148/193 [00:46<00:17,  2.58it/s]Epoch 1/20:  77%|███████▋  | 149/193 [00:47<00:15,  2.81it/s]Epoch 1/20:  78%|███████▊  | 150/193 [00:47<00:14,  2.90it/s]Epoch 1/20:  78%|███████▊  | 151/193 [00:47<00:13,  3.08it/s]Epoch 1/20:  79%|███████▉  | 152/193 [00:47<00:12,  3.23it/s]Epoch 1/20:  79%|███████▉  | 153/193 [00:48<00:12,  3.33it/s]Epoch 1/20:  80%|███████▉  | 154/193 [00:48<00:13,  2.95it/s]Epoch 1/20:  80%|████████  | 155/193 [00:49<00:13,  2.77it/s]Epoch 1/20:  81%|████████  | 156/193 [00:49<00:14,  2.50it/s]Epoch 1/20:  81%|████████▏ | 157/193 [00:50<00:14,  2.44it/s]Epoch 1/20:  82%|████████▏ | 158/193 [00:50<00:13,  2.58it/s]Epoch 1/20:  82%|████████▏ | 159/193 [00:50<00:12,  2.80it/s]Epoch 1/20:  83%|████████▎ | 160/193 [00:50<00:10,  3.00it/s]Epoch 1/20:  83%|████████▎ | 161/193 [00:51<00:10,  3.06it/s]Epoch 1/20:  84%|████████▍ | 162/193 [00:51<00:09,  3.21it/s]Epoch 1/20:  84%|████████▍ | 163/193 [00:51<00:09,  3.33it/s]Epoch 1/20:  85%|████████▍ | 164/193 [00:52<00:08,  3.42it/s]Epoch 1/20:  85%|████████▌ | 165/193 [00:52<00:08,  3.48it/s]Epoch 1/20:  86%|████████▌ | 166/193 [00:52<00:07,  3.54it/s]Epoch 1/20:  87%|████████▋ | 167/193 [00:52<00:07,  3.58it/s]Epoch 1/20:  87%|████████▋ | 168/193 [00:53<00:06,  3.58it/s]Epoch 1/20:  88%|████████▊ | 169/193 [00:53<00:06,  3.61it/s]Epoch 1/20:  88%|████████▊ | 170/193 [00:53<00:06,  3.61it/s]Epoch 1/20:  89%|████████▊ | 171/193 [00:54<00:06,  3.29it/s]Epoch 1/20:  89%|████████▉ | 172/193 [00:54<00:06,  3.08it/s]Epoch 1/20:  90%|████████▉ | 173/193 [00:54<00:06,  2.97it/s]Epoch 1/20:  90%|█████████ | 174/193 [00:55<00:06,  2.89it/s]Epoch 1/20:  91%|█████████ | 175/193 [00:55<00:06,  2.63it/s]Epoch 1/20:  91%|█████████ | 176/193 [00:55<00:05,  2.87it/s]Epoch 1/20:  92%|█████████▏| 177/193 [00:56<00:05,  3.05it/s]Epoch 1/20:  92%|█████████▏| 178/193 [00:56<00:04,  3.21it/s]Epoch 1/20:  93%|█████████▎| 179/193 [00:56<00:04,  3.31it/s]Epoch 1/20:  93%|█████████▎| 180/193 [00:57<00:03,  3.35it/s]Epoch 1/20:  94%|█████████▍| 181/193 [00:57<00:03,  3.41it/s]Epoch 1/20:  94%|█████████▍| 182/193 [00:57<00:03,  3.47it/s]Epoch 1/20:  95%|█████████▍| 183/193 [00:57<00:02,  3.52it/s]Epoch 1/20:  95%|█████████▌| 184/193 [00:58<00:02,  3.49it/s]Epoch 1/20:  96%|█████████▌| 185/193 [00:58<00:02,  3.53it/s]Epoch 1/20:  96%|█████████▋| 186/193 [00:58<00:01,  3.53it/s]Epoch 1/20:  97%|█████████▋| 187/193 [00:59<00:01,  3.55it/s]Epoch 1/20:  97%|█████████▋| 188/193 [00:59<00:01,  3.56it/s]Epoch 1/20:  98%|█████████▊| 189/193 [00:59<00:01,  3.57it/s]Epoch 1/20:  98%|█████████▊| 190/193 [00:59<00:00,  3.56it/s]Epoch 1/20:  99%|█████████▉| 191/193 [01:00<00:00,  3.56it/s]Epoch 1/20:  99%|█████████▉| 192/193 [01:00<00:00,  3.48it/s]Epoch 1/20: 100%|██████████| 193/193 [01:00<00:00,  3.17it/s]Epoch 1/20: 100%|██████████| 193/193 [01:00<00:00,  3.17it/s]
+
+[Epoch 1] Computing global DICE on full volume...
+  GLOBAL DICE: 0.4319
+  GLOBAL IoU:  0.2754
+  Precision:   0.8708
+  Recall:      0.2872
+  TP: 10,935 | FP: 1,623 | FN: 27,141
+  [VAL] Loss: 0.026413
+  [VAL] DICE: 0.3370 | IoU: 0.2027
+  [VAL] Precision: 0.5562 | Recall: 0.2418
+  [NEW BEST] Saved best model (val DICE=0.3370)
+Epoch 1/20 | Time: 127.2s | Loss: 0.0251 | ε: 0.885
+  Returns - Total: -21756.44 | Base: -15456.12 | Cont: -6300.32 | Grad: 0.00| DICE: 0.01 | Manhattan: 0.00
+Epoch 2/20:   0%|          | 0/193 [00:00<?, ?it/s]Epoch 2/20:   1%|          | 1/193 [00:00<00:53,  3.60it/s]Epoch 2/20:   1%|          | 2/193 [00:00<00:54,  3.53it/s]Epoch 2/20:   2%|▏         | 3/193 [00:00<00:53,  3.57it/s]Epoch 2/20:   2%|▏         | 4/193 [00:01<00:52,  3.59it/s]Epoch 2/20:   3%|▎         | 5/193 [00:01<00:52,  3.57it/s]Epoch 2/20:   3%|▎         | 6/193 [00:01<00:51,  3.60it/s]Epoch 2/20:   4%|▎         | 7/193 [00:01<00:51,  3.63it/s]Epoch 2/20:   4%|▍         | 8/193 [00:02<00:50,  3.65it/s]Epoch 2/20:   5%|▍         | 9/193 [00:02<00:50,  3.65it/s]Epoch 2/20:   5%|▌         | 10/193 [00:02<00:49,  3.67it/s]Epoch 2/20:   6%|▌         | 11/193 [00:03<00:49,  3.67it/s]Epoch 2/20:   6%|▌         | 12/193 [00:03<00:49,  3.67it/s]Epoch 2/20:   7%|▋         | 13/193 [00:03<00:49,  3.67it/s]Epoch 2/20:   7%|▋         | 14/193 [00:03<00:48,  3.67it/s]Epoch 2/20:   8%|▊         | 15/193 [00:04<00:48,  3.67it/s]Epoch 2/20:   8%|▊         | 16/193 [00:04<00:48,  3.67it/s]Epoch 2/20:   9%|▉         | 17/193 [00:04<00:47,  3.67it/s]Epoch 2/20:   9%|▉         | 18/193 [00:04<00:47,  3.67it/s]Epoch 2/20:  10%|▉         | 19/193 [00:05<00:47,  3.66it/s]Epoch 2/20:  10%|█         | 20/193 [00:05<00:47,  3.66it/s]Epoch 2/20:  11%|█         | 21/193 [00:05<00:46,  3.66it/s]Epoch 2/20:  11%|█▏        | 22/193 [00:06<00:46,  3.66it/s]Epoch 2/20:  12%|█▏        | 23/193 [00:06<00:46,  3.66it/s]Epoch 2/20:  12%|█▏        | 24/193 [00:06<00:48,  3.50it/s]Epoch 2/20:  13%|█▎        | 25/193 [00:06<00:48,  3.49it/s]Epoch 2/20:  13%|█▎        | 26/193 [00:07<00:47,  3.54it/s]Epoch 2/20:  14%|█▍        | 27/193 [00:07<00:46,  3.58it/s]Epoch 2/20:  15%|█▍        | 28/193 [00:07<00:45,  3.60it/s]Epoch 2/20:  15%|█▌        | 29/193 [00:08<00:45,  3.61it/s]Epoch 2/20:  16%|█▌        | 30/193 [00:08<00:47,  3.44it/s]Epoch 2/20:  16%|█▌        | 31/193 [00:08<00:57,  2.83it/s]Epoch 2/20:  17%|█▋        | 32/193 [00:09<00:58,  2.73it/s]Epoch 2/20:  17%|█▋        | 33/193 [00:09<01:00,  2.65it/s]Epoch 2/20:  18%|█▊        | 34/193 [00:10<01:00,  2.62it/s]Epoch 2/20:  18%|█▊        | 35/193 [00:10<00:55,  2.83it/s]Epoch 2/20:  19%|█▊        | 36/193 [00:10<00:51,  3.02it/s]Epoch 2/20:  19%|█▉        | 37/193 [00:10<00:49,  3.18it/s]Epoch 2/20:  20%|█▉        | 38/193 [00:11<00:47,  3.27it/s]Epoch 2/20:  20%|██        | 39/193 [00:11<00:49,  3.11it/s]Epoch 2/20:  21%|██        | 40/193 [00:11<00:47,  3.23it/s]Epoch 2/20:  21%|██        | 41/193 [00:12<00:45,  3.34it/s]Epoch 2/20:  22%|██▏       | 42/193 [00:12<00:44,  3.41it/s]Epoch 2/20:  22%|██▏       | 43/193 [00:12<00:43,  3.47it/s]Epoch 2/20:  23%|██▎       | 44/193 [00:12<00:42,  3.51it/s]Epoch 2/20:  23%|██▎       | 45/193 [00:13<00:41,  3.54it/s]Epoch 2/20:  24%|██▍       | 46/193 [00:13<00:41,  3.53it/s]Epoch 2/20:  24%|██▍       | 47/193 [00:13<00:41,  3.55it/s]Epoch 2/20:  25%|██▍       | 48/193 [00:14<00:40,  3.57it/s]Epoch 2/20:  25%|██▌       | 49/193 [00:14<00:40,  3.58it/s]Epoch 2/20:  26%|██▌       | 50/193 [00:14<00:40,  3.57it/s]Epoch 2/20:  26%|██▋       | 51/193 [00:15<00:46,  3.06it/s]Epoch 2/20:  27%|██▋       | 52/193 [00:15<00:50,  2.77it/s]Epoch 2/20:  27%|██▋       | 53/193 [00:15<00:55,  2.52it/s]Epoch 2/20:  28%|██▊       | 54/193 [00:16<00:56,  2.46it/s]Epoch 2/20:  28%|██▊       | 55/193 [00:16<00:50,  2.72it/s]Epoch 2/20:  29%|██▉       | 56/193 [00:16<00:46,  2.95it/s]Epoch 2/20:  30%|██▉       | 57/193 [00:17<00:43,  3.13it/s]Epoch 2/20:  30%|███       | 58/193 [00:17<00:41,  3.27it/s]Epoch 2/20:  31%|███       | 59/193 [00:17<00:39,  3.37it/s]Epoch 2/20:  31%|███       | 60/193 [00:17<00:38,  3.46it/s]Epoch 2/20:  32%|███▏      | 61/193 [00:18<00:37,  3.52it/s]Epoch 2/20:  32%|███▏      | 62/193 [00:18<00:36,  3.56it/s]Epoch 2/20:  33%|███▎      | 63/193 [00:18<00:36,  3.59it/s]Epoch 2/20:  33%|███▎      | 64/193 [00:19<00:36,  3.53it/s]Epoch 2/20:  34%|███▎      | 65/193 [00:19<00:38,  3.36it/s]Epoch 2/20:  34%|███▍      | 66/193 [00:19<00:36,  3.45it/s]Epoch 2/20:  35%|███▍      | 67/193 [00:19<00:35,  3.50it/s]Epoch 2/20:  35%|███▌      | 68/193 [00:20<00:35,  3.55it/s]Epoch 2/20:  36%|███▌      | 69/193 [00:20<00:34,  3.59it/s]Epoch 2/20:  36%|███▋      | 70/193 [00:20<00:34,  3.61it/s]Epoch 2/20:  37%|███▋      | 71/193 [00:21<00:33,  3.63it/s]Epoch 2/20:  37%|███▋      | 72/193 [00:21<00:33,  3.57it/s]Epoch 2/20:  38%|███▊      | 73/193 [00:21<00:40,  2.96it/s]Epoch 2/20:  38%|███▊      | 74/193 [00:22<00:46,  2.57it/s]Epoch 2/20:  39%|███▉      | 75/193 [00:22<00:48,  2.41it/s]Epoch 2/20:  39%|███▉      | 76/193 [00:23<00:43,  2.67it/s]Epoch 2/20:  40%|███▉      | 77/193 [00:23<00:42,  2.73it/s]Epoch 2/20:  40%|████      | 78/193 [00:23<00:40,  2.83it/s]Epoch 2/20:  41%|████      | 79/193 [00:24<00:37,  3.04it/s]Epoch 2/20:  41%|████▏     | 80/193 [00:24<00:35,  3.20it/s]Epoch 2/20:  42%|████▏     | 81/193 [00:24<00:33,  3.32it/s]Epoch 2/20:  42%|████▏     | 82/193 [00:24<00:32,  3.40it/s]Epoch 2/20:  43%|████▎     | 83/193 [00:25<00:31,  3.46it/s]Epoch 2/20:  44%|████▎     | 84/193 [00:25<00:31,  3.51it/s]Epoch 2/20:  44%|████▍     | 85/193 [00:25<00:30,  3.50it/s]Epoch 2/20:  45%|████▍     | 86/193 [00:25<00:30,  3.50it/s]Epoch 2/20:  45%|████▌     | 87/193 [00:26<00:32,  3.27it/s]Epoch 2/20:  46%|████▌     | 88/193 [00:26<00:35,  2.97it/s]Epoch 2/20:  46%|████▌     | 89/193 [00:27<00:38,  2.71it/s]Epoch 2/20:  47%|████▋     | 90/193 [00:27<00:41,  2.50it/s]Epoch 2/20:  47%|████▋     | 91/193 [00:27<00:37,  2.74it/s]Epoch 2/20:  48%|████▊     | 92/193 [00:28<00:34,  2.95it/s]Epoch 2/20:  48%|████▊     | 93/193 [00:28<00:31,  3.13it/s]Epoch 2/20:  49%|████▊     | 94/193 [00:28<00:30,  3.26it/s]Epoch 2/20:  49%|████▉     | 95/193 [00:29<00:29,  3.37it/s]Epoch 2/20:  50%|████▉     | 96/193 [00:29<00:28,  3.45it/s]Epoch 2/20:  50%|█████     | 97/193 [00:29<00:27,  3.51it/s]Epoch 2/20:  51%|█████     | 98/193 [00:29<00:26,  3.55it/s]Epoch 2/20:  51%|█████▏    | 99/193 [00:30<00:26,  3.58it/s]Epoch 2/20:  52%|█████▏    | 100/193 [00:30<00:25,  3.60it/s]Epoch 2/20:  52%|█████▏    | 101/193 [00:30<00:25,  3.62it/s]Epoch 2/20:  53%|█████▎    | 102/193 [00:30<00:25,  3.59it/s]Epoch 2/20:  53%|█████▎    | 103/193 [00:31<00:24,  3.61it/s]Epoch 2/20:  54%|█████▍    | 104/193 [00:31<00:24,  3.62it/s]Epoch 2/20:  54%|█████▍    | 105/193 [00:31<00:24,  3.63it/s]Epoch 2/20:  55%|█████▍    | 106/193 [00:32<00:25,  3.46it/s]Epoch 2/20:  55%|█████▌    | 107/193 [00:32<00:24,  3.51it/s]Epoch 2/20:  56%|█████▌    | 108/193 [00:32<00:23,  3.56it/s]Epoch 2/20:  56%|█████▋    | 109/193 [00:32<00:23,  3.59it/s]Epoch 2/20:  57%|█████▋    | 110/193 [00:33<00:22,  3.62it/s]Epoch 2/20:  58%|█████▊    | 111/193 [00:33<00:22,  3.63it/s]Epoch 2/20:  58%|█████▊    | 112/193 [00:33<00:22,  3.65it/s]Epoch 2/20:  59%|█████▊    | 113/193 [00:34<00:21,  3.66it/s]Epoch 2/20:  59%|█████▉    | 114/193 [00:34<00:21,  3.64it/s]Epoch 2/20:  60%|█████▉    | 115/193 [00:34<00:21,  3.64it/s]Epoch 2/20:  60%|██████    | 116/193 [00:34<00:21,  3.63it/s]Epoch 2/20:  61%|██████    | 117/193 [00:35<00:21,  3.61it/s]Epoch 2/20:  61%|██████    | 118/193 [00:35<00:20,  3.57it/s]Epoch 2/20:  62%|██████▏   | 119/193 [00:35<00:20,  3.59it/s]Epoch 2/20:  62%|██████▏   | 120/193 [00:35<00:20,  3.58it/s]Epoch 2/20:  63%|██████▎   | 121/193 [00:36<00:20,  3.59it/s]Epoch 2/20:  63%|██████▎   | 122/193 [00:36<00:19,  3.59it/s]Epoch 2/20:  64%|██████▎   | 123/193 [00:36<00:19,  3.60it/s]Epoch 2/20:  64%|██████▍   | 124/193 [00:37<00:19,  3.60it/s]Epoch 2/20:  65%|██████▍   | 125/193 [00:37<00:18,  3.61it/s]Epoch 2/20:  65%|██████▌   | 126/193 [00:37<00:18,  3.58it/s]Epoch 2/20:  66%|██████▌   | 127/193 [00:38<00:21,  3.13it/s]Epoch 2/20:  66%|██████▋   | 128/193 [00:38<00:21,  3.04it/s]Epoch 2/20:  67%|██████▋   | 129/193 [00:38<00:23,  2.70it/s]Epoch 2/20:  67%|██████▋   | 130/193 [00:39<00:24,  2.61it/s]Epoch 2/20:  68%|██████▊   | 131/193 [00:39<00:21,  2.85it/s]Epoch 2/20:  68%|██████▊   | 132/193 [00:39<00:20,  3.04it/s]Epoch 2/20:  69%|██████▉   | 133/193 [00:40<00:18,  3.19it/s]Epoch 2/20:  69%|██████▉   | 134/193 [00:40<00:17,  3.31it/s]Epoch 2/20:  70%|██████▉   | 135/193 [00:40<00:17,  3.40it/s]Epoch 2/20:  70%|███████   | 136/193 [00:40<00:16,  3.44it/s]Epoch 2/20:  71%|███████   | 137/193 [00:41<00:16,  3.45it/s]Epoch 2/20:  72%|███████▏  | 138/193 [00:41<00:15,  3.50it/s]Epoch 2/20:  72%|███████▏  | 139/193 [00:41<00:15,  3.54it/s]Epoch 2/20:  73%|███████▎  | 140/193 [00:42<00:14,  3.57it/s]Epoch 2/20:  73%|███████▎  | 141/193 [00:42<00:14,  3.58it/s]Epoch 2/20:  74%|███████▎  | 142/193 [00:42<00:14,  3.58it/s]Epoch 2/20:  74%|███████▍  | 143/193 [00:42<00:13,  3.59it/s]Epoch 2/20:  75%|███████▍  | 144/193 [00:43<00:13,  3.59it/s]Epoch 2/20:  75%|███████▌  | 145/193 [00:43<00:13,  3.59it/s]Epoch 2/20:  76%|███████▌  | 146/193 [00:43<00:13,  3.60it/s]Epoch 2/20:  76%|███████▌  | 147/193 [00:44<00:12,  3.60it/s]Epoch 2/20:  77%|███████▋  | 148/193 [00:44<00:12,  3.60it/s]Epoch 2/20:  77%|███████▋  | 149/193 [00:44<00:12,  3.60it/s]Epoch 2/20:  78%|███████▊  | 150/193 [00:44<00:11,  3.59it/s]Epoch 2/20:  78%|███████▊  | 151/193 [00:45<00:11,  3.58it/s]Epoch 2/20:  79%|███████▉  | 152/193 [00:45<00:11,  3.59it/s]Epoch 2/20:  79%|███████▉  | 153/193 [00:45<00:11,  3.59it/s]Epoch 2/20:  80%|███████▉  | 154/193 [00:45<00:10,  3.59it/s]Epoch 2/20:  80%|████████  | 155/193 [00:46<00:10,  3.60it/s]Epoch 2/20:  81%|████████  | 156/193 [00:46<00:10,  3.61it/s]Epoch 2/20:  81%|████████▏ | 157/193 [00:46<00:10,  3.55it/s]Epoch 2/20:  82%|████████▏ | 158/193 [00:47<00:09,  3.57it/s]Epoch 2/20:  82%|████████▏ | 159/193 [00:47<00:09,  3.58it/s]Epoch 2/20:  83%|████████▎ | 160/193 [00:47<00:09,  3.59it/s]Epoch 2/20:  83%|████████▎ | 161/193 [00:47<00:08,  3.59it/s]Epoch 2/20:  84%|████████▍ | 162/193 [00:48<00:08,  3.57it/s]Epoch 2/20:  84%|████████▍ | 163/193 [00:48<00:08,  3.58it/s]Epoch 2/20:  85%|████████▍ | 164/193 [00:48<00:08,  3.58it/s]Epoch 2/20:  85%|████████▌ | 165/193 [00:49<00:07,  3.61it/s]Epoch 2/20:  86%|████████▌ | 166/193 [00:49<00:07,  3.62it/s]Epoch 2/20:  87%|████████▋ | 167/193 [00:49<00:07,  3.56it/s]Epoch 2/20:  87%|████████▋ | 168/193 [00:50<00:08,  2.92it/s]Epoch 2/20:  88%|████████▊ | 169/193 [00:50<00:08,  2.69it/s]Epoch 2/20:  88%|████████▊ | 170/193 [00:50<00:08,  2.72it/s]Epoch 2/20:  89%|████████▊ | 171/193 [00:51<00:08,  2.66it/s]Epoch 2/20:  89%|████████▉ | 172/193 [00:51<00:07,  2.69it/s]Epoch 2/20:  90%|████████▉ | 173/193 [00:51<00:06,  2.90it/s]Epoch 2/20:  90%|█████████ | 174/193 [00:52<00:06,  3.08it/s]Epoch 2/20:  91%|█████████ | 175/193 [00:52<00:05,  3.11it/s]Epoch 2/20:  91%|█████████ | 176/193 [00:52<00:05,  3.24it/s]Epoch 2/20:  92%|█████████▏| 177/193 [00:53<00:04,  3.35it/s]Epoch 2/20:  92%|█████████▏| 178/193 [00:53<00:04,  3.43it/s]Epoch 2/20:  93%|█████████▎| 179/193 [00:53<00:04,  3.49it/s]Epoch 2/20:  93%|█████████▎| 180/193 [00:53<00:03,  3.47it/s]Epoch 2/20:  94%|█████████▍| 181/193 [00:54<00:03,  3.51it/s]Epoch 2/20:  94%|█████████▍| 182/193 [00:54<00:03,  3.55it/s]Epoch 2/20:  95%|█████████▍| 183/193 [00:54<00:02,  3.58it/s]Epoch 2/20:  95%|█████████▌| 184/193 [00:55<00:02,  3.59it/s]Epoch 2/20:  96%|█████████▌| 185/193 [00:55<00:02,  3.61it/s]Epoch 2/20:  96%|█████████▋| 186/193 [00:55<00:01,  3.63it/s]Epoch 2/20:  97%|█████████▋| 187/193 [00:55<00:01,  3.64it/s]Epoch 2/20:  97%|█████████▋| 188/193 [00:56<00:01,  3.15it/s]Epoch 2/20:  98%|█████████▊| 189/193 [00:56<00:01,  2.95it/s]Epoch 2/20:  98%|█████████▊| 190/193 [00:57<00:01,  2.82it/s]Epoch 2/20:  99%|█████████▉| 191/193 [00:57<00:00,  2.50it/s]Epoch 2/20:  99%|█████████▉| 192/193 [00:57<00:00,  2.64it/s]Epoch 2/20: 100%|██████████| 193/193 [00:58<00:00,  2.74it/s]Epoch 2/20: 100%|██████████| 193/193 [00:58<00:00,  3.32it/s]
+
+[Epoch 2] Computing global DICE on full volume...
+  GLOBAL DICE: 0.6290
+  GLOBAL IoU:  0.4588
+  Precision:   0.8726
+  Recall:      0.4918
+  TP: 18,725 | FP: 2,735 | FN: 19,351
+  [VAL] Loss: 0.038016
+  [VAL] DICE: 0.5259 | IoU: 0.3567
+  [VAL] Precision: 0.7781 | Recall: 0.3971
+  [EARLY STOPPING] No improvement for 1/5 epochs
+  [NEW BEST] Saved best model (val DICE=0.5259)
+Epoch 2/20 | Time: 126.1s | Loss: 0.0381 | ε: 0.783
+  Returns - Total: -19827.25 | Base: -13713.08 | Cont: -6114.19 | Grad: 0.00| DICE: 0.01 | Manhattan: 0.00
+Epoch 3/20:   0%|          | 0/193 [00:00<?, ?it/s]Epoch 3/20:   1%|          | 1/193 [00:00<01:26,  2.22it/s]Epoch 3/20:   1%|          | 2/193 [00:00<01:07,  2.84it/s]Epoch 3/20:   2%|▏         | 3/193 [00:01<01:00,  3.15it/s]Epoch 3/20:   2%|▏         | 4/193 [00:01<00:56,  3.33it/s]Epoch 3/20:   3%|▎         | 5/193 [00:01<00:54,  3.43it/s]Epoch 3/20:   3%|▎         | 6/193 [00:01<00:53,  3.49it/s]Epoch 3/20:   4%|▎         | 7/193 [00:02<00:52,  3.53it/s]Epoch 3/20:   4%|▍         | 8/193 [00:02<00:51,  3.57it/s]Epoch 3/20:   5%|▍         | 9/193 [00:02<00:51,  3.58it/s]Epoch 3/20:   5%|▌         | 10/193 [00:02<00:51,  3.58it/s]Epoch 3/20:   6%|▌         | 11/193 [00:03<00:50,  3.60it/s]Epoch 3/20:   6%|▌         | 12/193 [00:03<00:50,  3.60it/s]Epoch 3/20:   7%|▋         | 13/193 [00:03<00:49,  3.61it/s]Epoch 3/20:   7%|▋         | 14/193 [00:04<00:49,  3.61it/s]Epoch 3/20:   8%|▊         | 15/193 [00:04<00:49,  3.62it/s]Epoch 3/20:   8%|▊         | 16/193 [00:04<00:49,  3.60it/s]Epoch 3/20:   9%|▉         | 17/193 [00:04<00:48,  3.61it/s]Epoch 3/20:   9%|▉         | 18/193 [00:05<00:48,  3.62it/s]Epoch 3/20:  10%|▉         | 19/193 [00:05<00:47,  3.63it/s]Epoch 3/20:  10%|█         | 20/193 [00:05<00:47,  3.61it/s]Epoch 3/20:  11%|█         | 21/193 [00:05<00:47,  3.61it/s]Epoch 3/20:  11%|█▏        | 22/193 [00:06<00:47,  3.61it/s]Epoch 3/20:  12%|█▏        | 23/193 [00:06<00:47,  3.58it/s]Epoch 3/20:  12%|█▏        | 24/193 [00:06<00:47,  3.55it/s]Epoch 3/20:  13%|█▎        | 25/193 [00:07<00:47,  3.53it/s]Epoch 3/20:  13%|█▎        | 26/193 [00:07<00:47,  3.53it/s]Epoch 3/20:  14%|█▍        | 27/193 [00:07<00:46,  3.54it/s]Epoch 3/20:  15%|█▍        | 28/193 [00:07<00:46,  3.54it/s]Epoch 3/20:  15%|█▌        | 29/193 [00:08<00:46,  3.53it/s]Epoch 3/20:  16%|█▌        | 30/193 [00:08<00:46,  3.51it/s]Epoch 3/20:  16%|█▌        | 31/193 [00:08<00:46,  3.49it/s]Epoch 3/20:  17%|█▋        | 32/193 [00:09<01:12,  2.21it/s]Epoch 3/20:  17%|█▋        | 33/193 [00:09<01:04,  2.47it/s]Epoch 3/20:  18%|█▊        | 34/193 [00:10<01:09,  2.28it/s]Epoch 3/20:  18%|█▊        | 35/193 [00:11<01:14,  2.12it/s]Epoch 3/20:  19%|█▊        | 36/193 [00:11<01:16,  2.06it/s]Epoch 3/20:  19%|█▉        | 37/193 [00:11<01:12,  2.16it/s]Epoch 3/20:  20%|█▉        | 38/193 [00:12<01:03,  2.44it/s]Epoch 3/20:  20%|██        | 39/193 [00:12<01:01,  2.51it/s]Epoch 3/20:  21%|██        | 40/193 [00:12<00:58,  2.64it/s]Epoch 3/20:  21%|██        | 41/193 [00:13<00:53,  2.86it/s]Epoch 3/20:  22%|██▏       | 42/193 [00:13<00:49,  3.05it/s]Epoch 3/20:  22%|██▏       | 43/193 [00:13<00:46,  3.20it/s]Epoch 3/20:  23%|██▎       | 44/193 [00:14<00:45,  3.30it/s]Epoch 3/20:  23%|██▎       | 45/193 [00:14<00:43,  3.40it/s]Epoch 3/20:  24%|██▍       | 46/193 [00:14<00:43,  3.35it/s]Epoch 3/20:  24%|██▍       | 47/193 [00:14<00:45,  3.22it/s]Epoch 3/20:  25%|██▍       | 48/193 [00:15<00:44,  3.22it/s]Epoch 3/20:  25%|██▌       | 49/193 [00:15<00:49,  2.93it/s]Epoch 3/20:  26%|██▌       | 50/193 [00:16<00:54,  2.61it/s]Epoch 3/20:  26%|██▋       | 51/193 [00:16<01:01,  2.32it/s]Epoch 3/20:  27%|██▋       | 52/193 [00:17<01:05,  2.15it/s]Epoch 3/20:  27%|██▋       | 53/193 [00:17<01:08,  2.04it/s]Epoch 3/20:  28%|██▊       | 54/193 [00:18<01:10,  1.97it/s]Epoch 3/20:  28%|██▊       | 55/193 [00:18<01:05,  2.09it/s]Epoch 3/20:  29%|██▉       | 56/193 [00:19<00:57,  2.39it/s]Epoch 3/20:  30%|██▉       | 57/193 [00:19<00:51,  2.65it/s]Epoch 3/20:  30%|███       | 58/193 [00:19<00:47,  2.86it/s]Epoch 3/20:  31%|███       | 59/193 [00:19<00:43,  3.05it/s]Epoch 3/20:  31%|███       | 60/193 [00:20<00:41,  3.21it/s]Epoch 3/20:  32%|███▏      | 61/193 [00:20<00:39,  3.33it/s]Epoch 3/20:  32%|███▏      | 62/193 [00:20<00:38,  3.42it/s]Epoch 3/20:  33%|███▎      | 63/193 [00:21<00:37,  3.48it/s]Epoch 3/20:  33%|███▎      | 64/193 [00:21<00:36,  3.53it/s]Epoch 3/20:  34%|███▎      | 65/193 [00:21<00:39,  3.27it/s]Epoch 3/20:  34%|███▍      | 66/193 [00:21<00:37,  3.37it/s]Epoch 3/20:  35%|███▍      | 67/193 [00:22<00:37,  3.40it/s]Epoch 3/20:  35%|███▌      | 68/193 [00:22<00:38,  3.22it/s]Epoch 3/20:  36%|███▌      | 69/193 [00:22<00:39,  3.14it/s]Epoch 3/20:  36%|███▋      | 70/193 [00:23<00:41,  2.97it/s]Epoch 3/20:  37%|███▋      | 71/193 [00:23<00:48,  2.51it/s]Epoch 3/20:  37%|███▋      | 72/193 [00:24<00:50,  2.39it/s]Epoch 3/20:  38%|███▊      | 73/193 [00:24<00:50,  2.37it/s]Epoch 3/20:  38%|███▊      | 74/193 [00:25<00:49,  2.39it/s]Epoch 3/20:  39%|███▉      | 75/193 [00:25<00:48,  2.42it/s]Epoch 3/20:  39%|███▉      | 76/193 [00:26<00:51,  2.26it/s]Epoch 3/20:  40%|███▉      | 77/193 [00:26<00:49,  2.34it/s]Epoch 3/20:  40%|████      | 78/193 [00:26<00:51,  2.24it/s]Epoch 3/20:  41%|████      | 79/193 [00:27<00:45,  2.53it/s]Epoch 3/20:  41%|████▏     | 80/193 [00:27<00:40,  2.78it/s]Epoch 3/20:  42%|████▏     | 81/193 [00:27<00:37,  3.00it/s]Epoch 3/20:  42%|████▏     | 82/193 [00:28<00:35,  3.17it/s]Epoch 3/20:  43%|████▎     | 83/193 [00:28<00:33,  3.30it/s]Epoch 3/20:  44%|████▎     | 84/193 [00:28<00:32,  3.38it/s]Epoch 3/20:  44%|████▍     | 85/193 [00:28<00:31,  3.46it/s]Epoch 3/20:  45%|████▍     | 86/193 [00:29<00:30,  3.52it/s]Epoch 3/20:  45%|████▌     | 87/193 [00:29<00:29,  3.56it/s]Epoch 3/20:  46%|████▌     | 88/193 [00:29<00:33,  3.16it/s]Epoch 3/20:  46%|████▌     | 89/193 [00:30<00:34,  3.02it/s]Epoch 3/20:  47%|████▋     | 90/193 [00:30<00:35,  2.94it/s]Epoch 3/20:  47%|████▋     | 91/193 [00:30<00:36,  2.77it/s]Epoch 3/20:  48%|████▊     | 92/193 [00:31<00:37,  2.66it/s]Epoch 3/20:  48%|████▊     | 93/193 [00:31<00:38,  2.59it/s]Epoch 3/20:  49%|████▊     | 94/193 [00:32<00:39,  2.50it/s]Epoch 3/20:  49%|████▉     | 95/193 [00:32<00:43,  2.25it/s]Epoch 3/20:  50%|████▉     | 96/193 [00:33<00:45,  2.12it/s]Epoch 3/20:  50%|█████     | 97/193 [00:33<00:43,  2.18it/s]Epoch 3/20:  51%|█████     | 98/193 [00:34<00:41,  2.30it/s]Epoch 3/20:  51%|█████▏    | 99/193 [00:34<00:40,  2.30it/s]Epoch 3/20:  52%|█████▏    | 100/193 [00:34<00:35,  2.59it/s]Epoch 3/20:  52%|█████▏    | 101/193 [00:35<00:32,  2.84it/s]Epoch 3/20:  53%|█████▎    | 102/193 [00:35<00:30,  3.03it/s]Epoch 3/20:  53%|█████▎    | 103/193 [00:35<00:28,  3.14it/s]Epoch 3/20:  54%|█████▍    | 104/193 [00:35<00:27,  3.24it/s]Epoch 3/20:  54%|█████▍    | 105/193 [00:36<00:26,  3.29it/s]Epoch 3/20:  55%|█████▍    | 106/193 [00:36<00:25,  3.39it/s]Epoch 3/20:  55%|█████▌    | 107/193 [00:36<00:24,  3.45it/s]Epoch 3/20:  56%|█████▌    | 108/193 [00:37<00:25,  3.30it/s]Epoch 3/20:  56%|█████▋    | 109/193 [00:37<00:26,  3.21it/s]Epoch 3/20:  57%|█████▋    | 110/193 [00:37<00:30,  2.69it/s]Epoch 3/20:  58%|█████▊    | 111/193 [00:38<00:34,  2.40it/s]Epoch 3/20:  58%|█████▊    | 112/193 [00:38<00:33,  2.38it/s]Epoch 3/20:  59%|█████▊    | 113/193 [00:39<00:36,  2.18it/s]Epoch 3/20:  59%|█████▉    | 114/193 [00:39<00:34,  2.27it/s]Epoch 3/20:  60%|█████▉    | 115/193 [00:40<00:33,  2.36it/s]Epoch 3/20:  60%|██████    | 116/193 [00:40<00:31,  2.41it/s]Epoch 3/20:  61%|██████    | 117/193 [00:41<00:34,  2.22it/s]Epoch 3/20:  61%|██████    | 118/193 [00:41<00:31,  2.42it/s]Epoch 3/20:  62%|██████▏   | 119/193 [00:41<00:28,  2.61it/s]Epoch 3/20:  62%|██████▏   | 120/193 [00:42<00:25,  2.84it/s]Epoch 3/20:  63%|██████▎   | 121/193 [00:42<00:23,  3.03it/s]Epoch 3/20:  63%|██████▎   | 122/193 [00:42<00:23,  3.06it/s]Epoch 3/20:  64%|██████▎   | 123/193 [00:42<00:22,  3.05it/s]Epoch 3/20:  64%|██████▍   | 124/193 [00:43<00:22,  3.03it/s]Epoch 3/20:  65%|██████▍   | 125/193 [00:43<00:22,  3.00it/s]Epoch 3/20:  65%|██████▌   | 126/193 [00:44<00:23,  2.89it/s]Epoch 3/20:  66%|██████▌   | 127/193 [00:44<00:26,  2.54it/s]Epoch 3/20:  66%|██████▋   | 128/193 [00:45<00:29,  2.24it/s]Epoch 3/20:  67%|██████▋   | 129/193 [00:45<00:29,  2.20it/s]Epoch 3/20:  67%|██████▋   | 130/193 [00:45<00:27,  2.33it/s]Epoch 3/20:  68%|██████▊   | 131/193 [00:46<00:27,  2.26it/s]Epoch 3/20:  68%|██████▊   | 132/193 [00:46<00:28,  2.12it/s]Epoch 3/20:  69%|██████▉   | 133/193 [00:47<00:26,  2.29it/s]Epoch 3/20:  69%|██████▉   | 134/193 [00:47<00:22,  2.58it/s]Epoch 3/20:  70%|██████▉   | 135/193 [00:47<00:20,  2.82it/s]Epoch 3/20:  70%|███████   | 136/193 [00:48<00:18,  3.03it/s]Epoch 3/20:  71%|███████   | 137/193 [00:48<00:17,  3.19it/s]Epoch 3/20:  72%|███████▏  | 138/193 [00:48<00:16,  3.32it/s]Epoch 3/20:  72%|███████▏  | 139/193 [00:48<00:15,  3.41it/s]Epoch 3/20:  73%|███████▎  | 140/193 [00:49<00:15,  3.48it/s]Epoch 3/20:  73%|███████▎  | 141/193 [00:49<00:14,  3.52it/s]Epoch 3/20:  74%|███████▎  | 142/193 [00:49<00:14,  3.57it/s]Epoch 3/20:  74%|███████▍  | 143/193 [00:50<00:13,  3.60it/s]Epoch 3/20:  75%|███████▍  | 144/193 [00:50<00:13,  3.62it/s]Epoch 3/20:  75%|███████▌  | 145/193 [00:50<00:13,  3.62it/s]Epoch 3/20:  76%|███████▌  | 146/193 [00:50<00:13,  3.61it/s]Epoch 3/20:  76%|███████▌  | 147/193 [00:51<00:12,  3.62it/s]Epoch 3/20:  77%|███████▋  | 148/193 [00:51<00:12,  3.62it/s]Epoch 3/20:  77%|███████▋  | 149/193 [00:51<00:12,  3.63it/s]Epoch 3/20:  78%|███████▊  | 150/193 [00:51<00:11,  3.62it/s]Epoch 3/20:  78%|███████▊  | 151/193 [00:52<00:11,  3.62it/s]Epoch 3/20:  79%|███████▉  | 152/193 [00:52<00:11,  3.62it/s]Epoch 3/20:  79%|███████▉  | 153/193 [00:52<00:11,  3.60it/s]Epoch 3/20:  80%|███████▉  | 154/193 [00:53<00:10,  3.60it/s]Epoch 3/20:  80%|████████  | 155/193 [00:53<00:11,  3.40it/s]Epoch 3/20:  81%|████████  | 156/193 [00:53<00:10,  3.46it/s]Epoch 3/20:  81%|████████▏ | 157/193 [00:53<00:10,  3.50it/s]Epoch 3/20:  82%|████████▏ | 158/193 [00:54<00:09,  3.53it/s]Epoch 3/20:  82%|████████▏ | 159/193 [00:54<00:09,  3.56it/s]Epoch 3/20:  83%|████████▎ | 160/193 [00:54<00:09,  3.59it/s]Epoch 3/20:  83%|████████▎ | 161/193 [00:55<00:08,  3.59it/s]Epoch 3/20:  84%|████████▍ | 162/193 [00:55<00:08,  3.61it/s]Epoch 3/20:  84%|████████▍ | 163/193 [00:55<00:08,  3.60it/s]Epoch 3/20:  85%|████████▍ | 164/193 [00:55<00:08,  3.60it/s]Epoch 3/20:  85%|████████▌ | 165/193 [00:56<00:07,  3.61it/s]Epoch 3/20:  86%|████████▌ | 166/193 [00:56<00:07,  3.60it/s]Epoch 3/20:  87%|████████▋ | 167/193 [00:56<00:07,  3.60it/s]Epoch 3/20:  87%|████████▋ | 168/193 [00:57<00:06,  3.58it/s]Epoch 3/20:  88%|████████▊ | 169/193 [00:57<00:06,  3.59it/s]Epoch 3/20:  88%|████████▊ | 170/193 [00:57<00:06,  3.60it/s]Epoch 3/20:  89%|████████▊ | 171/193 [00:57<00:06,  3.60it/s]Epoch 3/20:  89%|████████▉ | 172/193 [00:58<00:06,  3.44it/s]Epoch 3/20:  90%|████████▉ | 173/193 [00:58<00:06,  3.25it/s]Epoch 3/20:  90%|█████████ | 174/193 [00:58<00:06,  3.11it/s]Epoch 3/20:  91%|█████████ | 175/193 [00:59<00:06,  2.59it/s]Epoch 3/20:  91%|█████████ | 176/193 [00:59<00:07,  2.35it/s]Epoch 3/20:  92%|█████████▏| 177/193 [01:00<00:07,  2.16it/s]Epoch 3/20:  92%|█████████▏| 178/193 [01:01<00:07,  2.05it/s]Epoch 3/20:  93%|█████████▎| 179/193 [01:01<00:06,  2.04it/s]Epoch 3/20:  93%|█████████▎| 180/193 [01:01<00:06,  2.12it/s]Epoch 3/20:  94%|█████████▍| 181/193 [01:02<00:05,  2.28it/s]Epoch 3/20:  94%|█████████▍| 182/193 [01:02<00:04,  2.56it/s]Epoch 3/20:  95%|█████████▍| 183/193 [01:02<00:03,  2.77it/s]Epoch 3/20:  95%|█████████▌| 184/193 [01:03<00:03,  2.97it/s]Epoch 3/20:  96%|█████████▌| 185/193 [01:03<00:02,  3.15it/s]Epoch 3/20:  96%|█████████▋| 186/193 [01:03<00:02,  3.28it/s]Epoch 3/20:  97%|█████████▋| 187/193 [01:04<00:01,  3.31it/s]Epoch 3/20:  97%|█████████▋| 188/193 [01:04<00:01,  3.30it/s]Epoch 3/20:  98%|█████████▊| 189/193 [01:04<00:01,  3.29it/s]Epoch 3/20:  98%|█████████▊| 190/193 [01:04<00:00,  3.37it/s]Epoch 3/20:  99%|█████████▉| 191/193 [01:05<00:00,  3.44it/s]Epoch 3/20:  99%|█████████▉| 192/193 [01:05<00:00,  3.49it/s]Epoch 3/20: 100%|██████████| 193/193 [01:05<00:00,  3.52it/s]Epoch 3/20: 100%|██████████| 193/193 [01:05<00:00,  2.94it/s]
+
+[Epoch 3] Computing global DICE on full volume...
+  GLOBAL DICE: 0.6974
+  GLOBAL IoU:  0.5354
+  Precision:   0.9025
+  Recall:      0.5683
+  TP: 21,638 | FP: 2,337 | FN: 16,438
+  [VAL] Loss: 0.059666
+  [VAL] DICE: 0.5721 | IoU: 0.4007
+  [VAL] Precision: 0.7771 | Recall: 0.4527
+  [EARLY STOPPING] No improvement for 2/5 epochs
+  [NEW BEST] Saved best model (val DICE=0.5721)
+Epoch 3/20 | Time: 140.0s | Loss: 0.0521 | ε: 0.693
+  Returns - Total: -17830.69 | Base: -12004.20 | Cont: -5826.51 | Grad: 0.00| DICE: 0.02 | Manhattan: 0.00
+Epoch 4/20:   0%|          | 0/193 [00:00<?, ?it/s]Epoch 4/20:   1%|          | 1/193 [00:00<00:53,  3.62it/s]Epoch 4/20:   1%|          | 2/193 [00:00<00:52,  3.62it/s]Epoch 4/20:   2%|▏         | 3/193 [00:00<00:52,  3.62it/s]Epoch 4/20:   2%|▏         | 4/193 [00:01<00:52,  3.63it/s]Epoch 4/20:   3%|▎         | 5/193 [00:01<00:51,  3.63it/s]Epoch 4/20:   3%|▎         | 6/193 [00:01<00:51,  3.63it/s]Epoch 4/20:   4%|▎         | 7/193 [00:01<00:51,  3.63it/s]Epoch 4/20:   4%|▍         | 8/193 [00:02<00:50,  3.63it/s]Epoch 4/20:   5%|▍         | 9/193 [00:02<00:50,  3.63it/s]Epoch 4/20:   5%|▌         | 10/193 [00:02<00:51,  3.57it/s]Epoch 4/20:   6%|▌         | 11/193 [00:03<00:50,  3.58it/s]Epoch 4/20:   6%|▌         | 12/193 [00:03<00:50,  3.59it/s]Epoch 4/20:   7%|▋         | 13/193 [00:03<00:50,  3.59it/s]Epoch 4/20:   7%|▋         | 14/193 [00:03<00:49,  3.59it/s]Epoch 4/20:   8%|▊         | 15/193 [00:04<00:49,  3.59it/s]Epoch 4/20:   8%|▊         | 16/193 [00:04<00:52,  3.39it/s]Epoch 4/20:   9%|▉         | 17/193 [00:04<00:55,  3.19it/s]Epoch 4/20:   9%|▉         | 18/193 [00:05<01:06,  2.64it/s]Epoch 4/20:  10%|▉         | 19/193 [00:05<01:17,  2.25it/s]Epoch 4/20:  10%|█         | 20/193 [00:06<01:22,  2.09it/s]Epoch 4/20:  11%|█         | 21/193 [00:07<01:26,  1.99it/s]Epoch 4/20:  11%|█▏        | 22/193 [00:07<01:28,  1.93it/s]Epoch 4/20:  12%|█▏        | 23/193 [00:08<01:25,  1.98it/s]Epoch 4/20:  12%|█▏        | 24/193 [00:08<01:17,  2.19it/s]Epoch 4/20:  13%|█▎        | 25/193 [00:08<01:07,  2.48it/s]Epoch 4/20:  13%|█▎        | 26/193 [00:09<01:01,  2.73it/s]Epoch 4/20:  14%|█▍        | 27/193 [00:09<00:56,  2.94it/s]Epoch 4/20:  15%|█▍        | 28/193 [00:09<00:53,  3.10it/s]Epoch 4/20:  15%|█▌        | 29/193 [00:09<00:50,  3.22it/s]Epoch 4/20:  16%|█▌        | 30/193 [00:10<00:48,  3.33it/s]Epoch 4/20:  16%|█▌        | 31/193 [00:10<00:47,  3.40it/s]Epoch 4/20:  17%|█▋        | 32/193 [00:10<00:46,  3.46it/s]Epoch 4/20:  17%|█▋        | 33/193 [00:10<00:46,  3.47it/s]Epoch 4/20:  18%|█▊        | 34/193 [00:11<00:45,  3.50it/s]Epoch 4/20:  18%|█▊        | 35/193 [00:11<00:49,  3.19it/s]Epoch 4/20:  19%|█▊        | 36/193 [00:11<00:50,  3.09it/s]Epoch 4/20:  19%|█▉        | 37/193 [00:12<00:55,  2.81it/s]Epoch 4/20:  20%|█▉        | 38/193 [00:12<00:57,  2.69it/s]Epoch 4/20:  20%|██        | 39/193 [00:13<00:58,  2.61it/s]Epoch 4/20:  21%|██        | 40/193 [00:13<00:59,  2.56it/s]Epoch 4/20:  21%|██        | 41/193 [00:14<01:00,  2.52it/s]Epoch 4/20:  22%|██▏       | 42/193 [00:14<01:00,  2.50it/s]Epoch 4/20:  22%|██▏       | 43/193 [00:14<01:00,  2.49it/s]Epoch 4/20:  23%|██▎       | 44/193 [00:15<00:57,  2.58it/s]Epoch 4/20:  23%|██▎       | 45/193 [00:15<01:03,  2.33it/s]Epoch 4/20:  24%|██▍       | 46/193 [00:16<01:02,  2.35it/s]Epoch 4/20:  24%|██▍       | 47/193 [00:16<00:55,  2.62it/s]Epoch 4/20:  25%|██▍       | 48/193 [00:16<00:50,  2.84it/s]Epoch 4/20:  25%|██▌       | 49/193 [00:17<00:47,  3.03it/s]Epoch 4/20:  26%|██▌       | 50/193 [00:17<00:45,  3.18it/s]Epoch 4/20:  26%|██▋       | 51/193 [00:17<00:43,  3.29it/s]Epoch 4/20:  27%|██▋       | 52/193 [00:17<00:41,  3.37it/s]Epoch 4/20:  27%|██▋       | 53/193 [00:18<00:40,  3.43it/s]Epoch 4/20:  28%|██▊       | 54/193 [00:18<00:39,  3.48it/s]Epoch 4/20:  28%|██▊       | 55/193 [00:18<00:39,  3.50it/s]Epoch 4/20:  29%|██▉       | 56/193 [00:18<00:39,  3.51it/s]Epoch 4/20:  30%|██▉       | 57/193 [00:19<00:38,  3.53it/s]Epoch 4/20:  30%|███       | 58/193 [00:19<00:39,  3.43it/s]Epoch 4/20:  31%|███       | 59/193 [00:19<00:38,  3.47it/s]Epoch 4/20:  31%|███       | 60/193 [00:20<00:38,  3.45it/s]Epoch 4/20:  32%|███▏      | 61/193 [00:20<00:37,  3.50it/s]Epoch 4/20:  32%|███▏      | 62/193 [00:20<00:37,  3.52it/s]Epoch 4/20:  33%|███▎      | 63/193 [00:21<00:38,  3.41it/s]Epoch 4/20:  33%|███▎      | 64/193 [00:21<00:39,  3.28it/s]Epoch 4/20:  34%|███▎      | 65/193 [00:21<00:45,  2.83it/s]Epoch 4/20:  34%|███▍      | 66/193 [00:22<00:51,  2.48it/s]Epoch 4/20:  35%|███▍      | 67/193 [00:22<00:56,  2.25it/s]Epoch 4/20:  35%|███▌      | 68/193 [00:23<00:58,  2.14it/s]Epoch 4/20:  36%|███▌      | 69/193 [00:23<01:00,  2.03it/s]Epoch 4/20:  36%|███▋      | 70/193 [00:24<01:01,  2.01it/s]Epoch 4/20:  37%|███▋      | 71/193 [00:24<01:01,  1.97it/s]Epoch 4/20:  37%|███▋      | 72/193 [00:25<00:53,  2.28it/s]Epoch 4/20:  38%|███▊      | 73/193 [00:25<00:47,  2.53it/s]Epoch 4/20:  38%|███▊      | 74/193 [00:25<00:42,  2.78it/s]Epoch 4/20:  39%|███▉      | 75/193 [00:26<00:39,  2.98it/s]Epoch 4/20:  39%|███▉      | 76/193 [00:26<00:37,  3.12it/s]Epoch 4/20:  40%|███▉      | 77/193 [00:26<00:36,  3.21it/s]Epoch 4/20:  40%|████      | 78/193 [00:26<00:34,  3.33it/s]Epoch 4/20:  41%|████      | 79/193 [00:27<00:33,  3.41it/s]Epoch 4/20:  41%|████▏     | 80/193 [00:27<00:32,  3.47it/s]Epoch 4/20:  42%|████▏     | 81/193 [00:27<00:32,  3.45it/s]Epoch 4/20:  42%|████▏     | 82/193 [00:28<00:33,  3.36it/s]Epoch 4/20:  43%|████▎     | 83/193 [00:28<00:34,  3.21it/s]Epoch 4/20:  44%|████▎     | 84/193 [00:28<00:38,  2.84it/s]Epoch 4/20:  44%|████▍     | 85/193 [00:29<00:38,  2.83it/s]Epoch 4/20:  45%|████▍     | 86/193 [00:29<00:39,  2.71it/s]Epoch 4/20:  45%|████▌     | 87/193 [00:30<00:45,  2.33it/s]Epoch 4/20:  46%|████▌     | 88/193 [00:30<00:46,  2.24it/s]Epoch 4/20:  46%|████▌     | 89/193 [00:31<00:50,  2.06it/s]Epoch 4/20:  47%|████▋     | 90/193 [00:31<00:50,  2.03it/s]Epoch 4/20:  47%|████▋     | 91/193 [00:32<00:50,  2.02it/s]Epoch 4/20:  48%|████▊     | 92/193 [00:32<00:44,  2.29it/s]Epoch 4/20:  48%|████▊     | 93/193 [00:32<00:39,  2.51it/s]Epoch 4/20:  49%|████▊     | 94/193 [00:33<00:38,  2.60it/s]Epoch 4/20:  49%|████▉     | 95/193 [00:33<00:36,  2.70it/s]Epoch 4/20:  50%|████▉     | 96/193 [00:34<00:38,  2.54it/s]Epoch 4/20:  50%|█████     | 97/193 [00:34<00:41,  2.31it/s]Epoch 4/20:  51%|█████     | 98/193 [00:34<00:40,  2.37it/s]Epoch 4/20:  51%|█████▏    | 99/193 [00:35<00:41,  2.24it/s]Epoch 4/20:  52%|█████▏    | 100/193 [00:36<00:43,  2.13it/s]Epoch 4/20:  52%|█████▏    | 101/193 [00:36<00:41,  2.23it/s]Epoch 4/20:  53%|█████▎    | 102/193 [00:36<00:43,  2.08it/s]Epoch 4/20:  53%|█████▎    | 103/193 [00:37<00:41,  2.19it/s]Epoch 4/20:  54%|█████▍    | 104/193 [00:37<00:35,  2.48it/s]Epoch 4/20:  54%|█████▍    | 105/193 [00:37<00:32,  2.74it/s]Epoch 4/20:  55%|█████▍    | 106/193 [00:38<00:29,  2.96it/s]Epoch 4/20:  55%|█████▌    | 107/193 [00:38<00:27,  3.13it/s]Epoch 4/20:  56%|█████▌    | 108/193 [00:38<00:26,  3.26it/s]Epoch 4/20:  56%|█████▋    | 109/193 [00:39<00:24,  3.36it/s]Epoch 4/20:  57%|█████▋    | 110/193 [00:39<00:24,  3.44it/s]Epoch 4/20:  58%|█████▊    | 111/193 [00:39<00:23,  3.50it/s]Epoch 4/20:  58%|█████▊    | 112/193 [00:39<00:23,  3.39it/s]Epoch 4/20:  59%|█████▊    | 113/193 [00:40<00:23,  3.46it/s]Epoch 4/20:  59%|█████▉    | 114/193 [00:40<00:25,  3.13it/s]Epoch 4/20:  60%|█████▉    | 115/193 [00:40<00:25,  3.07it/s]Epoch 4/20:  60%|██████    | 116/193 [00:41<00:28,  2.75it/s]Epoch 4/20:  61%|██████    | 117/193 [00:41<00:29,  2.61it/s]Epoch 4/20:  61%|██████    | 118/193 [00:42<00:29,  2.56it/s]Epoch 4/20:  62%|██████▏   | 119/193 [00:42<00:29,  2.53it/s]Epoch 4/20:  62%|██████▏   | 120/193 [00:42<00:28,  2.56it/s]Epoch 4/20:  63%|██████▎   | 121/193 [00:43<00:29,  2.41it/s]Epoch 4/20:  63%|██████▎   | 122/193 [00:43<00:29,  2.41it/s]Epoch 4/20:  64%|██████▎   | 123/193 [00:44<00:29,  2.35it/s]Epoch 4/20:  64%|██████▍   | 124/193 [00:44<00:29,  2.36it/s]Epoch 4/20:  65%|██████▍   | 125/193 [00:45<00:27,  2.43it/s]Epoch 4/20:  65%|██████▌   | 126/193 [00:45<00:24,  2.70it/s]Epoch 4/20:  66%|██████▌   | 127/193 [00:45<00:22,  2.91it/s]Epoch 4/20:  66%|██████▋   | 128/193 [00:45<00:21,  3.08it/s]Epoch 4/20:  67%|██████▋   | 129/193 [00:46<00:19,  3.22it/s]Epoch 4/20:  67%|██████▋   | 130/193 [00:46<00:19,  3.32it/s]Epoch 4/20:  68%|██████▊   | 131/193 [00:46<00:18,  3.40it/s]Epoch 4/20:  68%|██████▊   | 132/193 [00:47<00:17,  3.48it/s]Epoch 4/20:  69%|██████▉   | 133/193 [00:47<00:17,  3.52it/s]Epoch 4/20:  69%|██████▉   | 134/193 [00:47<00:16,  3.55it/s]Epoch 4/20:  70%|██████▉   | 135/193 [00:47<00:16,  3.58it/s]Epoch 4/20:  70%|███████   | 136/193 [00:48<00:15,  3.60it/s]Epoch 4/20:  71%|███████   | 137/193 [00:48<00:15,  3.61it/s]Epoch 4/20:  72%|███████▏  | 138/193 [00:48<00:15,  3.62it/s]Epoch 4/20:  72%|███████▏  | 139/193 [00:48<00:14,  3.62it/s]Epoch 4/20:  73%|███████▎  | 140/193 [00:49<00:14,  3.63it/s]Epoch 4/20:  73%|███████▎  | 141/193 [00:49<00:14,  3.63it/s]Epoch 4/20:  74%|███████▎  | 142/193 [00:49<00:14,  3.63it/s]Epoch 4/20:  74%|███████▍  | 143/193 [00:50<00:13,  3.63it/s]Epoch 4/20:  75%|███████▍  | 144/193 [00:50<00:13,  3.62it/s]Epoch 4/20:  75%|███████▌  | 145/193 [00:50<00:13,  3.61it/s]Epoch 4/20:  76%|███████▌  | 146/193 [00:50<00:13,  3.61it/s]Epoch 4/20:  76%|███████▌  | 147/193 [00:51<00:12,  3.62it/s]Epoch 4/20:  77%|███████▋  | 148/193 [00:51<00:13,  3.45it/s]Epoch 4/20:  77%|███████▋  | 149/193 [00:51<00:12,  3.44it/s]Epoch 4/20:  78%|███████▊  | 150/193 [00:52<00:12,  3.48it/s]Epoch 4/20:  78%|███████▊  | 151/193 [00:52<00:11,  3.51it/s]Epoch 4/20:  79%|███████▉  | 152/193 [00:52<00:11,  3.54it/s]Epoch 4/20:  79%|███████▉  | 153/193 [00:52<00:11,  3.43it/s]Epoch 4/20:  80%|███████▉  | 154/193 [00:53<00:11,  3.27it/s]Epoch 4/20:  80%|████████  | 155/193 [00:53<00:13,  2.81it/s]Epoch 4/20:  81%|████████  | 156/193 [00:54<00:14,  2.60it/s]Epoch 4/20:  81%|████████▏ | 157/193 [00:54<00:15,  2.35it/s]Epoch 4/20:  82%|████████▏ | 158/193 [00:55<00:15,  2.20it/s]Epoch 4/20:  82%|████████▏ | 159/193 [00:55<00:15,  2.20it/s]Epoch 4/20:  83%|████████▎ | 160/193 [00:56<00:14,  2.26it/s]Epoch 4/20:  83%|████████▎ | 161/193 [00:56<00:15,  2.11it/s]Epoch 4/20:  84%|████████▍ | 162/193 [00:57<00:13,  2.22it/s]Epoch 4/20:  84%|████████▍ | 163/193 [00:57<00:11,  2.51it/s]Epoch 4/20:  85%|████████▍ | 164/193 [00:57<00:10,  2.76it/s]Epoch 4/20:  85%|████████▌ | 165/193 [00:57<00:09,  2.97it/s]Epoch 4/20:  86%|████████▌ | 166/193 [00:58<00:08,  3.13it/s]Epoch 4/20:  87%|████████▋ | 167/193 [00:58<00:07,  3.26it/s]Epoch 4/20:  87%|████████▋ | 168/193 [00:58<00:07,  3.35it/s]Epoch 4/20:  88%|████████▊ | 169/193 [00:59<00:07,  3.42it/s]Epoch 4/20:  88%|████████▊ | 170/193 [00:59<00:06,  3.46it/s]Epoch 4/20:  89%|████████▊ | 171/193 [00:59<00:06,  3.49it/s]Epoch 4/20:  89%|████████▉ | 172/193 [00:59<00:06,  3.28it/s]Epoch 4/20:  90%|████████▉ | 173/193 [01:00<00:05,  3.38it/s]Epoch 4/20:  90%|█████████ | 174/193 [01:00<00:05,  3.36it/s]Epoch 4/20:  91%|█████████ | 175/193 [01:00<00:05,  3.44it/s]Epoch 4/20:  91%|█████████ | 176/193 [01:01<00:04,  3.48it/s]Epoch 4/20:  92%|█████████▏| 177/193 [01:01<00:04,  3.34it/s]Epoch 4/20:  92%|█████████▏| 178/193 [01:01<00:04,  3.25it/s]Epoch 4/20:  93%|█████████▎| 179/193 [01:02<00:04,  2.98it/s]Epoch 4/20:  93%|█████████▎| 180/193 [01:02<00:04,  2.87it/s]Epoch 4/20:  94%|█████████▍| 181/193 [01:02<00:04,  2.74it/s]Epoch 4/20:  94%|█████████▍| 182/193 [01:03<00:04,  2.55it/s]Epoch 4/20:  95%|█████████▍| 183/193 [01:03<00:04,  2.28it/s]Epoch 4/20:  95%|█████████▌| 184/193 [01:04<00:04,  2.13it/s]Epoch 4/20:  96%|█████████▌| 185/193 [01:04<00:03,  2.10it/s]Epoch 4/20:  96%|█████████▋| 186/193 [01:05<00:03,  2.17it/s]Epoch 4/20:  97%|█████████▋| 187/193 [01:05<00:02,  2.34it/s]Epoch 4/20:  97%|█████████▋| 188/193 [01:05<00:01,  2.62it/s]Epoch 4/20:  98%|█████████▊| 189/193 [01:06<00:01,  2.86it/s]Epoch 4/20:  98%|█████████▊| 190/193 [01:06<00:00,  3.05it/s]Epoch 4/20:  99%|█████████▉| 191/193 [01:06<00:00,  3.21it/s]Epoch 4/20:  99%|█████████▉| 192/193 [01:07<00:00,  3.32it/s]Epoch 4/20: 100%|██████████| 193/193 [01:07<00:00,  3.07it/s]Epoch 4/20: 100%|██████████| 193/193 [01:07<00:00,  2.86it/s]
+
+[Epoch 4] Computing global DICE on full volume...
+  GLOBAL DICE: 0.7442
+  GLOBAL IoU:  0.5926
+  Precision:   0.8746
+  Recall:      0.6476
+  TP: 24,657 | FP: 3,535 | FN: 13,419
+  [VAL] Loss: 0.076916
+  [VAL] DICE: 0.6028 | IoU: 0.4315
+  [VAL] Precision: 0.6775 | Recall: 0.5429
+  [EARLY STOPPING] No improvement for 3/5 epochs
+  [NEW BEST] Saved best model (val DICE=0.6028)
+Epoch 4/20 | Time: 140.7s | Loss: 0.0735 | ε: 0.614
+  Returns - Total: -16274.22 | Base: -10762.39 | Cont: -5511.85 | Grad: 0.00| DICE: 0.02 | Manhattan: 0.00
+Epoch 5/20:   0%|          | 0/193 [00:00<?, ?it/s]Epoch 5/20:   1%|          | 1/193 [00:00<00:54,  3.53it/s]Epoch 5/20:   1%|          | 2/193 [00:00<00:53,  3.57it/s]Epoch 5/20:   2%|▏         | 3/193 [00:00<00:53,  3.57it/s]Epoch 5/20:   2%|▏         | 4/193 [00:01<00:52,  3.57it/s]Epoch 5/20:   3%|▎         | 5/193 [00:01<00:56,  3.30it/s]Epoch 5/20:   3%|▎         | 6/193 [00:01<00:59,  3.14it/s]Epoch 5/20:   4%|▎         | 7/193 [00:02<01:08,  2.73it/s]Epoch 5/20:   4%|▍         | 8/193 [00:02<01:19,  2.34it/s]Epoch 5/20:   5%|▍         | 9/193 [00:03<01:24,  2.17it/s]Epoch 5/20:   5%|▌         | 10/193 [00:03<01:26,  2.11it/s]Epoch 5/20:   6%|▌         | 11/193 [00:04<01:30,  2.00it/s]Epoch 5/20:   6%|▌         | 12/193 [00:04<01:32,  1.95it/s]Epoch 5/20:   7%|▋         | 13/193 [00:05<01:24,  2.14it/s]Epoch 5/20:   7%|▋         | 14/193 [00:05<01:13,  2.44it/s]Epoch 5/20:   8%|▊         | 15/193 [00:05<01:10,  2.53it/s]Epoch 5/20:   8%|▊         | 16/193 [00:06<01:04,  2.74it/s]Epoch 5/20:   9%|▉         | 17/193 [00:06<00:59,  2.95it/s]Epoch 5/20:   9%|▉         | 18/193 [00:06<00:56,  3.12it/s]Epoch 5/20:  10%|▉         | 19/193 [00:07<00:53,  3.24it/s]Epoch 5/20:  10%|█         | 20/193 [00:07<00:52,  3.32it/s]Epoch 5/20:  11%|█         | 21/193 [00:07<00:50,  3.39it/s]Epoch 5/20:  11%|█▏        | 22/193 [00:07<00:49,  3.43it/s]Epoch 5/20:  12%|█▏        | 23/193 [00:08<00:48,  3.47it/s]Epoch 5/20:  12%|█▏        | 24/193 [00:08<00:48,  3.50it/s]Epoch 5/20:  13%|█▎        | 25/193 [00:08<00:47,  3.52it/s]Epoch 5/20:  13%|█▎        | 26/193 [00:09<00:47,  3.54it/s]Epoch 5/20:  14%|█▍        | 27/193 [00:09<00:46,  3.55it/s]Epoch 5/20:  15%|█▍        | 28/193 [00:09<00:46,  3.56it/s]Epoch 5/20:  15%|█▌        | 29/193 [00:09<00:47,  3.46it/s]Epoch 5/20:  16%|█▌        | 30/193 [00:10<00:49,  3.27it/s]Epoch 5/20:  16%|█▌        | 31/193 [00:10<00:52,  3.08it/s]Epoch 5/20:  17%|█▋        | 32/193 [00:11<01:03,  2.54it/s]Epoch 5/20:  17%|█▋        | 33/193 [00:11<01:10,  2.29it/s]Epoch 5/20:  18%|█▊        | 34/193 [00:12<01:16,  2.09it/s]Epoch 5/20:  18%|█▊        | 35/193 [00:12<01:20,  1.97it/s]Epoch 5/20:  19%|█▊        | 36/193 [00:13<01:21,  1.92it/s]Epoch 5/20:  19%|█▉        | 37/193 [00:13<01:16,  2.03it/s]Epoch 5/20:  20%|█▉        | 38/193 [00:14<01:06,  2.34it/s]Epoch 5/20:  20%|██        | 39/193 [00:14<00:59,  2.61it/s]Epoch 5/20:  21%|██        | 40/193 [00:14<00:53,  2.84it/s]Epoch 5/20:  21%|██        | 41/193 [00:14<00:50,  3.03it/s]Epoch 5/20:  22%|██▏       | 42/193 [00:15<00:47,  3.18it/s]Epoch 5/20:  22%|██▏       | 43/193 [00:15<00:45,  3.29it/s]Epoch 5/20:  23%|██▎       | 44/193 [00:15<00:44,  3.37it/s]Epoch 5/20:  23%|██▎       | 45/193 [00:16<00:43,  3.42it/s]Epoch 5/20:  24%|██▍       | 46/193 [00:16<00:44,  3.32it/s]Epoch 5/20:  24%|██▍       | 47/193 [00:16<00:42,  3.40it/s]Epoch 5/20:  25%|██▍       | 48/193 [00:17<00:47,  3.08it/s]Epoch 5/20:  25%|██▌       | 49/193 [00:17<00:47,  3.06it/s]Epoch 5/20:  26%|██▌       | 50/193 [00:17<00:50,  2.81it/s]Epoch 5/20:  26%|██▋       | 51/193 [00:18<00:52,  2.70it/s]Epoch 5/20:  27%|██▋       | 52/193 [00:18<00:50,  2.78it/s]Epoch 5/20:  27%|██▋       | 53/193 [00:19<00:53,  2.64it/s]Epoch 5/20:  28%|██▊       | 54/193 [00:19<00:56,  2.46it/s]Epoch 5/20:  28%|██▊       | 55/193 [00:20<01:01,  2.26it/s]Epoch 5/20:  29%|██▉       | 56/193 [00:20<01:05,  2.08it/s]Epoch 5/20:  30%|██▉       | 57/193 [00:21<01:07,  2.01it/s]Epoch 5/20:  30%|███       | 58/193 [00:21<01:02,  2.15it/s]Epoch 5/20:  31%|███       | 59/193 [00:21<00:54,  2.44it/s]Epoch 5/20:  31%|███       | 60/193 [00:22<00:49,  2.70it/s]Epoch 5/20:  32%|███▏      | 61/193 [00:22<00:45,  2.91it/s]Epoch 5/20:  32%|███▏      | 62/193 [00:22<00:42,  3.08it/s]Epoch 5/20:  33%|███▎      | 63/193 [00:22<00:40,  3.22it/s]Epoch 5/20:  33%|███▎      | 64/193 [00:23<00:38,  3.33it/s]Epoch 5/20:  34%|███▎      | 65/193 [00:23<00:37,  3.42it/s]Epoch 5/20:  34%|███▍      | 66/193 [00:23<00:36,  3.48it/s]Epoch 5/20:  35%|███▍      | 67/193 [00:24<00:36,  3.48it/s]Epoch 5/20:  35%|███▌      | 68/193 [00:24<00:35,  3.51it/s]Epoch 5/20:  36%|███▌      | 69/193 [00:24<00:35,  3.53it/s]Epoch 5/20:  36%|███▋      | 70/193 [00:24<00:34,  3.53it/s]Epoch 5/20:  37%|███▋      | 71/193 [00:25<00:37,  3.29it/s]Epoch 5/20:  37%|███▋      | 72/193 [00:25<00:38,  3.17it/s]Epoch 5/20:  38%|███▊      | 73/193 [00:25<00:42,  2.85it/s]Epoch 5/20:  38%|███▊      | 74/193 [00:26<00:44,  2.65it/s]Epoch 5/20:  39%|███▉      | 75/193 [00:26<00:46,  2.55it/s]Epoch 5/20:  39%|███▉      | 76/193 [00:27<00:50,  2.33it/s]Epoch 5/20:  40%|███▉      | 77/193 [00:27<00:48,  2.40it/s]Epoch 5/20:  40%|████      | 78/193 [00:28<00:49,  2.34it/s]Epoch 5/20:  41%|████      | 79/193 [00:28<00:48,  2.36it/s]Epoch 5/20:  41%|████▏     | 80/193 [00:29<00:48,  2.31it/s]Epoch 5/20:  42%|████▏     | 81/193 [00:29<00:50,  2.22it/s]Epoch 5/20:  42%|████▏     | 82/193 [00:29<00:44,  2.50it/s]Epoch 5/20:  43%|████▎     | 83/193 [00:30<00:39,  2.77it/s]Epoch 5/20:  44%|████▎     | 84/193 [00:30<00:36,  2.98it/s]Epoch 5/20:  44%|████▍     | 85/193 [00:30<00:34,  3.14it/s]Epoch 5/20:  45%|████▍     | 86/193 [00:30<00:32,  3.27it/s]Epoch 5/20:  45%|████▌     | 87/193 [00:31<00:31,  3.37it/s]Epoch 5/20:  46%|████▌     | 88/193 [00:31<00:30,  3.43it/s]Epoch 5/20:  46%|████▌     | 89/193 [00:31<00:29,  3.47it/s]Epoch 5/20:  47%|████▋     | 90/193 [00:32<00:29,  3.50it/s]Epoch 5/20:  47%|████▋     | 91/193 [00:32<00:29,  3.42it/s]Epoch 5/20:  48%|████▊     | 92/193 [00:32<00:32,  3.14it/s]Epoch 5/20:  48%|████▊     | 93/193 [00:33<00:33,  3.03it/s]Epoch 5/20:  49%|████▊     | 94/193 [00:33<00:38,  2.56it/s]Epoch 5/20:  49%|████▉     | 95/193 [00:34<00:42,  2.31it/s]Epoch 5/20:  50%|████▉     | 96/193 [00:34<00:44,  2.20it/s]Epoch 5/20:  50%|█████     | 97/193 [00:35<00:42,  2.25it/s]Epoch 5/20:  51%|█████     | 98/193 [00:35<00:45,  2.07it/s]Epoch 5/20:  51%|█████▏    | 99/193 [00:36<00:47,  1.97it/s]Epoch 5/20:  52%|█████▏    | 100/193 [00:36<00:43,  2.13it/s]Epoch 5/20:  52%|█████▏    | 101/193 [00:36<00:37,  2.43it/s]Epoch 5/20:  53%|█████▎    | 102/193 [00:37<00:33,  2.69it/s]Epoch 5/20:  53%|█████▎    | 103/193 [00:37<00:34,  2.64it/s]Epoch 5/20:  54%|█████▍    | 104/193 [00:37<00:31,  2.84it/s]Epoch 5/20:  54%|█████▍    | 105/193 [00:38<00:29,  3.02it/s]Epoch 5/20:  55%|█████▍    | 106/193 [00:38<00:27,  3.17it/s]Epoch 5/20:  55%|█████▌    | 107/193 [00:38<00:27,  3.08it/s]Epoch 5/20:  56%|█████▌    | 108/193 [00:39<00:28,  3.00it/s]Epoch 5/20:  56%|█████▋    | 109/193 [00:39<00:31,  2.65it/s]Epoch 5/20:  57%|█████▋    | 110/193 [00:40<00:35,  2.33it/s]Epoch 5/20:  58%|█████▊    | 111/193 [00:40<00:38,  2.12it/s]Epoch 5/20:  58%|█████▊    | 112/193 [00:41<00:39,  2.04it/s]Epoch 5/20:  59%|█████▊    | 113/193 [00:41<00:37,  2.12it/s]Epoch 5/20:  59%|█████▉    | 114/193 [00:42<00:38,  2.06it/s]Epoch 5/20:  60%|█████▉    | 115/193 [00:42<00:38,  2.02it/s]Epoch 5/20:  60%|██████    | 116/193 [00:43<00:33,  2.30it/s]Epoch 5/20:  61%|██████    | 117/193 [00:43<00:29,  2.55it/s]Epoch 5/20:  61%|██████    | 118/193 [00:43<00:27,  2.78it/s]Epoch 5/20:  62%|██████▏   | 119/193 [00:43<00:24,  2.97it/s]Epoch 5/20:  62%|██████▏   | 120/193 [00:44<00:23,  3.13it/s]Epoch 5/20:  63%|██████▎   | 121/193 [00:44<00:22,  3.25it/s]Epoch 5/20:  63%|██████▎   | 122/193 [00:44<00:21,  3.35it/s]Epoch 5/20:  64%|██████▎   | 123/193 [00:45<00:20,  3.41it/s]Epoch 5/20:  64%|██████▍   | 124/193 [00:45<00:21,  3.17it/s]Epoch 5/20:  65%|██████▍   | 125/193 [00:45<00:21,  3.10it/s]Epoch 5/20:  65%|██████▌   | 126/193 [00:46<00:22,  3.02it/s]Epoch 5/20:  66%|██████▌   | 127/193 [00:46<00:24,  2.72it/s]Epoch 5/20:  66%|██████▋   | 128/193 [00:47<00:26,  2.43it/s]Epoch 5/20:  67%|██████▋   | 129/193 [00:47<00:28,  2.21it/s]Epoch 5/20:  67%|██████▋   | 130/193 [00:48<00:30,  2.03it/s]Epoch 5/20:  68%|██████▊   | 131/193 [00:48<00:31,  1.95it/s]Epoch 5/20:  68%|██████▊   | 132/193 [00:49<00:31,  1.93it/s]Epoch 5/20:  69%|██████▉   | 133/193 [00:49<00:27,  2.16it/s]Epoch 5/20:  69%|██████▉   | 134/193 [00:49<00:24,  2.45it/s]Epoch 5/20:  70%|██████▉   | 135/193 [00:50<00:21,  2.70it/s]Epoch 5/20:  70%|███████   | 136/193 [00:50<00:19,  2.91it/s]Epoch 5/20:  71%|███████   | 137/193 [00:50<00:18,  3.08it/s]Epoch 5/20:  72%|███████▏  | 138/193 [00:51<00:17,  3.16it/s]Epoch 5/20:  72%|███████▏  | 139/193 [00:51<00:16,  3.24it/s]Epoch 5/20:  73%|███████▎  | 140/193 [00:51<00:16,  3.13it/s]Epoch 5/20:  73%|███████▎  | 141/193 [00:51<00:16,  3.07it/s]Epoch 5/20:  74%|███████▎  | 142/193 [00:52<00:18,  2.69it/s]Epoch 5/20:  74%|███████▍  | 143/193 [00:53<00:21,  2.32it/s]Epoch 5/20:  75%|███████▍  | 144/193 [00:53<00:20,  2.37it/s]Epoch 5/20:  75%|███████▌  | 145/193 [00:53<00:21,  2.26it/s]Epoch 5/20:  76%|███████▌  | 146/193 [00:54<00:20,  2.32it/s]Epoch 5/20:  76%|███████▌  | 147/193 [00:54<00:19,  2.34it/s]Epoch 5/20:  77%|███████▋  | 148/193 [00:55<00:19,  2.35it/s]Epoch 5/20:  77%|███████▋  | 149/193 [00:55<00:18,  2.35it/s]Epoch 5/20:  78%|███████▊  | 150/193 [00:56<00:18,  2.30it/s]Epoch 5/20:  78%|███████▊  | 151/193 [00:56<00:16,  2.53it/s]Epoch 5/20:  79%|███████▉  | 152/193 [00:56<00:14,  2.77it/s]Epoch 5/20:  79%|███████▉  | 153/193 [00:56<00:13,  2.97it/s]Epoch 5/20:  80%|███████▉  | 154/193 [00:57<00:12,  3.12it/s]Epoch 5/20:  80%|████████  | 155/193 [00:57<00:11,  3.25it/s]Epoch 5/20:  81%|████████  | 156/193 [00:57<00:11,  3.35it/s]Epoch 5/20:  81%|████████▏ | 157/193 [00:58<00:10,  3.43it/s]Epoch 5/20:  82%|████████▏ | 158/193 [00:58<00:10,  3.49it/s]Epoch 5/20:  82%|████████▏ | 159/193 [00:58<00:09,  3.52it/s]Epoch 5/20:  83%|████████▎ | 160/193 [00:58<00:09,  3.52it/s]Epoch 5/20:  83%|████████▎ | 161/193 [00:59<00:09,  3.54it/s]Epoch 5/20:  84%|████████▍ | 162/193 [00:59<00:08,  3.53it/s]Epoch 5/20:  84%|████████▍ | 163/193 [00:59<00:08,  3.55it/s]Epoch 5/20:  85%|████████▍ | 164/193 [00:59<00:08,  3.56it/s]Epoch 5/20:  85%|████████▌ | 165/193 [01:00<00:07,  3.55it/s]Epoch 5/20:  86%|████████▌ | 166/193 [01:00<00:07,  3.58it/s]Epoch 5/20:  87%|████████▋ | 167/193 [01:00<00:07,  3.37it/s]Epoch 5/20:  87%|████████▋ | 168/193 [01:01<00:07,  3.16it/s]Epoch 5/20:  88%|████████▊ | 169/193 [01:01<00:09,  2.65it/s]Epoch 5/20:  88%|████████▊ | 170/193 [01:02<00:09,  2.36it/s]Epoch 5/20:  89%|████████▊ | 171/193 [01:02<00:09,  2.44it/s]Epoch 5/20:  89%|████████▉ | 172/193 [01:03<00:09,  2.31it/s]Epoch 5/20:  90%|████████▉ | 173/193 [01:03<00:08,  2.34it/s]Epoch 5/20:  90%|█████████ | 174/193 [01:04<00:08,  2.20it/s]Epoch 5/20:  91%|█████████ | 175/193 [01:04<00:08,  2.06it/s]Epoch 5/20:  91%|█████████ | 176/193 [01:05<00:07,  2.15it/s]Epoch 5/20:  92%|█████████▏| 177/193 [01:05<00:06,  2.41it/s]Epoch 5/20:  92%|█████████▏| 178/193 [01:05<00:05,  2.67it/s]Epoch 5/20:  93%|█████████▎| 179/193 [01:05<00:04,  2.88it/s]Epoch 5/20:  93%|█████████▎| 180/193 [01:06<00:04,  2.96it/s]Epoch 5/20:  94%|█████████▍| 181/193 [01:06<00:03,  3.13it/s]Epoch 5/20:  94%|█████████▍| 182/193 [01:06<00:03,  3.27it/s]Epoch 5/20:  95%|█████████▍| 183/193 [01:07<00:02,  3.38it/s]Epoch 5/20:  95%|█████████▌| 184/193 [01:07<00:02,  3.46it/s]Epoch 5/20:  96%|█████████▌| 185/193 [01:07<00:02,  3.51it/s]Epoch 5/20:  96%|█████████▋| 186/193 [01:07<00:01,  3.55it/s]Epoch 5/20:  97%|█████████▋| 187/193 [01:08<00:01,  3.40it/s]Epoch 5/20:  97%|█████████▋| 188/193 [01:08<00:01,  3.24it/s]Epoch 5/20:  98%|█████████▊| 189/193 [01:09<00:01,  2.62it/s]Epoch 5/20:  98%|█████████▊| 190/193 [01:09<00:01,  2.28it/s]Epoch 5/20:  99%|█████████▉| 191/193 [01:10<00:00,  2.10it/s]Epoch 5/20:  99%|█████████▉| 192/193 [01:10<00:00,  2.11it/s]Epoch 5/20: 100%|██████████| 193/193 [01:11<00:00,  2.05it/s]Epoch 5/20: 100%|██████████| 193/193 [01:11<00:00,  2.71it/s]
+
+[Epoch 5] Computing global DICE on full volume...
+  GLOBAL DICE: 0.7534
+  GLOBAL IoU:  0.6044
+  Precision:   0.9153
+  Recall:      0.6402
+  TP: 24,375 | FP: 2,256 | FN: 13,701
+  [VAL] Loss: 0.080808
+  [VAL] DICE: 0.6119 | IoU: 0.4408
+  [VAL] Precision: 0.7238 | Recall: 0.5300
+  [EARLY STOPPING] No improvement for 4/5 epochs
+  [NEW BEST] Saved best model (val DICE=0.6119)
+Epoch 5/20 | Time: 142.5s | Loss: 0.0837 | ε: 0.544
+  Returns - Total: -14673.88 | Base: -9531.00 | Cont: -5142.91 | Grad: 0.00| DICE: 0.02 | Manhattan: 0.00
+Epoch 6/20:   0%|          | 0/193 [00:00<?, ?it/s]Epoch 6/20:   1%|          | 1/193 [00:00<01:15,  2.55it/s]Epoch 6/20:   1%|          | 2/193 [00:00<01:01,  3.09it/s]Epoch 6/20:   2%|▏         | 3/193 [00:01<01:13,  2.58it/s]Epoch 6/20:   2%|▏         | 4/193 [00:01<01:23,  2.26it/s]Epoch 6/20:   3%|▎         | 5/193 [00:02<01:28,  2.13it/s]Epoch 6/20:   3%|▎         | 6/193 [00:02<01:20,  2.32it/s]Epoch 6/20:   4%|▎         | 7/193 [00:02<01:11,  2.62it/s]Epoch 6/20:   4%|▍         | 8/193 [00:03<01:04,  2.87it/s]Epoch 6/20:   5%|▍         | 9/193 [00:03<00:59,  3.07it/s]Epoch 6/20:   5%|▌         | 10/193 [00:03<00:56,  3.23it/s]Epoch 6/20:   6%|▌         | 11/193 [00:03<00:54,  3.34it/s]Epoch 6/20:   6%|▌         | 12/193 [00:04<00:52,  3.42it/s]Epoch 6/20:   7%|▋         | 13/193 [00:04<00:51,  3.49it/s]Epoch 6/20:   7%|▋         | 14/193 [00:04<00:50,  3.54it/s]Epoch 6/20:   8%|▊         | 15/193 [00:05<00:49,  3.57it/s]Epoch 6/20:   8%|▊         | 16/193 [00:05<00:49,  3.58it/s]Epoch 6/20:   9%|▉         | 17/193 [00:05<00:49,  3.56it/s]Epoch 6/20:   9%|▉         | 18/193 [00:05<00:49,  3.56it/s]Epoch 6/20:  10%|▉         | 19/193 [00:06<00:49,  3.54it/s]Epoch 6/20:  10%|█         | 20/193 [00:06<00:49,  3.50it/s]Epoch 6/20:  11%|█         | 21/193 [00:06<00:48,  3.51it/s]Epoch 6/20:  11%|█▏        | 22/193 [00:06<00:48,  3.53it/s]Epoch 6/20:  12%|█▏        | 23/193 [00:07<00:48,  3.53it/s]Epoch 6/20:  12%|█▏        | 24/193 [00:07<00:47,  3.55it/s]Epoch 6/20:  13%|█▎        | 25/193 [00:07<00:53,  3.12it/s]Epoch 6/20:  13%|█▎        | 26/193 [00:08<00:57,  2.93it/s]Epoch 6/20:  14%|█▍        | 27/193 [00:08<01:02,  2.64it/s]Epoch 6/20:  15%|█▍        | 28/193 [00:09<01:02,  2.66it/s]Epoch 6/20:  15%|█▌        | 29/193 [00:09<00:59,  2.77it/s]Epoch 6/20:  16%|█▌        | 30/193 [00:09<00:54,  2.99it/s]Epoch 6/20:  16%|█▌        | 31/193 [00:10<00:51,  3.13it/s]Epoch 6/20:  17%|█▋        | 32/193 [00:10<00:49,  3.27it/s]Epoch 6/20:  17%|█▋        | 33/193 [00:10<00:47,  3.36it/s]Epoch 6/20:  18%|█▊        | 34/193 [00:10<00:46,  3.44it/s]Epoch 6/20:  18%|█▊        | 35/193 [00:11<00:51,  3.04it/s]Epoch 6/20:  19%|█▊        | 36/193 [00:11<00:57,  2.75it/s]Epoch 6/20:  19%|█▉        | 37/193 [00:12<00:57,  2.73it/s]Epoch 6/20:  20%|█▉        | 38/193 [00:12<01:02,  2.50it/s]Epoch 6/20:  20%|██        | 39/193 [00:13<01:02,  2.46it/s]Epoch 6/20:  21%|██        | 40/193 [00:13<00:56,  2.72it/s]Epoch 6/20:  21%|██        | 41/193 [00:13<00:52,  2.88it/s]Epoch 6/20:  22%|██▏       | 42/193 [00:13<00:49,  3.07it/s]Epoch 6/20:  22%|██▏       | 43/193 [00:14<00:46,  3.21it/s]Epoch 6/20:  23%|██▎       | 44/193 [00:14<00:47,  3.15it/s]Epoch 6/20:  23%|██▎       | 45/193 [00:14<00:45,  3.26it/s]Epoch 6/20:  24%|██▍       | 46/193 [00:15<00:43,  3.35it/s]Epoch 6/20:  24%|██▍       | 47/193 [00:15<00:44,  3.30it/s]Epoch 6/20:  25%|██▍       | 48/193 [00:15<00:42,  3.38it/s]Epoch 6/20:  25%|██▌       | 49/193 [00:15<00:41,  3.44it/s]Epoch 6/20:  26%|██▌       | 50/193 [00:16<00:41,  3.48it/s]Epoch 6/20:  26%|██▋       | 51/193 [00:16<00:41,  3.38it/s]Epoch 6/20:  27%|██▋       | 52/193 [00:17<00:50,  2.78it/s]Epoch 6/20:  27%|██▋       | 53/193 [00:17<00:55,  2.54it/s]Epoch 6/20:  28%|██▊       | 54/193 [00:17<00:53,  2.58it/s]Epoch 6/20:  28%|██▊       | 55/193 [00:18<00:51,  2.70it/s]Epoch 6/20:  29%|██▉       | 56/193 [00:18<00:49,  2.77it/s]Epoch 6/20:  30%|██▉       | 57/193 [00:18<00:46,  2.90it/s]Epoch 6/20:  30%|███       | 58/193 [00:19<00:45,  2.97it/s]Epoch 6/20:  31%|███       | 59/193 [00:19<00:42,  3.14it/s]Epoch 6/20:  31%|███       | 60/193 [00:19<00:40,  3.26it/s]Epoch 6/20:  32%|███▏      | 61/193 [00:20<00:39,  3.31it/s]Epoch 6/20:  32%|███▏      | 62/193 [00:20<00:41,  3.19it/s]Epoch 6/20:  33%|███▎      | 63/193 [00:20<00:46,  2.80it/s]Epoch 6/20:  33%|███▎      | 64/193 [00:21<00:48,  2.65it/s]Epoch 6/20:  34%|███▎      | 65/193 [00:21<00:53,  2.40it/s]Epoch 6/20:  34%|███▍      | 66/193 [00:22<00:50,  2.52it/s]Epoch 6/20:  35%|███▍      | 67/193 [00:22<00:45,  2.75it/s]Epoch 6/20:  35%|███▌      | 68/193 [00:22<00:42,  2.95it/s]Epoch 6/20:  36%|███▌      | 69/193 [00:22<00:39,  3.11it/s]Epoch 6/20:  36%|███▋      | 70/193 [00:23<00:38,  3.23it/s]Epoch 6/20:  37%|███▋      | 71/193 [00:23<00:36,  3.32it/s]Epoch 6/20:  37%|███▋      | 72/193 [00:23<00:35,  3.39it/s]Epoch 6/20:  38%|███▊      | 73/193 [00:24<00:34,  3.44it/s]Epoch 6/20:  38%|███▊      | 74/193 [00:24<00:35,  3.39it/s]Epoch 6/20:  39%|███▉      | 75/193 [00:24<00:38,  3.03it/s]Epoch 6/20:  39%|███▉      | 76/193 [00:25<00:42,  2.76it/s]Epoch 6/20:  40%|███▉      | 77/193 [00:25<00:43,  2.66it/s]Epoch 6/20:  40%|████      | 78/193 [00:26<00:45,  2.53it/s]Epoch 6/20:  41%|████      | 79/193 [00:26<00:43,  2.65it/s]Epoch 6/20:  41%|████▏     | 80/193 [00:26<00:40,  2.76it/s]Epoch 6/20:  42%|████▏     | 81/193 [00:27<00:37,  2.97it/s]Epoch 6/20:  42%|████▏     | 82/193 [00:27<00:36,  3.04it/s]Epoch 6/20:  43%|████▎     | 83/193 [00:27<00:34,  3.19it/s]Epoch 6/20:  44%|████▎     | 84/193 [00:28<00:37,  2.94it/s]Epoch 6/20:  44%|████▍     | 85/193 [00:28<00:37,  2.91it/s]Epoch 6/20:  45%|████▍     | 86/193 [00:28<00:40,  2.64it/s]Epoch 6/20:  45%|████▌     | 87/193 [00:29<00:43,  2.41it/s]Epoch 6/20:  46%|████▌     | 88/193 [00:29<00:42,  2.45it/s]Epoch 6/20:  46%|████▌     | 89/193 [00:30<00:40,  2.57it/s]Epoch 6/20:  47%|████▋     | 90/193 [00:30<00:40,  2.54it/s]Epoch 6/20:  47%|████▋     | 91/193 [00:30<00:39,  2.56it/s]Epoch 6/20:  48%|████▊     | 92/193 [00:31<00:41,  2.43it/s]Epoch 6/20:  48%|████▊     | 93/193 [00:31<00:40,  2.44it/s]Epoch 6/20:  49%|████▊     | 94/193 [00:31<00:36,  2.70it/s]Epoch 6/20:  49%|████▉     | 95/193 [00:32<00:33,  2.93it/s]Epoch 6/20:  50%|████▉     | 96/193 [00:32<00:31,  3.05it/s]Epoch 6/20:  50%|█████     | 97/193 [00:32<00:30,  3.15it/s]Epoch 6/20:  51%|█████     | 98/193 [00:33<00:29,  3.27it/s]Epoch 6/20:  51%|█████▏    | 99/193 [00:33<00:27,  3.37it/s]Epoch 6/20:  52%|█████▏    | 100/193 [00:33<00:26,  3.44it/s]Epoch 6/20:  52%|█████▏    | 101/193 [00:33<00:26,  3.48it/s]Epoch 6/20:  53%|█████▎    | 102/193 [00:34<00:25,  3.51it/s]Epoch 6/20:  53%|█████▎    | 103/193 [00:34<00:25,  3.53it/s]Epoch 6/20:  54%|█████▍    | 104/193 [00:34<00:25,  3.54it/s]Epoch 6/20:  54%|█████▍    | 105/193 [00:35<00:24,  3.56it/s]Epoch 6/20:  55%|█████▍    | 106/193 [00:35<00:24,  3.56it/s]Epoch 6/20:  55%|█████▌    | 107/193 [00:35<00:24,  3.58it/s]Epoch 6/20:  56%|█████▌    | 108/193 [00:35<00:23,  3.59it/s]Epoch 6/20:  56%|█████▋    | 109/193 [00:36<00:23,  3.59it/s]Epoch 6/20:  57%|█████▋    | 110/193 [00:36<00:23,  3.56it/s]Epoch 6/20:  58%|█████▊    | 111/193 [00:36<00:22,  3.58it/s]Epoch 6/20:  58%|█████▊    | 112/193 [00:37<00:22,  3.60it/s]Epoch 6/20:  59%|█████▊    | 113/193 [00:37<00:22,  3.54it/s]Epoch 6/20:  59%|█████▉    | 114/193 [00:37<00:22,  3.49it/s]Epoch 6/20:  60%|█████▉    | 115/193 [00:37<00:22,  3.51it/s]Epoch 6/20:  60%|██████    | 116/193 [00:38<00:21,  3.53it/s]Epoch 6/20:  61%|██████    | 117/193 [00:38<00:21,  3.54it/s]Epoch 6/20:  61%|██████    | 118/193 [00:38<00:21,  3.50it/s]Epoch 6/20:  62%|██████▏   | 119/193 [00:39<00:20,  3.53it/s]Epoch 6/20:  62%|██████▏   | 120/193 [00:39<00:20,  3.55it/s]Epoch 6/20:  63%|██████▎   | 121/193 [00:39<00:20,  3.56it/s]Epoch 6/20:  63%|██████▎   | 122/193 [00:39<00:19,  3.57it/s]Epoch 6/20:  64%|██████▎   | 123/193 [00:40<00:19,  3.55it/s]Epoch 6/20:  64%|██████▍   | 124/193 [00:40<00:19,  3.55it/s]Epoch 6/20:  65%|██████▍   | 125/193 [00:40<00:19,  3.55it/s]Epoch 6/20:  65%|██████▌   | 126/193 [00:40<00:18,  3.56it/s]Epoch 6/20:  66%|██████▌   | 127/193 [00:41<00:18,  3.57it/s]Epoch 6/20:  66%|██████▋   | 128/193 [00:41<00:18,  3.58it/s]Epoch 6/20:  67%|██████▋   | 129/193 [00:41<00:17,  3.59it/s]Epoch 6/20:  67%|██████▋   | 130/193 [00:42<00:19,  3.30it/s]Epoch 6/20:  68%|██████▊   | 131/193 [00:42<00:20,  3.09it/s]Epoch 6/20:  68%|██████▊   | 132/193 [00:43<00:22,  2.76it/s]Epoch 6/20:  69%|██████▉   | 133/193 [00:43<00:23,  2.52it/s]Epoch 6/20:  69%|██████▉   | 134/193 [00:43<00:24,  2.45it/s]Epoch 6/20:  70%|██████▉   | 135/193 [00:44<00:21,  2.72it/s]Epoch 6/20:  70%|███████   | 136/193 [00:44<00:19,  2.93it/s]Epoch 6/20:  71%|███████   | 137/193 [00:44<00:18,  3.04it/s]Epoch 6/20:  72%|███████▏  | 138/193 [00:45<00:18,  3.00it/s]Epoch 6/20:  72%|███████▏  | 139/193 [00:45<00:21,  2.55it/s]Epoch 6/20:  73%|███████▎  | 140/193 [00:46<00:22,  2.37it/s]Epoch 6/20:  73%|███████▎  | 141/193 [00:46<00:21,  2.39it/s]Epoch 6/20:  74%|███████▎  | 142/193 [00:46<00:19,  2.65it/s]Epoch 6/20:  74%|███████▍  | 143/193 [00:47<00:17,  2.87it/s]Epoch 6/20:  75%|███████▍  | 144/193 [00:47<00:16,  3.03it/s]Epoch 6/20:  75%|███████▌  | 145/193 [00:47<00:15,  3.15it/s]Epoch 6/20:  76%|███████▌  | 146/193 [00:48<00:16,  2.91it/s]Epoch 6/20:  76%|███████▌  | 147/193 [00:48<00:14,  3.09it/s]Epoch 6/20:  77%|███████▋  | 148/193 [00:48<00:13,  3.23it/s]Epoch 6/20:  77%|███████▋  | 149/193 [00:48<00:13,  3.33it/s]Epoch 6/20:  78%|███████▊  | 150/193 [00:49<00:12,  3.41it/s]Epoch 6/20:  78%|███████▊  | 151/193 [00:49<00:12,  3.47it/s]Epoch 6/20:  79%|███████▉  | 152/193 [00:49<00:11,  3.52it/s]Epoch 6/20:  79%|███████▉  | 153/193 [00:50<00:12,  3.15it/s]Epoch 6/20:  80%|███████▉  | 154/193 [00:50<00:12,  3.02it/s]Epoch 6/20:  80%|████████  | 155/193 [00:50<00:12,  3.00it/s]Epoch 6/20:  81%|████████  | 156/193 [00:51<00:14,  2.56it/s]Epoch 6/20:  81%|████████▏ | 157/193 [00:51<00:14,  2.48it/s]Epoch 6/20:  82%|████████▏ | 158/193 [00:52<00:12,  2.74it/s]Epoch 6/20:  82%|████████▏ | 159/193 [00:52<00:11,  2.94it/s]Epoch 6/20:  83%|████████▎ | 160/193 [00:52<00:11,  2.85it/s]Epoch 6/20:  83%|████████▎ | 161/193 [00:53<00:11,  2.80it/s]Epoch 6/20:  84%|████████▍ | 162/193 [00:53<00:12,  2.46it/s]Epoch 6/20:  84%|████████▍ | 163/193 [00:54<00:12,  2.33it/s]Epoch 6/20:  85%|████████▍ | 164/193 [00:54<00:12,  2.41it/s]Epoch 6/20:  85%|████████▌ | 165/193 [00:54<00:10,  2.68it/s]Epoch 6/20:  86%|████████▌ | 166/193 [00:55<00:09,  2.90it/s]Epoch 6/20:  87%|████████▋ | 167/193 [00:55<00:08,  3.08it/s]Epoch 6/20:  87%|████████▋ | 168/193 [00:55<00:07,  3.23it/s]Epoch 6/20:  88%|████████▊ | 169/193 [00:55<00:07,  3.02it/s]Epoch 6/20:  88%|████████▊ | 170/193 [00:56<00:07,  2.99it/s]Epoch 6/20:  89%|████████▊ | 171/193 [00:56<00:07,  2.91it/s]Epoch 6/20:  89%|████████▉ | 172/193 [00:57<00:07,  2.64it/s]Epoch 6/20:  90%|████████▉ | 173/193 [00:57<00:08,  2.41it/s]Epoch 6/20:  90%|█████████ | 174/193 [00:58<00:07,  2.50it/s]Epoch 6/20:  91%|█████████ | 175/193 [00:58<00:06,  2.71it/s]Epoch 6/20:  91%|█████████ | 176/193 [00:58<00:05,  2.93it/s]Epoch 6/20:  92%|█████████▏| 177/193 [00:58<00:05,  3.10it/s]Epoch 6/20:  92%|█████████▏| 178/193 [00:59<00:04,  3.18it/s]Epoch 6/20:  93%|█████████▎| 179/193 [00:59<00:04,  2.86it/s]Epoch 6/20:  93%|█████████▎| 180/193 [01:00<00:05,  2.54it/s]Epoch 6/20:  94%|█████████▍| 181/193 [01:00<00:05,  2.33it/s]Epoch 6/20:  94%|█████████▍| 182/193 [01:01<00:04,  2.27it/s]Epoch 6/20:  95%|█████████▍| 183/193 [01:01<00:03,  2.55it/s]Epoch 6/20:  95%|█████████▌| 184/193 [01:01<00:03,  2.77it/s]Epoch 6/20:  96%|█████████▌| 185/193 [01:01<00:02,  2.97it/s]Epoch 6/20:  96%|█████████▋| 186/193 [01:02<00:02,  3.12it/s]Epoch 6/20:  97%|█████████▋| 187/193 [01:02<00:01,  3.24it/s]Epoch 6/20:  97%|█████████▋| 188/193 [01:02<00:01,  3.31it/s]Epoch 6/20:  98%|█████████▊| 189/193 [01:03<00:01,  3.34it/s]Epoch 6/20:  98%|█████████▊| 190/193 [01:03<00:00,  3.40it/s]Epoch 6/20:  99%|█████████▉| 191/193 [01:03<00:00,  3.41it/s]Epoch 6/20:  99%|█████████▉| 192/193 [01:03<00:00,  3.45it/s]Epoch 6/20: 100%|██████████| 193/193 [01:04<00:00,  3.39it/s]Epoch 6/20: 100%|██████████| 193/193 [01:04<00:00,  3.01it/s]
+
+[Epoch 6] Computing global DICE on full volume...
+  GLOBAL DICE: 0.7880
+  GLOBAL IoU:  0.6501
+  Precision:   0.8899
+  Recall:      0.7070
+  TP: 26,920 | FP: 3,332 | FN: 11,156
+  [VAL] Loss: 0.080221
+  [VAL] DICE: 0.6342 | IoU: 0.4644
+  [VAL] Precision: 0.7092 | Recall: 0.5736
+  [EARLY STOPPING] No improvement for 5/5 epochs
+
+============================================================
+EARLY STOPPING: Validation loss hasn't improved for 5 epochs
+Best validation loss: 0.026413
+============================================================
+  [NEW BEST] Saved best model (val DICE=0.6342)
+Epoch 6/20 | Time: 133.1s | Loss: 0.0783 | ε: 0.482
+  Returns - Total: -12985.03 | Base: -8304.72 | Cont: -4680.33 | Grad: 0.00| DICE: 0.03 | Manhattan: 0.00
+
+Training stopped early at epoch 6
+
+============================================================
+FINAL GLOBAL EVALUATION
+============================================================
+Final DICE: 0.7880
+Final IoU:  0.6501
+
+Saving best validation prediction (epoch 6, DICE=0.6342)...
+Saved best validation prediction to: results/rapids-p/subvolumes/32x32x32/cont_0.2_grad_0.0_manh_0.0/best_val_prediction.nii.gz
+  Shape: (800, 466, 471)
+  Foreground voxels: 74,833 (0.0426%)

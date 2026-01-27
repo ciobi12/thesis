@@ -387,13 +387,13 @@ def generate_dataset(num_samples=5,
 if __name__ == "__main__":    
     print("Generating root structure dataset...")
     ds_dir = "../../../data/ct_like/3d"
-    generate_dataset(num_samples=10,
+    generate_dataset(num_samples=20,
                      presets=LSYSTEM_PRESETS,
                      size=(128, 128, 128), 
-                     noise_sigma=0.1,
-                     streak_prob=0.1,
+                     noise_sigma=0.25,
+                     streak_prob=0.25,
                      output_dir=ds_dir)
-    print("\nDone! Volumes saved to 'data/ct_like/3d_new/' directory")
+    print("\nDone! Volumes saved to 'data/ct_like/3d' directory")
 
     val_vols_path = os.path.join(ds_dir, "val", "volumes")
     val_masks_path = os.path.join(ds_dir, "val", "masks")
@@ -427,35 +427,35 @@ if __name__ == "__main__":
     print(f"Selected slices with highest voxel counts: {[(s[0], s[1]) for s in slice_nonzero_counts[:3]]}")
     
     print("\nVisualizing sample with slices...")
-    fig, axes = plt.subplots(2, 3, figsize=(16, 8))
-    fig.suptitle('Volume Slices: Noisy (1st row) | Mask (2nd row)', fontsize=14)
+    # fig, axes = plt.subplots(2, 3, figsize=(16, 8))
+    # fig.suptitle('Volume Slices: Noisy (1st row) | Mask (2nd row)', fontsize=14)
     
-    for i, slice_idx in enumerate(slice_indices):
-        # Noisy volume slice
-        axes[0, i].imshow(volume[slice_idx], cmap='gray', vmin=0, vmax=1)
-        axes[0, i].set_title(f'Noisy - Slice {slice_idx}/{D}')
-        axes[0, i].axis('off')
+    # for i, slice_idx in enumerate(slice_indices):
+    #     # Noisy volume slice
+    #     axes[0, i].imshow(volume[slice_idx], cmap='gray', vmin=0, vmax=1)
+    #     axes[0, i].set_title(f'Noisy - Slice {slice_idx}/{D}')
+    #     axes[0, i].axis('off')
         
-        # Mask slice
-        axes[1, i].imshow(mask[slice_idx], cmap='gray', vmin=0, vmax=1)
-        axes[1, i].set_title(f'Mask - Slice {slice_idx}/{D}')
-        axes[1, i].axis('off')
+    #     # Mask slice
+    #     axes[1, i].imshow(mask[slice_idx], cmap='gray', vmin=0, vmax=1)
+    #     axes[1, i].set_title(f'Mask - Slice {slice_idx}/{D}')
+    #     axes[1, i].axis('off')
         
-        # # Overlay: show mask in red on top of noisy volume
-        # overlay = np.stack([
-        #     volume[slice_idx] + 0.5 * mask[slice_idx],  # Red channel
-        #     volume[slice_idx],                          # Green channel
-        #     volume[slice_idx]                           # Blue channel
-        # ], axis=-1)
-        # overlay = np.clip(overlay, 0, 1)
-        # axes[i, 2].imshow(overlay)
-        # axes[i, 2].set_title(f'Overlay - Slice {slice_idx}/{D}')
-        # axes[i, 2].axis('off')
+    #     # # Overlay: show mask in red on top of noisy volume
+    #     # overlay = np.stack([
+    #     #     volume[slice_idx] + 0.5 * mask[slice_idx],  # Red channel
+    #     #     volume[slice_idx],                          # Green channel
+    #     #     volume[slice_idx]                           # Blue channel
+    #     # ], axis=-1)
+    #     # overlay = np.clip(overlay, 0, 1)
+    #     # axes[i, 2].imshow(overlay)
+    #     # axes[i, 2].set_title(f'Overlay - Slice {slice_idx}/{D}')
+    #     # axes[i, 2].axis('off')
     
-    plt.tight_layout()
-    plt.savefig('slice_visualization.png', dpi=150, bbox_inches='tight')
-    print("Saved slice visualization to 'slice_visualization.png'")
-    plt.show()
+    # plt.tight_layout()
+    # plt.savefig('slice_visualization.png', dpi=150, bbox_inches='tight')
+    # print("Saved slice visualization to 'slice_visualization.png'")
+    # plt.show()
     
     # # 3D visualization with PyVista
     # print("\nShowing 3D visualization...")
