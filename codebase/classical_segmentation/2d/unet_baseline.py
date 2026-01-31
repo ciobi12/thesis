@@ -142,18 +142,19 @@ class UNet(nn.Module):
         
         return torch.sigmoid(self.out(dec1))
 
-def dice_loss(pred, target, smooth=1e-6):
-    """Dice loss for better handling of class imbalance"""
+
+def f1_loss(pred, target, smooth=1e-6):
+    """F1 loss (Dice loss) for better handling of class imbalance"""
     intersection = (pred * target).sum(dim=(2, 3))
     union = pred.sum(dim=(2, 3)) + target.sum(dim=(2, 3))
-    dice = (2. * intersection + smooth) / (union + smooth)
-    return 1 - dice.mean()
+    f1 = (2. * intersection + smooth) / (union + smooth)
+    return 1 - f1.mean()
 
 def combined_loss(pred, target):
-    """BCE + Dice loss for robust training"""
+    """BCE + F1 loss for robust training"""
     bce = nn.BCELoss()(pred, target)
-    dice = dice_loss(pred, target)
-    return 0.5 * bce + 0.5 * dice
+    f1 = f1_loss(pred, target)
+    return 0.5 * bce + 0.5 * f1
 
 def train_epoch(model, dataloader, optimizer, device):
     model.train()
@@ -175,7 +176,7 @@ def train_epoch(model, dataloader, optimizer, device):
 def evaluate(model, dataloader, device):
     model.eval()
     total_iou = 0
-    total_dice = 0
+    total_f1 = 0
     total_loss = 0
     with torch.no_grad():
         for images, masks in dataloader:
@@ -186,34 +187,31 @@ def evaluate(model, dataloader, device):
             intersection = (preds * masks).sum(dim=(2, 3))
             union = (preds + masks).clamp(0, 1).sum(dim=(2, 3))
             iou = (intersection / (union + 1e-6)).mean()
-            # Dice
-            dice = (2 * intersection) / (preds.sum(dim=(2, 3)) + masks.sum(dim=(2, 3)) + 1e-6)
+            # F1 (Dice)
+            f1 = (2 * intersection) / (preds.sum(dim=(2, 3)) + masks.sum(dim=(2, 3)) + 1e-6)
             # Loss
             loss = combined_loss(outputs, masks)
             total_iou += iou.item()
-            total_dice += dice.mean().item()
+            total_f1 += f1.mean().item()
             total_loss += loss.item()
-    return total_loss / len(dataloader), total_iou / len(dataloader), total_dice / len(dataloader)
+    return total_loss / len(dataloader), total_iou / len(dataloader), total_f1 / len(dataloader)
 
 def main():
     # Configuration
     data_root = "../../../data/"
     batch_size = 8
-    num_epochs = 100
+    num_epochs = 75
     lr = 1e-3
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    # # Data loading (new folder structure)
-    # train_images = os.path.join(data_root, "train/images")
-    # train_masks = os.path.join(data_root, "train/segm")
-    # val_images = os.path.join(data_root, "val/images")
-    # val_masks = os.path.join(data_root, "val/segm")
-
-    # train_dataset = BranchingStructureDataset(train_images, train_masks)
-    # val_dataset = BranchingStructureDataset(val_images, val_masks)
-
-    train_dataset = RetinalStructureDataset(os.path.join(data_root, "DRIVE"), os.path.join(data_root, "STARE"), split="train")
-    val_dataset = RetinalStructureDataset(os.path.join(data_root, "DRIVE"), os.path.join(data_root, "STARE"), split="val")
+    
+    train_dataset = BranchingStructureDataset(os.path.join(data_root, "ct_like/2d/train", "images"), 
+                                              os.path.join(data_root, "ct_like/2d/train", "segm"))
+    
+    val_dataset = BranchingStructureDataset(os.path.join(data_root, "ct_like/2d/val", "images"), 
+                                            os.path.join(data_root, "ct_like/2d/val", "segm"))
+    
+    # train_dataset = RetinalStructureDataset(os.path.join(data_root, "DRIVE"), os.path.join(data_root, "STARE"), split="train")
+    # val_dataset = RetinalStructureDataset(os.path.join(data_root, "DRIVE"), os.path.join(data_root, "STARE"), split="val")
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
@@ -224,29 +222,34 @@ def main():
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', patience=10)
 
     # Training loop
+    import time
     best_iou = 0
     train_losses = []
     val_losses = []
     val_ious = []
-    val_dices = []
+    val_f1s = []
+    start_time = time.time()
     for epoch in range(num_epochs):
         train_loss = train_epoch(model, train_loader, optimizer, device)
-        val_loss, val_iou, val_dice = evaluate(model, val_loader, device)
+        val_loss, val_iou, val_f1 = evaluate(model, val_loader, device)
         train_losses.append(train_loss)
         val_losses.append(val_loss)
         val_ious.append(val_iou)
-        val_dices.append(val_dice)
+        val_f1s.append(val_f1)
         scheduler.step(val_iou)
-        print(f"Epoch {epoch+1}/{num_epochs} - Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, Val IoU: {val_iou:.4f}, Val Dice: {val_dice:.4f}")
+        print(f"Epoch {epoch+1}/{num_epochs} - Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, Val IoU: {val_iou:.4f}, Val F1: {val_f1:.4f}")
         if val_iou > best_iou:
             best_iou = val_iou
             torch.save(model.state_dict(), "best_unet.pth")
             print(f"Saved best model with IoU: {best_iou:.4f}")
+    total_time = time.time() - start_time
+    avg_epoch_time = total_time / num_epochs
+    print(f"Average epoch time: {avg_epoch_time:.2f} seconds")
     # Save metrics plot
-    plot_training_metrics(train_losses, val_losses, val_ious, val_dices, "unet_training_metrics.png")
+    plot_training_metrics(train_losses, val_losses, val_ious, val_f1s, "unet_training_metrics.png")
     print("Saved training metrics plot to unet_training_metrics.png")
 
-def plot_training_metrics(train_losses, val_losses, val_ious, val_dices, save_path):
+def plot_training_metrics(train_losses, val_losses, val_ious, val_f1s, save_path):
     import matplotlib.pyplot as plt
     epochs = range(1, len(train_losses) + 1)
     fig, axs = plt.subplots(2, 2, figsize=(12, 10))
@@ -268,10 +271,10 @@ def plot_training_metrics(train_losses, val_losses, val_ious, val_dices, save_pa
     axs[1, 0].set_ylabel('IoU')
     axs[1, 0].legend()
 
-    axs[1, 1].plot(epochs, val_dices, label='Val Dice', color='red')
-    axs[1, 1].set_title('Validation Dice')
+    axs[1, 1].plot(epochs, val_f1s, label='Val F1', color='red')
+    axs[1, 1].set_title('Validation F1 Score')
     axs[1, 1].set_xlabel('Epoch')
-    axs[1, 1].set_ylabel('Dice')
+    axs[1, 1].set_ylabel('F1 Score')
     axs[1, 1].legend()
 
     plt.tight_layout()

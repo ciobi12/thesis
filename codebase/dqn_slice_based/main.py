@@ -137,7 +137,7 @@ def parse_grid_index(filename: str):
     return None
 
 
-def load_subvolume_pairs_with_positions(data_dir: str, min_fg_ratio: float = 0.0):
+def load_subvolume_pairs_with_positions(data_dir: str, min_fg_ratio: float = 0.0, verbose: bool = False):
     """
     Load subvolumes along with their grid positions for reconstruction.
     
@@ -202,7 +202,8 @@ def load_subvolume_pairs_with_positions(data_dir: str, min_fg_ratio: float = 0.0
         masks.append(mask)
         positions.append(pos)
         
-        print(f"Loaded: {vol_file} at position {pos} (fg={fg_ratio*100:.4f}%)")
+        if verbose:
+            print(f"Loaded: {vol_file} at position {pos} (fg={fg_ratio*100:.4f}%)")
     
     print(f"\nSummary: Loaded {len(volumes)} subvolumes")
     if n_skipped_no_mask > 0:
@@ -567,7 +568,7 @@ def train_with_global_dice(
                 episode_reward += reward
                 episode_base_reward += info["base_rewards"].sum()
                 episode_continuity_reward += info["continuity_rewards"].sum()
-                episode_gradient_reward += info["gradient_rewards"]
+                episode_gradient_reward += info["gradient_rewards"].sum()
                 episode_manhattan_reward += info.get("manhattan_reward", 0.0)  # Per-slice Manhattan
                 
                 # Store transition (now includes future_slices)
