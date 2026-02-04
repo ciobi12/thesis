@@ -390,8 +390,8 @@ if __name__ == "__main__":
     generate_dataset(num_samples=20,
                      presets=LSYSTEM_PRESETS,
                      size=(128, 128, 128), 
-                     noise_sigma=0.25,
-                     streak_prob=0.25,
+                     noise_sigma=0.1,
+                     streak_prob=0.1,
                      output_dir=ds_dir)
     print("\nDone! Volumes saved to 'data/ct_like/3d' directory")
 
