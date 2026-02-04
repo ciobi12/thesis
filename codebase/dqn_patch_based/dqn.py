@@ -32,31 +32,6 @@ def batch_obs_to_tensor(obs_list, device):
     )  # (B, 4, N, N)
     return patch_pixels, below_patches, above_patches, neighbor_masks
 
-
-class PerPatchCNN(nn.Module):
-    """Per-patch pixel-level Q-network: outputs (2, N, N) Q-values (for actions 0/1 per pixel)."""
-    def __init__(self, N, C, hidden_channels=32):
-        super().__init__()
-        self.N = N
-        self.C = C
-        in_ch = C + 1  # image channels + prev_pred
-        self.net = nn.Sequential(
-            nn.Conv2d(in_ch, hidden_channels, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(hidden_channels, hidden_channels, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(hidden_channels, 2, kernel_size=1),  # per-pixel Q-values for 0/1
-        )
-
-    def forward(self, obs):
-        # obs["patch_pixels"]: (C, N, N), obs["prev_pred"]: (1, N, N)
-        # Concatenate along channel dimension before adding batch dim
-        x = torch.cat([obs["patch_pixels"], obs["prev_pred"]], dim=0)  # (in_ch, N, N)
-        x = x.unsqueeze(0)  # (1, in_ch, N, N)
-        q = self.net(x)  # (B, 2, N, N)
-        return q.squeeze(0)  # (2, N, N) for unbatched case
-
-
 class NeighborContextCNN(nn.Module):
     """Enhanced architecture that uses spatial neighbor context.
     
