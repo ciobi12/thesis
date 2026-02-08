@@ -34,7 +34,7 @@ lsys_obj = LSystem2DGenerator(axiom = "X",
                               rules = {"X": "F+[[X]-X]-F[-FX]+X",
                                        "F": "FF"})
 
-iterations = 2
+iterations = 3
 angle = 22.5
 step = 5
 
@@ -112,7 +112,7 @@ end = perf_counter()
 print(f"Training completed in {end - start:.2f} seconds.")
 
 
-fig, axs = plt.subplots(3, 1, figsize=(6, 11))
+fig, axs = plt.subplots(3, 1)
 
 axs[0].plot(range(len(rewards)), rewards)
 axs[0].set_title("Rewards")
