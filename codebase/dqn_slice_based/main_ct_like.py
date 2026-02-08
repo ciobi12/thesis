@@ -35,7 +35,7 @@ ROTATE_PROB = 0.5
 INTENSITY_PROB = 0.3
 NOISE_PROB = 0.2
 
-VOLUME_SHAPE = (128, 128, 128)
+VOLUME_SHAPE = (64, 64, 64)  # Subvolume shape
 
 # ============================================================================
 # Data Augmentation
@@ -86,9 +86,21 @@ def augment_volume_and_mask(vol: np.ndarray, mask: np.ndarray,
 
 def load_volume_pairs(data_dir: str, min_fg_ratio: float = 0.0):
     """
-    Load full volume/mask pairs from directory.
+    Load volume/mask pairs from directory (supports both full volumes and subvolumes).
 
-    Expects directory structure:
+    Expects directory structure (subvolumes):
+        data_dir/
+            vol_000/
+                volumes/
+                    subvol_d00_h00_w00.npy
+                    ...
+                masks/
+                    subvol_d00_h00_w00.npy
+                    ...
+            vol_001/
+                ...
+
+    OR (full volumes):
         data_dir/
             volumes/
                 root_volume_XXX.npy
@@ -96,7 +108,7 @@ def load_volume_pairs(data_dir: str, min_fg_ratio: float = 0.0):
                 root_mask_XXX.npy
 
     Args:
-        data_dir: Path to directory containing volumes/ and masks/ subdirectories
+        data_dir: Path to directory containing either vol_XXX/ subdirectories or volumes/masks/ subdirectories
         min_fg_ratio: Minimum foreground ratio to include volume
 
     Returns:
@@ -106,52 +118,109 @@ def load_volume_pairs(data_dir: str, min_fg_ratio: float = 0.0):
     volumes = []
     masks = []
 
-    volumes_dir = os.path.join(data_dir, "volumes")
-    masks_dir = os.path.join(data_dir, "masks")
+    # Check if this is a subvolume directory structure (has vol_XXX subdirectories)
+    subdirs = [d for d in os.listdir(data_dir) if os.path.isdir(os.path.join(data_dir, d)) and d.startswith("vol_")]
 
-    if not os.path.exists(volumes_dir) or not os.path.exists(masks_dir):
-        print(f"Error: Expected volumes/ and masks/ subdirectories in {data_dir}")
-        return volumes, masks
+    if subdirs:
+        # Load subvolumes from vol_XXX subdirectories
+        print(f"Found {len(subdirs)} volume directories with subvolumes")
 
-    vol_files = sorted([f for f in os.listdir(volumes_dir) if f.endswith(".npy")])
+        n_skipped_no_mask = 0
+        n_skipped_empty = 0
 
-    n_skipped_no_mask = 0
-    n_skipped_empty = 0
+        for vol_dir in sorted(subdirs):
+            vol_dir_path = os.path.join(data_dir, vol_dir)
+            volumes_dir = os.path.join(vol_dir_path, "volumes")
+            masks_dir = os.path.join(vol_dir_path, "masks")
 
-    for vol_file in vol_files:
-        vol_path = os.path.join(volumes_dir, vol_file)
-        # Map volume filename to mask filename
-        mask_file = vol_file.replace("volume", "mask")
-        mask_path = os.path.join(masks_dir, mask_file)
+            if not os.path.exists(volumes_dir) or not os.path.exists(masks_dir):
+                print(f"Skipping {vol_dir}: missing volumes/ or masks/ subdirectory")
+                continue
 
-        if not os.path.exists(mask_path):
-            n_skipped_no_mask += 1
-            continue
+            # Load all subvolumes from this directory
+            vol_files = sorted([f for f in os.listdir(volumes_dir) if f.endswith(".npy")])
 
-        # Load mask first to check foreground ratio
-        mask = np.load(mask_path)
-        fg_ratio = mask.mean()
+            for vol_file in vol_files:
+                vol_path = os.path.join(volumes_dir, vol_file)
+                mask_path = os.path.join(masks_dir, vol_file)  # Same filename for mask
 
-        if fg_ratio < min_fg_ratio:
-            n_skipped_empty += 1
-            continue
+                if not os.path.exists(mask_path):
+                    n_skipped_no_mask += 1
+                    continue
 
-        vol = np.load(vol_path)
+                # Load mask first to check foreground ratio
+                mask = np.load(mask_path)
+                fg_ratio = mask.mean()
 
-        # Normalize volume to [0, 1] if needed
-        if vol.max() > 1:
-            vol = vol.astype(np.float32) / 255.0
+                if fg_ratio < min_fg_ratio:
+                    n_skipped_empty += 1
+                    continue
 
-        volumes.append(vol)
-        masks.append(mask)
+                vol = np.load(vol_path)
 
-        print(f"Loaded: {vol_file} (fg={fg_ratio*100:.4f}%)")
+                # Normalize volume to [0, 1] if needed
+                if vol.max() > 1:
+                    vol = vol.astype(np.float32) / 255.0
 
-    print(f"\nSummary: Loaded {len(volumes)} volumes")
-    if n_skipped_no_mask > 0:
-        print(f"  Skipped {n_skipped_no_mask} (no matching mask)")
-    if n_skipped_empty > 0:
-        print(f"  Skipped {n_skipped_empty} (fg_ratio < {min_fg_ratio*100:.2f}%)")
+                volumes.append(vol)
+                masks.append(mask)
+
+                print(f"Loaded: {vol_dir}/{vol_file} (fg={fg_ratio*100:.4f}%)")
+
+        print(f"\nSummary: Loaded {len(volumes)} subvolumes")
+        if n_skipped_no_mask > 0:
+            print(f"  Skipped {n_skipped_no_mask} (no matching mask)")
+        if n_skipped_empty > 0:
+            print(f"  Skipped {n_skipped_empty} (fg_ratio < {min_fg_ratio*100:.2f}%)")
+
+    else:
+        # Load full volumes from volumes/ and masks/ subdirectories (original behavior)
+        volumes_dir = os.path.join(data_dir, "volumes")
+        masks_dir = os.path.join(data_dir, "masks")
+
+        if not os.path.exists(volumes_dir) or not os.path.exists(masks_dir):
+            print(f"Error: Expected volumes/ and masks/ subdirectories in {data_dir}")
+            return volumes, masks
+
+        vol_files = sorted([f for f in os.listdir(volumes_dir) if f.endswith(".npy")])
+
+        n_skipped_no_mask = 0
+        n_skipped_empty = 0
+
+        for vol_file in vol_files:
+            vol_path = os.path.join(volumes_dir, vol_file)
+            # Map volume filename to mask filename
+            mask_file = vol_file.replace("volume", "mask")
+            mask_path = os.path.join(masks_dir, mask_file)
+
+            if not os.path.exists(mask_path):
+                n_skipped_no_mask += 1
+                continue
+
+            # Load mask first to check foreground ratio
+            mask = np.load(mask_path)
+            fg_ratio = mask.mean()
+
+            if fg_ratio < min_fg_ratio:
+                n_skipped_empty += 1
+                continue
+
+            vol = np.load(vol_path)
+
+            # Normalize volume to [0, 1] if needed
+            if vol.max() > 1:
+                vol = vol.astype(np.float32) / 255.0
+
+            volumes.append(vol)
+            masks.append(mask)
+
+            print(f"Loaded: {vol_file} (fg={fg_ratio*100:.4f}%)")
+
+        print(f"\nSummary: Loaded {len(volumes)} volumes")
+        if n_skipped_no_mask > 0:
+            print(f"  Skipped {n_skipped_no_mask} (no matching mask)")
+        if n_skipped_empty > 0:
+            print(f"  Skipped {n_skipped_empty} (fg_ratio < {min_fg_ratio*100:.2f}%)")
 
     return volumes, masks
 
@@ -919,7 +988,7 @@ def plot_training_results(results: dict, save_dir: str = "results"):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="DQN training for CT-Like dataset (full volumes)")
-    parser.add_argument("--data_dir", type=str, default="../../data/ct_like/3d",
+    parser.add_argument("--data_dir", type=str, default="../../data/ct_like/3d_subvolumes",
                         help="Directory containing train/val subdirectories")
     parser.add_argument("--min_fg_ratio", type=float, default=0.0001,
                         help="Minimum foreground ratio to include volume")
@@ -958,7 +1027,7 @@ if __name__ == "__main__":
     print(f"Loaded {len(val_vols)} validation volumes")
 
     # Create save directory
-    save_dir = os.path.join(f"results/ct_like",
+    save_dir = os.path.join(f"results/ct_like_subvolumes",
                             f"cont_{args.cont}_grad_{args.grad}_manh_{args.manhattan}")
     os.makedirs(save_dir, exist_ok=True)
 
