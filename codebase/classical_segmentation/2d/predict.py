@@ -200,8 +200,8 @@ if __name__ == "__main__":
     # Get mask with visualization
     result = predict_and_visualize(
         model, 
-        "../../../data/DRIVE/val/images/21_training.tif",
-        "../../../data/DRIVE/val/segm/21_manual1.gif",
+        "../../../data/DRIVE/val/images/22_training.tif",
+        "../../../data/DRIVE/val/segm/22_manual1.gif",
         device,
         save_path="results/drive+stare/prediction.png"
     )
