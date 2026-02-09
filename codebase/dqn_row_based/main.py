@@ -4,7 +4,6 @@ import numpy as np
 import os
 import random
 import time
-from onnx import save
 from sklearn import base
 import torch
 
@@ -639,87 +638,54 @@ if __name__ == "__main__":
         visualize_result(img_test, mask_test, pred, save_path = f"dqn_row_based/results/{save_dir}/reconstructions/final_image_{i+1}.png")
 
     # Plot training curves
-    fig, axes = plt.subplots(2, 3, figsize=(20, 10))
-    
-    # Returns (Train vs Val)
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+    # (0,0) Reward
     axes[0, 0].plot(results["returns"], alpha=0.3, color='blue', label='Train (per image)')
-    # Moving average for train returns
-    window = len(train_imgs)
-    train_returns_ma = [np.mean(results["returns"][max(0, i-window+1):i+1]) 
+    window = len(train_imgs) if len(train_imgs) > 0 else 1
+    train_returns_ma = [np.mean(results["returns"][max(0, i-window+1):i+1])
                         for i in range(len(results["returns"]))]
     axes[0, 0].plot(train_returns_ma, color='blue', linewidth=2, label='Train (moving average)')
-    # if results["val_returns"]:
-    #     axes[0, 0].plot(np.arange(len(results["val_returns"])) * len(train_imgs), 
-    #                     results["val_returns"], color='red', marker='o', linewidth=2, label='Val')
     axes[0, 0].set_title("Episode Returns")
-    # axes[0, 0].set_ylabel("Return")
     axes[0, 0].set_xlabel("Episode")
-    axes[0, 0].legend()
     axes[0, 0].grid(True)
-    
-    # Epsilon
+
+    # (0,1) Epsilon
     axes[0, 1].plot(results["epsilons"], color='orange', linestyle='dashed')
     axes[0, 1].set_title("Exploration (Epsilon)")
-    # axes[0, 1].set_ylabel("ε")
     axes[0, 1].set_xlabel("Episode")
     axes[0, 1].grid(True)
-    
-    # Loss (Train vs Val)
-    axes[0, 2].plot(results["train_losses"], color='red', marker='o', label='Train')
+
+    # (1,0) Train/Val Loss
+    axes[1, 0].plot(results["train_losses"], color='red', marker='o', label='Train')
     if results["val_losses"]:
-        axes[0, 2].plot(results["val_losses"], color='darkred', marker='s', label='Val')
-    axes[0, 2].set_title("MSE loss per Epoch")
-    # axes[0, 2].set_ylabel("MSE Loss")
-    axes[0, 2].set_xlabel("Epoch")
-    axes[0, 2].legend()
-    axes[0, 2].grid(True)
-    
-    # IoU
-    axes[1, 0].plot(results["train_metrics"]["iou"], label="Train", marker='o', markersize = 2)
-    if results["val_metrics"]["iou"]:
-        axes[1, 0].plot(results["val_metrics"]["iou"], label="Val", marker='s', markersize = 2)
-    axes[1, 0].set_title("IoU")
-    # axes[1, 0].set_ylabel("IoU")
+        axes[1, 0].plot(results["val_losses"], color='darkred', marker='s', label='Val')
+    axes[1, 0].set_title("MSE Loss per Epoch")
     axes[1, 0].set_xlabel("Epoch")
     axes[1, 0].legend()
     axes[1, 0].grid(True)
-    
-    # F1 Score
-    axes[1, 1].plot(results["train_metrics"]["f1"], label="Train", marker='o', markersize = 2)
+
+    # (1,1) Metrics: IoU, F1, Coverage for train and val
+    axes[1, 1].plot(results["train_metrics"]["iou"], label="Train IoU", marker='o', markersize=2, color='blue')
+    axes[1, 1].plot(results["train_metrics"]["f1"], label="Train F1", marker='o', markersize=2, color='green')
+    axes[1, 1].plot(results["train_metrics"]["coverage"], label="Train Coverage", marker='o', markersize=2, color='red')
+    if results["val_metrics"]["iou"]:
+        axes[1, 1].plot(results["val_metrics"]["iou"], label="Val IoU", marker='s', markersize=2, linestyle='dashed', color='blue')
     if results["val_metrics"]["f1"]:
-        axes[1, 1].plot(results["val_metrics"]["f1"], label="Val", marker='s', markersize = 2)
-    axes[1, 1].set_title("F1 Score")
-    # axes[1, 1].set_ylabel("F1")
+        axes[1, 1].plot(results["val_metrics"]["f1"], label="Val F1", marker='s', markersize=2, linestyle='dashed', color='green')
+    if results["val_metrics"]["coverage"]:
+        axes[1, 1].plot(results["val_metrics"]["coverage"], label="Val Coverage", marker='s', markersize=2, linestyle='dashed', color='red')
+    axes[1, 1].set_title("Metrics")
     axes[1, 1].set_xlabel("Epoch")
     axes[1, 1].legend()
     axes[1, 1].grid(True)
-    
-    # # Accuracy
-    # axes[1, 2].plot(results["train_metrics"]["accuracy"], label="Train", marker='o', markersize = 2)
-    # if results["val_metrics"]["accuracy"]:
-    #     axes[1, 2].plot(results["val_metrics"]["accuracy"], label="Val", marker='s', markersize = 2)
-    # axes[1, 2].set_title("Pixel Accuracy")
-    # # axes[1, 2].set_ylabel("Accuracy")
-    # axes[1, 2].set_xlabel("Epoch")
-    # axes[1, 2].legend()
-    # axes[1, 2].grid(True)
-    
-    # Coverage
-    axes[1, 2].plot(results["train_metrics"]["coverage"], label="Train", marker='o', markersize = 2)
-    if results["val_metrics"]["coverage"]:
-        axes[1, 2].plot(results["val_metrics"]["coverage"], label="Val", marker='s', markersize = 2)
-    axes[1, 2].set_title("Coverage")
-    # axes[1, 2].set_ylabel("Coverage")
-    axes[1, 2].set_xlabel("Epoch")
-    axes[1, 2].legend()
-    axes[1, 2].grid(True)
 
     plt.tight_layout()
     plt.savefig(f"dqn_row_based/results/{save_dir}/training_results.png", dpi=300)
     # plt.show()
     
     # Plot conn_info metrics (reward components)
-    fig2, axes2 = plt.subplots(1, 3, figsize=(20, 5))
+    fig2, axes2 = plt.subplots(1, 2, figsize=(14, 5))
     
     # Moving average window
     window = len(train_imgs)
@@ -729,31 +695,26 @@ if __name__ == "__main__":
                               np.ones(window)/window, 
                               mode='valid'), 
                   label="Base Reward", color='green')
-    axes2[0].set_title("Base Reward (Moving Average)")
+    axes2[0].plot(np.convolve(results["continuity_returns"], 
+                              np.ones(window)/window,
+                              mode='valid'), 
+                  label="Continuity Reward", color='blue')
+    axes2[0].set_title("Base + Continuity Rewards (Moving Average)")
     axes2[0].set_ylabel("Reward")
     axes2[0].set_xlabel("Episode")
     axes2[0].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
     axes2[0].grid(True)
-
-    # Continuity reward
-    axes2[1].plot(np.convolve(results["continuity_returns"], 
-                              np.ones(window)/window,
-                              mode='valid'), 
-                  label="Continuity Reward", color='blue')
-    axes2[1].set_title("Continuity Reward (Moving Average)")
-    axes2[1].set_xlabel("Episode")
-    axes2[1].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
-    axes2[1].grid(True)
+    axes2[0].legend()
     
     # Gradient reward
-    axes2[2].plot(np.convolve(results["gradient_returns"], 
+    axes2[1].plot(np.convolve(results["gradient_returns"], 
                               np.ones(window)/window,
                               mode='valid'), 
                   label="Gradient Reward", color='orange')
-    axes2[2].set_title("Gradient Reward (Moving Average)")
-    axes2[2].set_xlabel("Episode")
-    axes2[2].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
-    axes2[2].grid(True)
+    axes2[1].set_title("Gradient Reward (Moving Average)")
+    axes2[1].set_xlabel("Episode")
+    axes2[1].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+    axes2[1].grid(True)
     
     plt.tight_layout()
     plt.savefig(f"dqn_row_based/results/{save_dir}/reward_components_analysis.png", dpi=300)

@@ -592,61 +592,47 @@ if __name__ == "__main__":
         visualize_result(img_test, mask_test, pred, save_path=f"dqn_patch_based/results/{save_dir}/reconstructions/final_image_{i+1}.png")
 
     # Plot training curves
-    fig, axes = plt.subplots(2, 3, figsize=(20, 10))
-    
-    # Returns (Train vs Val)
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+    # (0,0) Reward
     axes[0, 0].plot(results["returns"], alpha=0.3, color='blue', label='Train (per image)')
-    # Moving average for train returns
     window = len(train_imgs) if len(train_imgs) > 0 else 1
-    train_returns_ma = [np.mean(results["returns"][max(0, i-window+1):i+1]) 
+    train_returns_ma = [np.mean(results["returns"][max(0, i-window+1):i+1])
                         for i in range(len(results["returns"]))]
     axes[0, 0].plot(train_returns_ma, color='blue', linewidth=2, label='Train (moving average)')
     axes[0, 0].set_title("Episode Returns")
     axes[0, 0].set_xlabel("Episode")
-    axes[0, 0].legend()
     axes[0, 0].grid(True)
-    
-    # Epsilon
+
+    # (0,1) Epsilon
     axes[0, 1].plot(results["epsilons"], color='orange', linestyle='dashed')
     axes[0, 1].set_title("Exploration (Epsilon)")
     axes[0, 1].set_xlabel("Episode")
     axes[0, 1].grid(True)
-    
-    # Loss (Train vs Val)
-    axes[0, 2].plot(results["train_losses"], color='red', marker='o', label='Train')
+
+    # (1,0) Train/Val Loss
+    axes[1, 0].plot(results["train_losses"], color='red', marker='o', label='Train')
     if results["val_losses"]:
-        axes[0, 2].plot(results["val_losses"], color='darkred', marker='s', label='Val')
-    axes[0, 2].set_title("MSE loss per Epoch")
-    axes[0, 2].set_xlabel("Epoch")
-    axes[0, 2].legend()
-    axes[0, 2].grid(True)
-    
-    # IoU
-    axes[1, 0].plot(results["train_metrics"]["iou"], label="Train", marker='o', markersize=2)
-    if results["val_metrics"]["iou"]:
-        axes[1, 0].plot(results["val_metrics"]["iou"], label="Val", marker='s', markersize=2)
-    axes[1, 0].set_title("IoU")
+        axes[1, 0].plot(results["val_losses"], color='darkred', marker='s', label='Val')
+    axes[1, 0].set_title("MSE Loss per Epoch")
     axes[1, 0].set_xlabel("Epoch")
     axes[1, 0].legend()
     axes[1, 0].grid(True)
-    
-    # F1 Score
-    axes[1, 1].plot(results["train_metrics"]["f1"], label="Train", marker='o', markersize=2)
+
+    # (1,1) Metrics: IoU, F1, Coverage for train and val
+    axes[1, 1].plot(results["train_metrics"]["iou"], label="Train IoU", marker='o', markersize=2, color='blue')
+    axes[1, 1].plot(results["train_metrics"]["f1"], label="Train F1", marker='o', markersize=2, color='green')
+    axes[1, 1].plot(results["train_metrics"]["coverage"], label="Train Coverage", marker='o', markersize=2, color='red')
+    if results["val_metrics"]["iou"]:
+        axes[1, 1].plot(results["val_metrics"]["iou"], label="Val IoU", marker='s', markersize=2, linestyle='dashed', color='blue')
     if results["val_metrics"]["f1"]:
-        axes[1, 1].plot(results["val_metrics"]["f1"], label="Val", marker='s', markersize=2)
-    axes[1, 1].set_title("F1 Score")
+        axes[1, 1].plot(results["val_metrics"]["f1"], label="Val F1", marker='s', markersize=2, linestyle='dashed', color='green')
+    if results["val_metrics"]["coverage"]:
+        axes[1, 1].plot(results["val_metrics"]["coverage"], label="Val Coverage", marker='s', markersize=2, linestyle='dashed', color='red')
+    axes[1, 1].set_title("Metrics")
     axes[1, 1].set_xlabel("Epoch")
     axes[1, 1].legend()
     axes[1, 1].grid(True)
-    
-    # Coverage
-    axes[1, 2].plot(results["train_metrics"]["coverage"], label="Train", marker='o', markersize=2)
-    if results["val_metrics"]["coverage"]:
-        axes[1, 2].plot(results["val_metrics"]["coverage"], label="Val", marker='s', markersize=2)
-    axes[1, 2].set_title("Coverage")
-    axes[1, 2].set_xlabel("Epoch")
-    axes[1, 2].legend()
-    axes[1, 2].grid(True)
 
     plt.tight_layout()
     plt.savefig(f"dqn_patch_based/results/{save_dir}/training_results.png", dpi=300)

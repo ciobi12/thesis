@@ -28,6 +28,7 @@ def train(env: PathTraversalEnv, agent: PatchQLearner, lsys_iter = 2, episodes=1
         # else:
         #     options["reset_global_mask"] = False
         obs, _ = env.reset(options = options)
+        # print(env.agent_xy)
         ep_reward = 0.0
         terminated = False
         truncated = False
@@ -40,12 +41,22 @@ def train(env: PathTraversalEnv, agent: PatchQLearner, lsys_iter = 2, episodes=1
 
             if dead_end:
                 options["start_from_seed"] = False
+
+            # if patch_done:
+            #     Q_table = agent.Q[env.curr_patch_idx]
+            #     x0, y0, _, _ = env.curr_patch_bounds
+            #     x_local, y_local = get_highest_avg_q_pixel(Q_table, env.patch_size)
+            #     env.agent_xy = (x0 + x_local, y0 + y_local)
+            #     env._recenter_patch_to_include(env.agent_xy)
                 
             s_next = agent.state_index(obs_next)
             agent.update(patch_idx, s, a, r, s_next, terminated or truncated or dead_end)
             obs = obs_next
             ep_reward += r
         ep_coverage = info.get("total_coverage", 0)*100
+        # print('Terminated: ', terminated)
+        # print('Truncated:', truncated)
+        # print('Dead end:', dead_end)
 
         rewards.append(ep_reward)
         epsilons.append(agent.eps)
@@ -78,7 +89,7 @@ if __name__ == "__main__":
                                          }
                                 )
     
-    iterations = 3
+    iterations = 2
     angle = 22.5
     step = 5
 
@@ -94,7 +105,7 @@ if __name__ == "__main__":
                                                )
     env = PathTraversalEnv(path_mask=mask, 
                            patch_size = 3, 
-                           target_coverage=0.95, 
+                           target_coverage=0.99, 
                            render_mode = "rgb_array")
     
     episodes = 200
@@ -119,7 +130,7 @@ if __name__ == "__main__":
                np.column_stack([episodes_arr, path_coverage]),
                header="episode coverage", comments="")
 
-    fig, axs = plt.subplots(1, 3, figsize=(15,5))
+    fig, axs = plt.subplots(3, 1, figsize=(5,9))
 
     axs[0].plot(range(len(rewards)), rewards)
     axs[0].set_title("Rewards")
@@ -136,4 +147,4 @@ if __name__ == "__main__":
     plt.grid(True)
     plt.subplots_adjust(top=1.0, bottom=0.0, hspace=0.4)
     plt.savefig(f"{results_dir}/results.png", bbox_inches='tight', pad_inches=0.05)
-    # plt.show()
+    plt.show()
