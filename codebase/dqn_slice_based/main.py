@@ -893,9 +893,9 @@ def plot_training_results(results: dict, save_dir: str = "results"):
     window = n_train_vols
     
     # ========================================================================
-    # FIGURE 1: General Training Results (2x3 layout like dqn_row_based)
+    # FIGURE 1: General Training Results (2x2 layout like dqn_row_based)
     # ========================================================================
-    fig, axes = plt.subplots(2, 3, figsize=(20, 10))
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     
     # ----------------------------------------
     # Plot [0,0]: Episode Returns (Train vs Val)
@@ -920,34 +920,30 @@ def plot_training_results(results: dict, save_dir: str = "results"):
     axes[0, 1].grid(True)
     
     # ----------------------------------------
-    # Plot [0,2]: Loss (Train vs Val)
+    # Plot [1,0]: Loss (Train vs Val)
     # ----------------------------------------
-    axes[0, 2].plot(results["losses"], color='red', marker='o', markersize=4, label='Train')
+    axes[1, 0].plot(results["losses"], color='red', marker='o', markersize=4, label='Train')
     if results.get("val_losses") and len(results["val_losses"]) > 0:
-        axes[0, 2].plot(results["val_losses"], color='darkred', marker='s', markersize=2, label='Val')
-    axes[0, 2].set_title("MSE Loss per Epoch")
-    axes[0, 2].set_xlabel("Epoch")
-    axes[0, 2].legend()
-    axes[0, 2].grid(True)
+        axes[1, 0].plot(results["val_losses"], color='darkred', marker='s', markersize=2, label='Val')
+    axes[1, 0].set_title("MSE Loss per Epoch")
+    axes[1, 0].set_xlabel("Epoch")
+    axes[1, 0].legend()
+    axes[1, 0].grid(True)
     
     # ----------------------------------------
-    # Plot [1,0]: IoU Score (Train vs Val)
+    # Plot [1,1]: IoU Score (Train vs Val)
     # ----------------------------------------
     if results["global_metrics_history"]:
         epochs = list(range(global_eval_interval, 
                            len(results["global_metrics_history"]) * global_eval_interval + 1, 
                            global_eval_interval))
         train_iou = [m["iou"] for m in results["global_metrics_history"]]
-        axes[1, 0].plot(epochs, train_iou, label="Train", marker='o', markersize=2)
+        axes[1, 1].plot(epochs, train_iou, label="Train IoU", marker='o', markersize=2, color='blue')
         
         if results.get("val_global_metrics_history"):
             val_iou = [m["iou"] for m in results["val_global_metrics_history"]]
             val_epochs = epochs[:len(val_iou)]
-            axes[1, 0].plot(val_epochs, val_iou, label="Val", marker='s', markersize=2)
-    axes[1, 0].set_title("IoU")
-    axes[1, 0].set_xlabel("Epoch")
-    axes[1, 0].legend()
-    axes[1, 0].grid(True)
+            axes[1, 1].plot(val_epochs, val_iou, label="Val IoU", marker='s', markersize=2, linestyle='dashed', color='blue')
     
     # ----------------------------------------
     # Plot [1,1]: DICE Score (Train vs Val)
@@ -956,34 +952,30 @@ def plot_training_results(results: dict, save_dir: str = "results"):
         epochs = list(range(global_eval_interval, 
                            len(results["global_dice_history"]) * global_eval_interval + 1, 
                            global_eval_interval))
-        axes[1, 1].plot(epochs, results["global_dice_history"], label="Train", marker='o', markersize=2)
+        axes[1, 1].plot(epochs, results["global_dice_history"], label="Train DICE", marker='o', markersize=2, color='green')
         
         if results.get("val_global_dice_history"):
             val_epochs = epochs[:len(results["val_global_dice_history"])]
-            axes[1, 1].plot(val_epochs, results["val_global_dice_history"], label="Val", marker='s', markersize=2)
-    axes[1, 1].set_title("DICE Score")
-    axes[1, 1].set_xlabel("Epoch")
-    axes[1, 1].legend()
-    axes[1, 1].grid(True)
+            axes[1, 1].plot(val_epochs, results["val_global_dice_history"], label="Val DICE", marker='s', markersize=2, linestyle='dashed', color='green')
     
     # ----------------------------------------
-    # Plot [1,2]: Coverage/Recall (Train vs Val)
+    # Plot [1,1]: Coverage/Recall (Train vs Val)
     # ----------------------------------------
     if results["global_metrics_history"]:
         epochs = list(range(global_eval_interval, 
                            len(results["global_metrics_history"]) * global_eval_interval + 1, 
                            global_eval_interval))
         train_recall = [m["recall"] for m in results["global_metrics_history"]]
-        axes[1, 2].plot(epochs, train_recall, label="Train", marker='o', markersize=2)
+        axes[1, 1].plot(epochs, train_recall, label="Train Recall", marker='o', markersize=2,color='red')
         
         if results.get("val_global_metrics_history"):
             val_recall = [m["recall"] for m in results["val_global_metrics_history"]]
             val_epochs = epochs[:len(val_recall)]
-            axes[1, 2].plot(val_epochs, val_recall, label="Val", marker='s', markersize=2)
-    axes[1, 2].set_title("Coverage (Recall)")
-    axes[1, 2].set_xlabel("Epoch")
-    axes[1, 2].legend()
-    axes[1, 2].grid(True)
+            axes[1, 1].plot(val_epochs, val_recall, label="Val Recall", marker='s', markersize=2, linestyle='dashed', color='red')
+    axes[1, 1].set_title("Metrics")
+    axes[1, 1].set_xlabel("Epoch")
+    axes[1, 1].legend()
+    axes[1, 1].grid(True)
 
     plt.tight_layout()
     plt.savefig(os.path.join(save_dir, "training_results.png"), dpi=300)
