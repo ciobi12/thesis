@@ -1,124 +1,139 @@
-import numpy as np 
-import os
-import matplotlib.pyplot as plt
-import random
-
-from row_based_search.env import PixelPathEnv
+from patch_based_search.env import PathTraversalEnv
+from patch_based_search.qlearner import PatchQLearner
 from l_systems_builder.l_systems_2d.l_systems_2d import LSystem2DGenerator
 
+import numpy as np
+from PIL import Image
+from matplotlib import pyplot as plt
 from time import perf_counter
+import os
 
-def visualize_result(env, save_dir: str = None, ep: int = 0) -> None:
-    fig, axs = plt.subplots(1, 2, figsize=(8,4))
-    axs[0].imshow(env.image, cmap="gray")
-    axs[0].set_title("Original Image")
-    axs[0].axis("off")
+def get_highest_avg_q_pixel(Q_table, patch_size):
+    avg_q = Q_table.mean(axis=1) 
+    best_idx = int(np.argmax(avg_q))
+    x = best_idx % patch_size
+    y = best_idx // patch_size
+    return (x, y)
 
-    axs[1].imshow(env.output, cmap="gray")
-    axs[1].set_title(f"Coverage: {env.coverage()*100:.3f}%")
-    axs[1].axis("off")
-    fig.suptitle('Episode {}'.format(ep))
+def train(env: PathTraversalEnv, agent: PatchQLearner, lsys_iter = 2, episodes=100):
+    rewards = []
+    epsilons = []
+    path_coverage = []
+    options = {"start_from_seed": True, "reset_global_mask": False}
+    dead_end = False
 
-    if save_dir:
-        plt.savefig(os.path.join(save_dir, f"{ep}.png"))
-        plt.close()
+    for ep in range(episodes):
+        # if ep == 10: 
+        #     options["reset_global_mask"] = True
+        # else:
+        #     options["reset_global_mask"] = False
+        obs, _ = env.reset(options = options)
+        ep_reward = 0.0
+        terminated = False
+        truncated = False
+
+        while not (terminated or truncated or dead_end):
+            patch_idx = env.curr_patch_idx
+            s = agent.state_index(obs)
+            a = agent.select_action(patch_idx, s)
+            obs_next, r, patch_done, dead_end, terminated, truncated, info = env.step(a)
+
+            if dead_end:
+                options["start_from_seed"] = False
+                
+            s_next = agent.state_index(obs_next)
+            agent.update(patch_idx, s, a, r, s_next, terminated or truncated or dead_end)
+            obs = obs_next
+            ep_reward += r
+        ep_coverage = info.get("total_coverage", 0)*100
+
+        rewards.append(ep_reward)
+        epsilons.append(agent.eps)
+        path_coverage.append(ep_coverage)
         
+        if env.render_mode == "rgb_array" and ep % 25 == 0:
+            frame = env.render()
+            fig, ax = plt.subplots(1, 1, figsize=(4, 5))
+            ax.imshow(frame)
+            ax.set_xticks([]); ax.set_yticks([])
+            ax.set_title(f"Episode: {ep + 1}, Coverage: {ep_coverage:.2f}%")
+            plt.savefig(f"{os.getcwd()}/patch_based_search/episodes_results/lsys_{lsys_iter}it/ep_{ep+1}_total_coverage_{ep_coverage:.2f}.png")
+            plt.close()
+            if terminated:
+                frame = env.render()
+                fig, ax = plt.subplots(1, 1, figsize=(4, 5))
+                ax.imshow(frame, origin="upper")
+                ax.set_xticks([]); ax.set_yticks([])
+                ax.set_title(f"Episode: {ep + 1}, Coverage: {ep_coverage:.2f}%")
+                plt.savefig(f"{os.getcwd()}/patch_based_search/episodes_results/lsys_{lsys_iter}it/ep_{ep+1}_total_coverage_{ep_coverage:.2f}.png")
+                plt.close()
+                return agent, epsilons, rewards, path_coverage, ep      
+            
+    return agent, epsilons, rewards, path_coverage, ep              
 
-def get_Q(Q, state):
-    if state not in Q.keys():
-        Q[state] = [0.0, 0.0]  # two actions: 0 or 1
-    return Q[state]
-
-# # Example toy image
-# image = np.random.choice([0, 255], size=(16, 16))
-# env = PixelPathEnv(image)
-
-lsys_obj = LSystem2DGenerator(axiom = "X",
+if __name__ == "__main__":
+    lsys_obj = LSystem2DGenerator(axiom = "X",
                                 rules = {"X": "F+[[X]-X]-F[-FX]+X",
                                          "F": "FF"
                                          }
                                 )
     
-iterations = 3
-angle = 22.5
-step = 5
-segments = lsys_obj.build_l_sys(iterations = iterations, step = step, angle_deg = angle)
-# lsys_obj.draw_lsystem()
-mask = lsys_obj.build_mask(canvas_size=(192, 256))
-print(np.unique(mask))
-env = PixelPathEnv(mask, render_mode="array")
+    iterations = 3
+    angle = 22.5
+    step = 5
 
-# Hyperparameters
-alpha = 0.2    # learning rate
-gamma = 0.9      
-eps_start = 0.2
-eps_min = 0.001     
-eps_decay = 0.95
-episodes = 200
+    segments = lsys_obj.build_l_sys(iterations = iterations, step = step, angle_deg = angle, start_angle = -90)
+    img, mask = lsys_obj.draw_lsystem_ct_style(canvas_size=(128, 256),
+                                               margin = 10,
+                                               root_width = 2,
+                                               lsys_save_path=f"patch_based_search/examples/lsys_{iterations}it.png",
+                                               mask_save_path = f"patch_based_search/examples/lsys_{iterations}it_mask.png",
+                                               add_ct_noise = False,
+                                               occlude_root = False,
+                                               skip_segments = False
+                                               )
+    env = PathTraversalEnv(path_mask=mask, 
+                           patch_size = 3, 
+                           target_coverage=0.95, 
+                           render_mode = "rgb_array")
+    
+    episodes = 200
+    agent = PatchQLearner(patch_size=env.patch_size, alpha=0.2, gamma=0.9, eps_start = 0.2, eps_min = 0.001, eps_decay=0.95)
+    start = perf_counter()
+    trained_agent, epsilons, rewards, path_coverage, terminal_ep = train(env, agent, lsys_iter = iterations, episodes = episodes)
+    end = perf_counter()
+    print(f"Training completed in {end - start:.2f} seconds over {terminal_ep+1} episodes.")
 
-# Q-table as dictionary: Q[state][action]
-Q = {}
+    results_dir = f"patch_based_search/episodes_results/lsys_{iterations}it"
+    os.makedirs(results_dir, exist_ok=True)
 
-rewards = []
-epsilons = []
-coverages = []
-eps = eps_start
+    # Save .dat files for LaTeX/pgfplots
+    episodes_arr = np.arange(1, len(rewards) + 1)
+    np.savetxt(f"{results_dir}/rewards.dat",
+               np.column_stack([episodes_arr, rewards]),
+               header="episode reward", comments="")
+    np.savetxt(f"{results_dir}/epsilons.dat",
+               np.column_stack([episodes_arr, epsilons]),
+               header="episode epsilon", comments="")
+    np.savetxt(f"{results_dir}/path_coverage.dat",
+               np.column_stack([episodes_arr, path_coverage]),
+               header="episode coverage", comments="")
 
-start = perf_counter()
-for ep in range(episodes):
-    state = env.reset()
-    done = False
-    total_reward = 0
+    fig, axs = plt.subplots(1, 3, figsize=(15,5))
 
-    while not done:
-        q_values = get_Q(Q, state)
-        if random.random() < eps:
-            action = random.choice([0, 1])
-        else:
-            action = np.argmax(q_values)
+    axs[0].plot(range(len(rewards)), rewards)
+    axs[0].set_title("Rewards")
+    axs[0].grid(True)
 
-        next_state, reward, done, info = env.step(action)
-        total_reward += reward / 255
+    axs[1].plot(range(len(epsilons)), epsilons, color='orange', linestyle='dashed')
+    axs[1].set_title("Epsilon")
+    axs[1].grid(True)
 
-        if not done:
-            next_q = get_Q(Q, next_state)
-            q_values[action] += alpha * (reward + gamma * max(next_q) - q_values[action])
-        else:
-            q_values[action] += alpha * (reward - q_values[action])
-            eps = max(eps_min, eps * eps_decay)
-
-        state = next_state
-
-    coverage = env.coverage()
-    rewards.append(total_reward)
-    epsilons.append(eps)
-    coverages.append(coverage*100)
-
-
-    if ep % 25 == 0:
-        print(f"Episode {ep}, total reward = {total_reward}, eps = {eps:.3f}")
-        visualize_result(env, f"row_based_search/episodes_results/lsys_{iterations}it", ep)
-    if coverage >= 0.995:
-        print(f"Reached target coverage in episode {ep}!")
-        visualize_result(env, f"row_based_search/episodes_results/lsys_{iterations}it", ep)
-        break  
-end = perf_counter()
-print(f"Training completed in {end - start:.2f} seconds.")
-
-
-
-# plt.subplot(3,1,1)
-# plt.plot(range(episodes), rewards)
-# plt.title("Rewards")
-# plt.grid(True)
-# plt.subplot(3,1,2)
-# plt.plot(range(episodes), epsilons, color='orange', linestyle='dashed')
-# plt.title("Epsilon")
-# plt.grid(True)
-# plt.subplot(3,1,3)
-# plt.plot(range(episodes), coverages, color='red')
-# plt.title("Path Coverage")
-# plt.ylabel("Coverage (%)")
-# plt.grid(True)
-# plt.savefig(f"{os.getcwd()}/row_based_search/episodes_results/lsys_{iterations}it/results.png")
-# plt.show()
+    axs[2].plot(range(len(path_coverage)), path_coverage, color='red')
+    axs[2].set_title("Path Coverage")
+    axs[2].set_ylabel("Coverage (%)")
+    axs[2].set_xlabel("Episodes")
+    plt.grid(True)
+    plt.subplots_adjust(top=1.0, bottom=0.0, hspace=0.4)
+    plt.savefig(f"{results_dir}/results.png", bbox_inches='tight', pad_inches=0.05)
+    # plt.show()

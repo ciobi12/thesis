@@ -34,7 +34,7 @@ lsys_obj = LSystem2DGenerator(axiom = "X",
                               rules = {"X": "F+[[X]-X]-F[-FX]+X",
                                        "F": "FF"})
 
-iterations = 3
+iterations = 4
 angle = 22.5
 step = 5
 
@@ -112,7 +112,7 @@ end = perf_counter()
 print(f"Training completed in {end - start:.2f} seconds.")
 
 
-fig, axs = plt.subplots(3, 1)
+fig, axs = plt.subplots(1, 3, figsize=(15,5))
 
 axs[0].plot(range(len(rewards)), rewards)
 axs[0].set_title("Rewards")
@@ -127,5 +127,6 @@ axs[2].set_title("Path Coverage")
 axs[2].set_ylabel("Coverage (%)")
 axs[2].set_xlabel("Episodes")
 plt.grid(True)
-plt.savefig(f"row_based_search/episodes_results/lsys_{iterations}it/results.png")
-plt.show()
+plt.subplots_adjust(top=1.0, bottom=0.0, hspace=0.4)
+plt.savefig(f"row_based_search/episodes_results/lsys_{iterations}it/results.png", bbox_inches='tight', pad_inches=0.05)
+# plt.show()
