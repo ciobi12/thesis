@@ -20,6 +20,7 @@ import json
 import csv
 from datetime import datetime
 import matplotlib.pyplot as plt
+import time
 
 
 # =============================================================================
@@ -574,7 +575,8 @@ def train(
     history = {
         'train_loss': [], 'val_loss': [],
         'train_dice': [], 'val_dice': [],
-        'train_iou': [], 'val_iou': []
+        'train_iou': [], 'val_iou': [],
+        'epoch_time': []
     }
     
     best_val_dice = 0.0
@@ -584,7 +586,9 @@ def train(
         print(f"\n{'='*60}")
         print(f"Epoch {epoch + 1}/{num_epochs}")
         print(f"{'='*60}")
-        
+
+        epoch_start_time = time.time()
+
         # Train
         train_metrics = train_epoch(model, train_loader, optimizer, criterion, device, scheduler)
         print(f"Train - Loss: {train_metrics['loss']:.4f}, Dice: {train_metrics['dice']:.4f}, "
@@ -594,6 +598,9 @@ def train(
         val_metrics = validate(model, val_loader, criterion, device)
         print(f"Val   - Loss: {val_metrics['loss']:.4f}, Dice: {val_metrics['dice']:.4f}, "
               f"IoU: {val_metrics['iou']:.4f}, Recall: {val_metrics['recall']:.4f}")
+
+        epoch_time = time.time() - epoch_start_time
+        print(f"Epoch time: {epoch_time:.2f}s ({epoch_time/60:.2f} min)")
         
         # Log history
         history['train_loss'].append(train_metrics['loss'])
@@ -602,6 +609,7 @@ def train(
         history['val_dice'].append(val_metrics['dice'])
         history['train_iou'].append(train_metrics['iou'])
         history['val_iou'].append(val_metrics['iou'])
+        history['epoch_time'].append(epoch_time)
         
         # Save best model
         if val_metrics['dice'] > best_val_dice:
@@ -637,7 +645,7 @@ def train(
     csv_path = save_dir / "training_metrics.csv"
     with open(csv_path, 'w', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(['epoch', 'train_loss', 'val_loss', 'train_dice', 'val_dice', 'train_iou', 'val_iou'])
+        writer.writerow(['epoch', 'train_loss', 'val_loss', 'train_dice', 'val_dice', 'train_iou', 'val_iou', 'epoch_time_sec'])
         for i in range(len(history['train_loss'])):
             writer.writerow([
                 i + 1,
@@ -646,7 +654,8 @@ def train(
                 f"{history['train_dice'][i]:.6f}",
                 f"{history['val_dice'][i]:.6f}",
                 f"{history['train_iou'][i]:.6f}",
-                f"{history['val_iou'][i]:.6f}"
+                f"{history['val_iou'][i]:.6f}",
+                f"{history['epoch_time'][i]:.2f}"
             ])
     print(f"Training metrics saved to {csv_path}")
     
@@ -663,7 +672,7 @@ def train(
 def main():
     parser = argparse.ArgumentParser(description="Train 3D U-Net for volumetric segmentation")
     parser.add_argument("--data_dir", type=str, 
-                        default="/home/sysadmin/thesis/data/rapids-p/subvolumes",
+                        default="/home/sysadmin/thesis/data/rapids-p/32x32x32",
                         help="Path to subvolumes directory")
     parser.add_argument("--save_dir", type=str,
                         default="models/unet3d",
@@ -677,7 +686,7 @@ def main():
                         choices=["dice", "focal", "tversky", "combined"],
                         help="Loss function to use")
     parser.add_argument("--augment", action="store_true", help="Enable data augmentation")
-    parser.add_argument("--min_fg_ratio", type=float, default=0.0,
+    parser.add_argument("--min_fg_ratio", type=float, default=0.0001,
                         help="Minimum foreground ratio to include samples")
     parser.add_argument("--num_workers", type=int, default=4, help="DataLoader workers")
     parser.add_argument("--early_stopping", type=int, default=15, help="Early stopping patience")
