@@ -204,14 +204,14 @@ def main():
     lr = 1e-3
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    train_dataset = BranchingStructureDataset(os.path.join(data_root, "ct_like/2d/train", "images"), 
-                                              os.path.join(data_root, "ct_like/2d/train", "segm"))
+    # train_dataset = BranchingStructureDataset(os.path.join(data_root, "ct_like/2d/train", "images"), 
+    #                                           os.path.join(data_root, "ct_like/2d/train", "segm"))
     
-    val_dataset = BranchingStructureDataset(os.path.join(data_root, "ct_like/2d/val", "images"), 
-                                            os.path.join(data_root, "ct_like/2d/val", "segm"))
+    # val_dataset = BranchingStructureDataset(os.path.join(data_root, "ct_like/2d/val", "images"), 
+    #                                         os.path.join(data_root, "ct_like/2d/val", "segm"))
     
-    # train_dataset = RetinalStructureDataset(os.path.join(data_root, "DRIVE"), os.path.join(data_root, "STARE"), split="train")
-    # val_dataset = RetinalStructureDataset(os.path.join(data_root, "DRIVE"), os.path.join(data_root, "STARE"), split="val")
+    train_dataset = RetinalStructureDataset(os.path.join(data_root, "DRIVE"), os.path.join(data_root, "STARE"), split="train")
+    val_dataset = RetinalStructureDataset(os.path.join(data_root, "DRIVE"), os.path.join(data_root, "STARE"), split="val")
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)

@@ -11,3 +11,5 @@ codebase/dqn_slice_based/backup/*
 *.zip
 
 latex_documentation/*
+
+*.ipynb
